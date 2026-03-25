@@ -2,11 +2,7 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package.json ./
-# Use public npm registry directly — Uber's internal registry blocks packages <12 days old
-# strict-ssl false bypasses corporate SSL inspection proxy
-RUN npm config set strict-ssl false && \
-    npm config set registry https://registry.npmjs.org && \
-    npm install --no-package-lock
+RUN npm install --no-package-lock
 COPY frontend/ ./
 RUN npm run build
 
