@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useModel, useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -283,7 +284,8 @@ export function WhatIfPage() {
   if (isHydrating || !modelId || !parseResult) return null
 
   return (
-    <div className="max-w-6xl space-y-6 h-full flex flex-col">
+    <ModelRequired>
+      <div className="max-w-6xl space-y-6 h-full flex flex-col">
       <div className="flex items-center justify-between flex-shrink-0">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#111827' }}>What-If Explorer</h1>
@@ -315,5 +317,6 @@ export function WhatIfPage() {
         )}
       </div>
     </div>
+    </ModelRequired>
   )
 }

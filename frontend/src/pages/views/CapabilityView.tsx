@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { usePageInsights } from '@/hooks/usePageInsights'
 import { QuickAction } from '@/components/changeset/QuickAction'
@@ -660,7 +661,8 @@ export function CapabilityView() {
   const dashInsight = insights['summary'] ?? insights['dashboard']
 
   return (
-    <div className="space-y-6">
+    <ModelRequired>
+      <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 style={H1_GRADIENT}>Capability View</h1>
@@ -1093,5 +1095,6 @@ export function CapabilityView() {
         />
       )}
     </div>
+    </ModelRequired>
   )
 }

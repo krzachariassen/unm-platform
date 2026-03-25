@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 import type { SignalsViewResponse, SignalsNeedRisk, SignalsCapItem, SignalsTeamItem, SignalsServiceItem } from '@/lib/api'
 import ReactMarkdown from 'react-markdown'
@@ -810,7 +811,8 @@ export function SignalsView() {
   const orgCount = org.top_teams_by_structural_load.length + org.critical_bottleneck_services.length + org.low_coherence_teams.length + (org.critical_external_deps?.length ?? 0)
 
   return (
-    <div className="space-y-5">
+    <ModelRequired>
+      <div className="space-y-5">
       <div>
         <h1 style={{ ...gradientTitle, fontSize: 24 }}>Architecture Signals</h1>
         <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
@@ -896,5 +898,6 @@ export function SignalsView() {
         </SectionCard>
       </div>
     </div>
+    </ModelRequired>
   )
 }

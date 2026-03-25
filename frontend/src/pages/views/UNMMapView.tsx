@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { ZoomIn, ZoomOut, Maximize2, Pencil } from 'lucide-react'
 import { api, type ViewNode, type ViewEdge, type ChangeAction } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { usePageInsights } from '@/hooks/usePageInsights'
 import { EditPanel } from '@/components/changeset/EditPanel'
 
@@ -701,7 +702,8 @@ export function UNMMapView() {
   const connOpacity  = (src: string, tgt: string, base: number) => hl ? (hl.has(src) && hl.has(tgt) ? base : 0.03) : base
 
   return (
-    <div className="h-full flex flex-col">
+    <ModelRequired>
+      <div className="h-full flex flex-col">
       {/* Legend + Zoom controls */}
       <div className="mb-3 flex items-center gap-4 flex-wrap flex-shrink-0">
         <h2 className="text-xl font-semibold" style={{ color: '#111827' }}>UNM Map</h2>
@@ -1086,6 +1088,7 @@ export function UNMMapView() {
         )}
       </div>
     </div>
+    </ModelRequired>
   )
 }
 

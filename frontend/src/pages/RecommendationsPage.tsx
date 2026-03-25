@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { RefreshCw, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { api } from '@/lib/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -90,7 +91,8 @@ export function RecommendationsPage() {
   if (isHydrating || !modelId || !parseResult) return null
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <ModelRequired>
+      <div className="max-w-4xl mx-auto space-y-6">
       <style>{`
         @keyframes rec-progress {
           0% { transform: translateX(-100%); opacity: 0.6; }
@@ -308,5 +310,6 @@ export function RecommendationsPage() {
         </div>
       )}
     </div>
+    </ModelRequired>
   )
 }
