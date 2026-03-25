@@ -3,7 +3,7 @@ package entity
 import (
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 func TestNewTeam(t *testing.T) {

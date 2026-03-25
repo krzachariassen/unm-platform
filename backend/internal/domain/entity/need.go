@@ -3,7 +3,7 @@ package entity
 import (
 	"errors"
 
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // Need represents what an actor is trying to achieve.

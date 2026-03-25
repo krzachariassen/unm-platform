@@ -3,11 +3,11 @@ package handler
 import (
 	"sync"
 
-	"github.com/uber/unm-platform/internal/adapter/repository"
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/infrastructure/ai"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
-	"github.com/uber/unm-platform/internal/usecase"
+	"github.com/krzachariassen/unm-platform/internal/adapter/repository"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/ai"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // insightEntry is a cached insight result with its computation status.

@@ -14,7 +14,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // LoadConfig loads configuration with the following precedence (highest wins):

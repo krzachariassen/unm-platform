@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // NewRouter registers all routes and wraps the mux in middleware.

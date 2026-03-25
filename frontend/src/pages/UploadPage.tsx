@@ -275,7 +275,7 @@ export function UploadPage() {
                 onClick={loadExample}
               >
                 <FlaskConical size={16} />
-                Load INCA Extended Example
+                Load Example Model
               </Button>
             </>
           )}

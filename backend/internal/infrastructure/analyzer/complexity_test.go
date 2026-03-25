@@ -3,7 +3,7 @@ package analyzer
 import (
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // TestComplexityAnalyzer_EmptyModel verifies an empty model produces an empty report.

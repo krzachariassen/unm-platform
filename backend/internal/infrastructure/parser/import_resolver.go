@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/infrastructure/parser/dsl"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser/dsl"
 )
 
 // ParseDSLFile parses a .unm file at the given path and resolves any imports

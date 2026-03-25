@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/infrastructure/parser/dsl"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser/dsl"
 )
 
 // DSLParser implements the Parser interface for .unm DSL files.

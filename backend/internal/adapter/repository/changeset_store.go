@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // StoredChangeset holds a changeset with its assigned ID, model association, and creation time.

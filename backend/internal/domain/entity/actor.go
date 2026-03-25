@@ -3,7 +3,7 @@ package entity
 import (
 	"errors"
 
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // Actor represents a person or system that has needs (e.g., Merchant, Eater, Operator).

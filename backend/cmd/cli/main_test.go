@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 func TestRunParseCommand_ValidFile(t *testing.T) {
@@ -163,9 +163,9 @@ func TestRunAnalyzeCommand_Complexity(t *testing.T) {
 	}
 }
 
-func TestRunAnalyzeCommand_BottleneckOnINCA(t *testing.T) {
+func TestRunAnalyzeCommand_BottleneckExampleModel(t *testing.T) {
 	var buf strings.Builder
-	code := runAnalyzeCommand([]string{"bottleneck", "../../../examples/inca.unm.extended.yaml"}, &buf, entity.DefaultConfig())
+	code := runAnalyzeCommand([]string{"bottleneck", "../../../examples/inca.unm.yaml"}, &buf, entity.DefaultConfig())
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d\noutput:\n%s", code, buf.String())
 	}

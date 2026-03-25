@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // StoredModel holds a parsed UNMModel with its assigned ID and timestamps.

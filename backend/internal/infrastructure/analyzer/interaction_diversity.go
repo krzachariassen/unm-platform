@@ -3,8 +3,8 @@ package analyzer
 import (
 	"sort"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // TeamModeOverload holds information about a team that over-relies on a single interaction mode.

@@ -3,8 +3,8 @@ package analyzer
 import (
 	"sort"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // LoadLevel represents a traffic-light assessment of a single dimension.

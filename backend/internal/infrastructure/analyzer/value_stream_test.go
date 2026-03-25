@@ -3,8 +3,8 @@ package analyzer
 import (
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 func mustNeed(t *testing.T, name, actor, outcome string) *entity.Need {

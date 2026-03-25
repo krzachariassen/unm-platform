@@ -3,8 +3,8 @@ package analyzer
 import (
 	"sort"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // TeamStreamCoherence holds the value stream coherence assessment for a single stream-aligned team.

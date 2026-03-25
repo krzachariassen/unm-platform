@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // ── Error codes ───────────────────────────────────────────────────────────────

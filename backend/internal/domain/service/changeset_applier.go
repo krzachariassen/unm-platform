@@ -3,8 +3,8 @@ package service
 import (
 	"fmt"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // ChangesetApplier is a domain service that applies a Changeset to a UNMModel,

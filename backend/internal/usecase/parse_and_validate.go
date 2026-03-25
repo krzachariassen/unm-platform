@@ -3,8 +3,8 @@ package usecase
 import (
 	"io"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
 )
 
 // ModelParser parses a UNM model from a reader.

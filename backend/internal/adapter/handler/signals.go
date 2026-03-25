@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
 )
 
 func (h *Handler) registerSignalsRoutes(mux *http.ServeMux) {

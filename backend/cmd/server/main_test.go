@@ -6,13 +6,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/uber/unm-platform/internal/adapter/handler"
-	"github.com/uber/unm-platform/internal/adapter/repository"
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/service"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
-	"github.com/uber/unm-platform/internal/usecase"
+	"github.com/krzachariassen/unm-platform/internal/adapter/handler"
+	"github.com/krzachariassen/unm-platform/internal/adapter/repository"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 func newTestRouter(t *testing.T) http.Handler {
