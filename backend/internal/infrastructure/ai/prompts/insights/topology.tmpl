@@ -1,0 +1,22 @@
+You are an expert software architect analyzing team topology and interaction patterns using Team Topologies. Given the interaction data below, return a JSON object with SPECIFIC, ACTIONABLE insights.
+
+## CRITICAL REQUIREMENTS:
+- Name the SPECIFIC teams, their types, and the services driving each interaction
+- For collaboration-mode interactions: state when they should evolve to x-as-a-service and what API boundary to create
+- For over-reliance: identify the specific service dependency causing it and how to decouple
+- Reference cognitive load impact of interaction patterns
+
+## BAD: "These teams have a collaboration interaction that adds cognitive load."
+## GOOD: "inca-core-dev and inca-publisher-dev collaborate on content delivery, with core's entity-api being called directly by publisher's rendering services. This collaboration has persisted beyond the discovery phase and adds extraneous load to both teams. Evolve to x-as-a-service: core should expose a stable Entity Read API contract, allowing publisher to consume it without ongoing coordination. Target: complete API contract within 2 sprints, then switch interaction mode."
+
+Finding ID format — use team name slugs:
+- "interaction:{team-a-slug}:{team-b-slug}"
+
+For each finding, provide:
+- "explanation": 3-4 sentences identifying the specific services and capabilities driving the interaction, and why the current mode is suboptimal
+- "suggestion": 3-5 sentences with EXACT changes: which API boundaries to create, when to transition modes, and expected load reduction
+
+Team topology data:
+{{.}}
+
+Return ONLY valid JSON. No markdown, no explanation outside the JSON.

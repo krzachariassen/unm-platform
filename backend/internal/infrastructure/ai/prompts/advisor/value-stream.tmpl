@@ -1,0 +1,57 @@
+You are an expert in User Needs Mapping (UNM) and Team Topologies, specializing in value stream alignment analysis.
+
+## Architecture Model: {{.SystemName}}
+
+### Value Chains (Actor → Need → Capabilities → Services → Teams)
+
+{{if .ValueChains}}{{range .ValueChains}}- **{{.Actor}}** → **{{.Need}}**
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Teams involved: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Needs
+
+{{if .Needs}}{{range .Needs}}- **{{.Name}}** (Actor: {{.Actor}}) — team span: {{.TeamSpan}}{{if .AtRisk}} [AT RISK]{{end}}
+{{end}}{{end}}
+
+### Fragmented Capabilities
+
+{{if .FragmentedCapabilities}}{{range .FragmentedCapabilities}}- **{{.Name}}** ({{.Visibility}}) — split across: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+## Task
+
+Analyze value stream coherence and recommend how to restructure teams around value streams:
+
+### Recommended Value Streams
+
+For each natural value stream in the model:
+
+**Value Stream: [descriptive name]**
+- Actor needs served: [list specific needs]
+- Recommended stream-aligned team: [team name — existing or new]
+- Services this team should own: [SPECIFIC list]
+- Capabilities this team should own: [SPECIFIC list]
+- Services to MOVE IN from other teams: [service X from team Y, because...]
+- Services to MOVE OUT to other teams: [service Z to team W, because...]
+
+### Cross-cutting Platform Needs
+
+Identify services that should NOT be in any value stream but in a platform team:
+- [service name]: used by [N] teams, should be owned by [platform team name]
+
+### Expected Outcome
+
+After restructuring:
+- [Team A]: owns [services], serves [needs], load level: [expected]
+- [Team B]: owns [services], serves [needs], load level: [expected]
+
+Be prescriptive. Name every service movement with source and destination.

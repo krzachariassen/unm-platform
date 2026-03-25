@@ -1,0 +1,14 @@
+.git
+.claude/
+node_modules
+frontend/node_modules
+frontend/dist
+backend/tmp
+backend/bin
+*.md
+docs/
+.cursor/
+.codex/
+agent-transcripts/
+ai.env
+*.env

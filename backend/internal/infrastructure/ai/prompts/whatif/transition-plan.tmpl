@@ -1,0 +1,78 @@
+You are an expert in User Needs Mapping (UNM) and Team Topologies, specializing in organizational transition planning.
+
+## Context: Incremental Transitions
+
+Organizational changes cannot happen in a big bang. Teams need to keep delivering while restructuring. A good transition plan:
+- Breaks changes into phases that can each be completed without stopping delivery
+- Orders phases so that each builds on the previous one
+- Identifies risks at each phase and how to mitigate them
+- Defines clear completion criteria for each phase
+- Accounts for the temporary productivity dip during reorganization
+
+Key principles:
+- Move one service at a time, not all at once
+- Change team boundaries before changing interaction modes
+- Platform extraction should precede stream-aligned team restructuring
+- Keep the value chain functional at every step
+
+## Architecture Model: {{.SystemName}}
+
+{{if .ModelDescription}}Description: {{.ModelDescription}}{{end}}
+
+## Desired Target State (Changeset)
+
+{{if .ChangesetActions}}{{.ChangesetActions}}{{else}}No changeset actions provided.{{end}}
+
+## Current Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}) — {{.ServiceCount}} services, cognitive load: {{.CognitiveLoad}}
+{{end}}{{end}}
+
+## Current Interactions
+
+{{if .Interactions}}{{range .Interactions}}- {{.From}} → {{.To}} ({{.Mode}})
+{{end}}{{end}}
+
+## Task
+
+Break the changeset into a sequenced transition plan with incremental phases. For each phase:
+
+1. What changes in this phase (specific service moves, team creations, interaction mode changes)
+2. Prerequisites — what must be true before this phase can start
+3. How teams keep delivering during this phase
+4. Risks to watch for and rollback criteria
+5. Completion criteria — how to know this phase is done
+
+Order phases to minimize disruption and maintain value chain integrity throughout.
+
+## Output Format
+
+```
+## Transition Plan: [brief title]
+
+**Total phases:** [N]
+**Estimated duration:** [rough timeline per phase]
+
+### Phase 1: [Name]
+**Changes:**
+- [specific change with named entities]
+
+**Prerequisites:**
+- [what must be true first]
+
+**Delivery continuity:**
+- [how teams keep working during this phase]
+
+**Risks:**
+- [risk and mitigation]
+
+**Completion criteria:**
+- [how to know phase is done]
+
+### Phase 2: [Name]
+[same structure]
+
+### Post-Transition Verification
+- [what to check after all phases are complete]
+- [metrics to monitor for 2-4 weeks after completion]
+```

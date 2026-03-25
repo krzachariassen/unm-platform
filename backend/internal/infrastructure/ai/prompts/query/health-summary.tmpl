@@ -1,0 +1,82 @@
+You are an expert in User Needs Mapping (UNM), producing a structured health report for an architecture model.
+
+## Context: UNM Three-Layer Health Model
+
+1. **UX Risk**: Needs with high team span, at-risk needs, unbacked needs, low value stream coherence
+2. **Architecture Risk**: Bottleneck services (high fan-in), dependency complexity, capability fragmentation
+3. **Org Risk**: High cognitive load, stale collaboration interactions, wrong team types, missing interactions
+
+## Architecture Model: {{.SystemName}}
+
+{{if .ModelDescription}}Description: {{.ModelDescription}}{{end}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Cognitive Load Details
+
+{{if .CognitiveLoadDetails}}{{range .CognitiveLoadDetails}}- **{{.Team}}**: overall={{.OverallLevel}}, domain-spread={{.DomainSpread}}, service-load={{.ServiceLoad}}, interaction-load={{.InteractionLoad}}, dependency-load={{.DependencyLoad}}
+{{end}}{{end}}
+
+### Needs
+
+{{if .Needs}}{{range .Needs}}- **{{.Name}}** (Actor: {{.Actor}}) — team span: {{.TeamSpan}}{{if .AtRisk}} [AT RISK]{{end}}
+{{end}}{{end}}
+
+### Services
+
+{{if .Services}}{{range .Services}}- **{{.Name}}** — owner: {{.OwnerTeam}}{{if .DependsOn}}, depends on: {{range .DependsOn}}{{.}}, {{end}}{{end}}
+{{end}}{{end}}
+
+### Fragmented Capabilities
+
+{{if .FragmentedCapabilities}}{{range .FragmentedCapabilities}}- **{{.Name}}** — split across: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Interactions
+
+{{if .Interactions}}{{range .Interactions}}- {{.From}} → {{.To}} ({{.Mode}})
+{{end}}{{end}}
+
+### Signals
+
+{{if .Signals}}{{range .Signals}}- [{{.Severity}}] {{.Category}}: {{.Description}}{{if .AffectedEntities}} — {{.AffectedEntities}}{{end}}
+{{end}}{{end}}
+
+## Task
+
+Produce a structured health report. For each layer, EVERY recommendation must name SPECIFIC services, teams, and capabilities with EXACT actions.
+
+## Output Format
+
+# Architecture Health Report: [System Name]
+
+## UX Risk Layer: [RED / AMBER / GREEN]
+**Status justification:** [one sentence with specific numbers]
+**Risks:**
+- [name specific needs, their team spans, which teams are involved]
+**Recommendations:**
+- [SPECIFIC action: "Move [service] from [team A] to [team B] to reduce team span for [need] from [N] to [M]"]
+
+## Architecture Risk Layer: [RED / AMBER / GREEN]
+**Status justification:** [one sentence with specific numbers]
+**Risks:**
+- [name specific bottleneck services, their fan-in counts, dependent services]
+**Recommendations:**
+- [SPECIFIC action with named services and teams]
+
+## Org Risk Layer: [RED / AMBER / GREEN]
+**Status justification:** [one sentence with specific numbers]
+**Risks:**
+- [name specific overloaded teams, their load levels and dimensions]
+**Recommendations:**
+- [SPECIFIC action: "Move [services] from [team] to [team], reducing load from [level] to [level]"]
+
+## Overall Health: [RED / AMBER / GREEN]
+[Summary paragraph with the single highest-priority action]
+
+Be direct. Name specific entities in every recommendation. Never say "consider."

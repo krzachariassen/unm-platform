@@ -1,0 +1,28 @@
+system "Simple DSL System" {
+  description "A minimal DSL-format test system"
+}
+
+actor "User" {
+  description "A basic user"
+}
+
+need "Do something" {
+  actor "User"
+  supportedBy "Core Capability"
+}
+
+capability "Core Capability" {
+  description "The core capability"
+  realizedBy "core-service"
+}
+
+service "core-service" {
+  description "The core service"
+  ownedBy "Core Team"
+}
+
+team "Core Team" {
+  type "stream-aligned"
+  description "The main team"
+  owns "Core Capability"
+}

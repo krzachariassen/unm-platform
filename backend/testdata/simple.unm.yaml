@@ -1,0 +1,33 @@
+system:
+  name: "Simple System"
+  description: "A minimal test system"
+
+actors:
+  - name: "User"
+    description: "A basic user"
+
+needs:
+  - name: "Do something"
+    actor: "User"
+    outcome: "Something is done"
+    supportedBy:
+      - "Core Capability"
+
+capabilities:
+  - name: "Core Capability"
+    description: "The core capability of the system"
+    realizedBy:
+      - target: "core-service"
+        description: "Main implementation"
+
+services:
+  - name: "core-service"
+    description: "The core service"
+    ownedBy: "Core Team"
+
+teams:
+  - name: "Core Team"
+    type: "stream-aligned"
+    description: "The main team"
+    owns:
+      - "Core Capability"

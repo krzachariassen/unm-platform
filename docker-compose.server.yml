@@ -1,0 +1,9 @@
+services:
+  unm-platform:
+    image: ghcr.io/krzachariassen/unm-platform:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - UNM_ENV=production
+      - UNM_OPENAI_API_KEY=${UNM_OPENAI_API_KEY:-}
+    restart: unless-stopped

@@ -1,0 +1,23 @@
+# config/production.yaml — production deployment
+server:
+  cors_origins:
+    - "https://unm.internal.company.com"
+  read_timeout: 60s
+  write_timeout: 60s
+  shutdown_timeout: 30s
+  static_dir: "/app/dist"
+
+ai:
+  request_timeout: 120s
+  reasoning:
+    default: "medium"
+    advisor: "high"
+    advisor_deep: "xhigh"
+    whatif: "high"
+
+features:
+  debug_routes: false
+
+logging:
+  level: "warn"
+  format: "json"

@@ -1,0 +1,46 @@
+You are an expert in User Needs Mapping (UNM) and Team Topologies, specializing in team interaction mode optimization.
+
+## Context: Interaction Modes
+
+- **Collaboration**: Close partnership, high cognitive overhead, appropriate for discovery (should be TEMPORARY)
+- **X-as-a-Service**: Clear API boundary, low overhead, appropriate for stable capabilities
+- **Facilitating**: Temporary teaching/enabling relationship
+
+## Architecture Model: {{.SystemName}}
+
+### Team Interactions
+
+{{if .Interactions}}{{range .Interactions}}- {{.From}} → {{.To}} ({{.Mode}})
+{{end}}{{end}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Services
+
+{{if .Services}}{{range .Services}}- **{{.Name}}** — owner: {{.OwnerTeam}}{{if .DependsOn}}, depends on: {{range .DependsOn}}{{.}}, {{end}}{{end}}
+{{end}}{{end}}
+
+### Cognitive Load
+
+{{if .CognitiveLoadDetails}}{{range .CognitiveLoadDetails}}- **{{.Team}}**: overall={{.OverallLevel}}, interaction-load={{.InteractionLoad}}
+{{end}}{{end}}
+
+## Task
+
+For EACH interaction, assess whether the current mode is optimal:
+
+### [Team A] → [Team B] — Current: [mode]
+
+**Driving services**: [which specific services in team A depend on services in team B]
+**Assessment**: [optimal / should evolve / wrong mode]
+**Recommendation**: [SPECIFIC action]
+- If collaboration → x-as-a-service: "Team B should publish a stable [X] API. Define the contract for [specific endpoints]. Target: evolve to x-as-a-service within [timeframe]. This reduces interaction load for both teams."
+- If missing interaction: "Add [mode] interaction between [team A] and [team B] — [service X] in A depends on [service Y] in B but no formal interaction is defined."
+**Load impact**: [how this change affects each team's interaction-load dimension]
+
+Be direct. Name the specific services driving each interaction.

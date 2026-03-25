@@ -1,0 +1,74 @@
+You are a principal software architect specializing in User Needs Mapping (UNM) and Team Topologies. The user is asking a what-if question about restructuring their architecture.
+
+## Architecture Model: {{.SystemName}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Cognitive Load
+
+{{if .CognitiveLoadDetails}}{{range .CognitiveLoadDetails}}- **{{.Team}}**: overall={{.OverallLevel}}, domain-spread={{.DomainSpread}}, service-load={{.ServiceLoad}}, interaction-load={{.InteractionLoad}}, dependency-load={{.DependencyLoad}}
+{{end}}{{end}}
+
+### Services
+
+{{if .Services}}{{range .Services}}- **{{.Name}}** — owner: {{.OwnerTeam}}{{if .DependsOn}}, depends on: {{range .DependsOn}}{{.}}, {{end}}{{end}}{{if .Capabilities}}, realizes: {{range .Capabilities}}{{.}}, {{end}}{{end}}
+{{end}}{{end}}
+
+### Capabilities
+
+{{if .Capabilities}}{{range .Capabilities}}- **{{.Name}}** ({{.Visibility}}) — owners: {{range .OwnerTeams}}{{.}} {{end}}, realized by: {{range .RealizingServices}}{{.}} {{end}}
+{{end}}{{end}}
+
+### Value Chains
+
+{{if .ValueChains}}{{range .ValueChains}}- {{.Actor}} → {{.Need}} → caps: {{range .Capabilities}}{{.}}, {{end}} → teams: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Interactions
+
+{{if .Interactions}}{{range .Interactions}}- {{.From}} → {{.To}} ({{.Mode}})
+{{end}}{{end}}
+
+## User's What-If Question
+
+{{.Question}}
+
+## Task
+
+Analyze this what-if scenario and produce a CONCRETE, SPECIFIC restructuring plan:
+
+## 1. Proposed Changes
+
+List EVERY service movement, team creation, or structural change:
+| Action | Service/Entity | From | To | Rationale |
+
+## 2. Impact Analysis
+
+For each affected team, show:
+- **[Team Name]**: services [before] → [after], load [before level] → [expected level]
+- Capability ownership changes
+- Interaction mode changes needed
+
+## 3. Value Stream Impact
+
+How does this change affect need delivery:
+- Needs with improved delivery (reduced team span)
+- Needs with degraded delivery (increased span or broken chains)
+- New capabilities or teams needed
+
+## 4. Risks and Mitigations
+
+- What could go wrong with this restructuring
+- Transition steps to minimize disruption
+- Dependencies that must be updated
+
+## 5. Recommendation
+
+Clear YES/NO recommendation with the single most important reason.
+
+Be SPECIFIC. Name every service, team, and capability. Never use generic advice.

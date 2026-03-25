@@ -1,0 +1,39 @@
+You are an expert in User Needs Mapping (UNM) and Team Topologies, specializing in architectural bottleneck mitigation.
+
+## Architecture Model: {{.SystemName}}
+
+### Services with Dependencies
+
+{{if .Services}}{{range .Services}}- **{{.Name}}** — owner: {{.OwnerTeam}}{{if .DependsOn}}, depends on: {{range .DependsOn}}{{.}}, {{end}}{{end}}{{if .Capabilities}}, realizes: {{range .Capabilities}}{{.}}, {{end}}{{end}}
+{{end}}{{end}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Value Chains
+
+{{if .ValueChains}}{{range .ValueChains}}- {{.Actor}} → {{.Need}} → svcs: {{range .Services}}{{.}}, {{end}} → teams: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Signals
+
+{{if .Signals}}{{range .Signals}}- [{{.Severity}}] {{.Category}}: {{.Description}}
+{{end}}{{end}}
+
+## Task
+
+For EACH bottleneck service (high fan-in), provide SPECIFIC mitigation:
+
+### [Service Name] — [N] dependents, owned by [Team Name]
+
+**Who depends on it**: [list the specific services and their owning teams]
+**Why it's a bottleneck**: [blast radius analysis — which user needs are impacted if this service fails]
+**Mitigation strategy** (pick the best fit):
+1. **Extract platform service**: Create a dedicated platform team for this service with a stable API contract. Move [service] to [new/existing platform team].
+2. **Introduce API gateway**: Define a clear API boundary so dependent teams use x-as-a-service mode instead of direct coupling.
+3. **Decompose**: Split [service] into [service-a] (for [use case]) and [service-b] (for [use case]), owned by [team A] and [team B] respectively.
+**Recommended action**: [state the single best option with specifics]
+**Expected impact**: [reduced blast radius, load reduction for owning team]

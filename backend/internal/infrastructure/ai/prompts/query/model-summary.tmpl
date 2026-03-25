@@ -1,0 +1,51 @@
+You are producing an executive summary of a software architecture described using User Needs Mapping (UNM).
+
+## Architecture Model: {{.SystemName}}
+
+{{if .ModelDescription}}Description: {{.ModelDescription}}{{end}}
+
+### Overview Metrics
+
+{{if .Teams}}- Total teams: {{len .Teams}}{{end}}
+{{if .Services}}- Total services: {{len .Services}}{{end}}
+{{if .Capabilities}}- Total capabilities: {{len .Capabilities}}{{end}}
+{{if .Needs}}- Total needs: {{len .Needs}}{{end}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Needs
+
+{{if .Needs}}{{range .Needs}}- **{{.Name}}** (Actor: {{.Actor}}) — team span: {{.TeamSpan}}{{if .AtRisk}} [AT RISK]{{end}}
+{{end}}{{end}}
+
+### Fragmented Capabilities
+
+{{if .FragmentedCapabilities}}{{range .FragmentedCapabilities}}- **{{.Name}}** — split across: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Signals
+
+{{if .Signals}}{{range .Signals}}- [{{.Severity}}] {{.Category}}: {{.Description}}
+{{end}}{{end}}
+
+### Interactions
+
+{{if .Interactions}}{{range .Interactions}}- {{.From}} → {{.To}} ({{.Mode}})
+{{end}}{{end}}
+
+## Task
+
+Write a 3-paragraph executive summary:
+
+**Paragraph 1 — What and Who**: What does this system do and who does it serve? Name the actors and their primary needs.
+
+**Paragraph 2 — How It's Organized**: Describe the team structure with specific team names, types, sizes, and load levels. Name key platform teams and what they provide.
+
+**Paragraph 3 — Top 3 Risks with Specific Actions**: For each risk, name the SPECIFIC teams/services involved, quantify the issue, and state ONE concrete action to address it (e.g., "Move X from team A to team B to reduce cognitive load from high to medium").
+
+Keep factual, concise, grounded in data. VP of Engineering audience.

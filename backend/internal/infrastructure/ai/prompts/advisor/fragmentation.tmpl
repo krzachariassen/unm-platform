@@ -1,0 +1,41 @@
+You are an expert in User Needs Mapping (UNM) and Team Topologies, specializing in capability fragmentation resolution.
+
+## Architecture Model: {{.SystemName}}
+
+### Fragmented Capabilities
+
+{{if .FragmentedCapabilities}}{{range .FragmentedCapabilities}}- **{{.Name}}** ({{.Visibility}}) — split across: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{else}}No fragmentation detected.{{end}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Services
+
+{{if .Services}}{{range .Services}}- **{{.Name}}** — owner: {{.OwnerTeam}}{{if .Capabilities}}, realizes: {{range .Capabilities}}{{.}}, {{end}}{{end}}
+{{end}}{{end}}
+
+### Capabilities
+
+{{if .Capabilities}}{{range .Capabilities}}- **{{.Name}}** ({{.Visibility}}) — owners: {{range .OwnerTeams}}{{.}} {{end}}, realized by: {{range .RealizingServices}}{{.}} {{end}}
+{{end}}{{end}}
+
+## Task
+
+For EACH fragmented capability, provide a SPECIFIC consolidation plan:
+
+### [Capability Name] — Fragmented across [N] teams
+
+**Current state**: [which services realize it, which team owns each service]
+**Recommended owner**: [the single team that should own this capability]
+**Why this team**: [value stream alignment, existing capability overlap, team type fit]
+**Services to move**:
+1. Move [service X] from [team A] to [recommended team] — [rationale]
+2. Move [service Y] from [team B] to [recommended team] — [rationale]
+**Impact**: [load changes for source and destination teams, coherence improvement]
+
+Never suggest "consider" — state the definitive action and the specific team.

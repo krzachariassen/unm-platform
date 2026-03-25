@@ -1,0 +1,253 @@
+- id: 1
+  category: structural-load
+  template: advisor/structural-load
+  question: "Which team has the highest structural load and why?"
+  must_mention:
+    - inca-core-dev
+  must_not_mention: []
+  notes: "inca-core-dev is the overloaded platform team"
+
+- id: 2
+  category: structural-load
+  template: advisor/structural-load
+  question: "How can we reduce inca-core-dev's cognitive load?"
+  must_mention:
+    - inca-core-dev
+  must_not_mention: []
+  notes: "inca-core-dev needs restructuring"
+
+- id: 6
+  category: structural-load
+  template: advisor/structural-load
+  question: "Should we split inca-core-dev into two teams? How?"
+  must_mention:
+    - inca-core-dev
+  must_not_mention: []
+  notes: "splitting is a common recommendation"
+
+- id: 12
+  category: structural-load
+  template: advisor/structural-load
+  question: "What Team Topologies principle is inca-core-dev violating?"
+  must_mention:
+    - inca-core-dev
+  must_not_mention: []
+  notes: "likely violating cognitive load limits"
+
+- id: 17
+  category: service-placement
+  template: advisor/service-placement
+  question: "Should inca-indexer be owned by inca-core-dev or catalog-quality-eng?"
+  must_mention:
+    - inca-indexer
+  must_not_mention: []
+  notes: "inca-indexer placement question"
+
+- id: 18
+  category: service-placement
+  template: advisor/service-placement
+  question: "Where should inca-async-entity-writer live based on its dependency pattern?"
+  must_mention:
+    - inca-async-entity-writer
+  must_not_mention: []
+  notes: "dependency-based placement"
+
+- id: 26
+  category: service-placement
+  template: advisor/service-placement
+  question: "Should inca-blob be its own platform service?"
+  must_mention:
+    - inca-blob
+  must_not_mention: []
+  notes: "inca-blob platform promotion"
+
+- id: 33
+  category: team-boundary
+  template: advisor/team-boundary
+  question: "Is dotcom-eng a good team boundary for inca-ig-ingester?"
+  must_mention:
+    - dotcom-eng
+  must_not_mention: []
+  notes: "dotcom-eng boundary question"
+
+- id: 34
+  category: team-boundary
+  template: advisor/team-boundary
+  question: "Should inca-observability-dev be a platform team instead of complicated-subsystem?"
+  must_mention:
+    - inca-observability-dev
+  must_not_mention: []
+  notes: "team type reclassification"
+
+- id: 40
+  category: team-boundary
+  template: advisor/team-boundary
+  question: "Is catalog-quality-eng correctly classified as complicated-subsystem?"
+  must_mention:
+    - catalog-quality-eng
+  must_not_mention: []
+  notes: "team type classification check"
+
+- id: 41
+  category: interaction-mode
+  template: advisor/interaction-mode
+  question: "Are our interaction modes diverse enough?"
+  must_mention: []
+  must_not_mention: []
+  notes: "interaction diversity"
+
+- id: 45
+  category: interaction-mode
+  template: advisor/interaction-mode
+  question: "Should inca-core-dev's self-interaction be a concern?"
+  must_mention:
+    - inca-core-dev
+  must_not_mention: []
+  notes: "self-loop interaction"
+
+- id: 48
+  category: interaction-mode
+  template: advisor/interaction-mode
+  question: "Which interaction patterns suggest tight coupling?"
+  must_mention: []
+  must_not_mention: []
+  notes: "coupling via interactions"
+
+- id: 51
+  category: fragmentation
+  template: advisor/fragmentation
+  question: "Which capabilities have fragmented ownership?"
+  must_mention: []
+  must_not_mention: []
+  notes: "fragmentation analysis"
+
+- id: 52
+  category: fragmentation
+  template: advisor/fragmentation
+  question: "How should we resolve fragmentation in Data Transformation & Conversion?"
+  must_mention: []
+  must_not_mention: []
+  notes: "specific capability fragmentation"
+
+- id: 56
+  category: fragmentation
+  template: advisor/fragmentation
+  question: "Which capabilities are only realized by a single service (SPOF)?"
+  must_mention: []
+  must_not_mention: []
+  notes: "single point of failure"
+
+- id: 61
+  category: bottleneck
+  template: advisor/bottleneck
+  question: "What is the critical dependency path in this system?"
+  must_mention: []
+  must_not_mention: []
+  notes: "critical path analysis"
+
+- id: 62
+  category: bottleneck
+  template: advisor/bottleneck
+  question: "Which service is the biggest bottleneck?"
+  must_mention: []
+  must_not_mention: []
+  notes: "bottleneck identification"
+
+- id: 63
+  category: bottleneck
+  template: advisor/bottleneck
+  question: "How can we reduce inca-core's fan-in?"
+  must_mention: []
+  must_not_mention: []
+  notes: "fan-in reduction strategies"
+
+- id: 66
+  category: bottleneck
+  template: advisor/bottleneck
+  question: "What would break if inca-core went down?"
+  must_mention: []
+  must_not_mention: []
+  notes: "blast radius analysis"
+
+- id: 71
+  category: general
+  template: advisor/general
+  question: "What if we move inca-admin and inca-blob to a new 'inca-ops' team?"
+  must_mention: []
+  must_not_mention: []
+  notes: "what-if: new ops team"
+
+- id: 73
+  category: general
+  template: advisor/general
+  question: "What if inca-core-dev grows from 5 to 10 people?"
+  must_mention:
+    - inca-core-dev
+  must_not_mention: []
+  notes: "what-if: team growth"
+
+- id: 76
+  category: general
+  template: advisor/general
+  question: "What if dotcom-eng stops owning inca-ig-ingester?"
+  must_mention:
+    - dotcom-eng
+  must_not_mention: []
+  notes: "what-if: ownership change"
+
+- id: 86
+  category: value-stream
+  template: advisor/value-stream
+  question: "Which needs require the most teams to deliver?"
+  must_mention: []
+  must_not_mention: []
+  notes: "team span analysis"
+
+- id: 87
+  category: value-stream
+  template: advisor/value-stream
+  question: "Is inca-core-dev a real value stream or an organizational accident?"
+  must_mention:
+    - inca-core-dev
+  must_not_mention: []
+  notes: "value stream legitimacy"
+
+- id: 92
+  category: value-stream
+  template: advisor/value-stream
+  question: "Which needs are at risk because their delivery chain passes through an overloaded team?"
+  must_mention: []
+  must_not_mention: []
+  notes: "overloaded delivery chain risk"
+
+- id: 94
+  category: value-stream
+  template: advisor/value-stream
+  question: "Which user-facing needs have the longest delivery chain?"
+  must_mention: []
+  must_not_mention: []
+  notes: "longest delivery chain"
+
+- id: 101
+  category: model-summary
+  template: query/model-summary
+  question: "Summarize this architecture for a VP of Engineering."
+  must_mention: []
+  must_not_mention: []
+  notes: "executive summary"
+
+- id: 102
+  category: model-summary
+  template: query/model-summary
+  question: "What are the top 3 organizational risks in this system?"
+  must_mention: []
+  must_not_mention: []
+  notes: "top risks"
+
+- id: 115
+  category: model-summary
+  template: query/model-summary
+  question: "Write an RFC proposing the single most impactful team restructure for this system."
+  must_mention: []
+  must_not_mention: []
+  notes: "RFC proposal"

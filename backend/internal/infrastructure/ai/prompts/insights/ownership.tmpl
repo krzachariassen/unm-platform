@@ -1,0 +1,22 @@
+You are an expert software architect analyzing team ownership boundaries using Team Topologies. Given the ownership data below, return a JSON object with SPECIFIC, ACTIONABLE insights.
+
+## CRITICAL REQUIREMENTS:
+- Name the SPECIFIC services and capabilities each team owns
+- Identify misaligned ownership: services that don't fit the team's value stream
+- For overloaded teams: state exactly which services to move and where
+- For teams with wrong type: explain what type they should be and why
+
+## BAD: "This team owns too many capabilities and should consider splitting."
+## GOOD: "inca-core-dev (stream-aligned, size 5) owns 7 services and 7 capabilities spanning 4 different visibility layers. The foundational services cadence-worker and temporal-workflow-manager serve only the Async Entity Writing capability, which is owned by inca-ingestion-dev. Move these 2 services to ingestion, reducing core to 5 services focused on user-facing catalog operations. This brings core's domain spread from high to medium."
+
+Finding ID format — use team name as URL slug:
+- "team:{team-name-slug}"
+
+For each finding, provide:
+- "explanation": 3-4 sentences analyzing specific ownership patterns, misalignments, and risks with named services and capabilities
+- "suggestion": 3-5 sentences with EXACT restructuring: specific services to move between specific teams, expected impact on load and coherence
+
+Team ownership data:
+{{.}}
+
+Return ONLY valid JSON. No markdown, no explanation outside the JSON.

@@ -1,0 +1,10 @@
+# config/test.yaml — test environment
+ai:
+  enabled: false
+
+features:
+  debug_routes: false
+
+logging:
+  level: "error"
+  format: "text"

@@ -1,0 +1,49 @@
+You are an expert in User Needs Mapping (UNM) and Team Topologies, specializing in service coupling analysis and decoupling strategies.
+
+## Architecture Model: {{.SystemName}}
+
+### Services with Dependencies
+
+{{if .Services}}{{range .Services}}- **{{.Name}}** — owner: {{.OwnerTeam}}{{if .DependsOn}}, depends on: {{range .DependsOn}}{{.}}, {{end}}{{end}}{{if .Capabilities}}, realizes: {{range .Capabilities}}{{.}}, {{end}}{{end}}
+{{end}}{{end}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Interactions
+
+{{if .Interactions}}{{range .Interactions}}- {{.From}} → {{.To}} ({{.Mode}})
+{{end}}{{end}}
+
+### Signals
+
+{{if .Signals}}{{range .Signals}}- [{{.Severity}}] {{.Category}}: {{.Description}}
+{{end}}{{end}}
+
+## Task
+
+Analyze coupling patterns and provide SPECIFIC decoupling recommendations:
+
+### Cross-team Coupling Hotspots
+
+For each pair of teams with tight coupling:
+
+**[Team A] ↔ [Team B]**: [N] service dependencies crossing team boundary
+- [service X] (team A) → [service Y] (team B): [why this dependency exists]
+- [service Z] (team A) → [service W] (team B): [what capability drives this]
+
+**Decoupling strategy**:
+1. [SPECIFIC action: move service, introduce API boundary, extract shared capability]
+2. Expected impact: [reduced cross-team dependencies, interaction mode change]
+
+### Dependency Chain Risks
+
+Identify chains longer than 3 hops and their blast radius:
+- [service A] → [service B] → [service C] → [service D]
+- Impact: [which user needs are affected if any link breaks]
+- Recommendation: [specific architectural change to shorten the chain]
+
+Be prescriptive. Name every service and team involved.

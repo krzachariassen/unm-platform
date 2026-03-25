@@ -1,0 +1,28 @@
+system:
+  name: "Invalid System"
+  description: "A system with validation errors"
+
+actors:
+  - name: "User"
+    description: "A basic user"
+
+needs:
+  - name: "Unsupported Need"
+    actor: "User"
+    outcome: "Something is done"
+    # intentionally no supportedBy — triggers ErrNeedNoCapability
+
+capabilities:
+  - name: "Orphan Capability"
+    description: "A capability with no service"
+    # intentionally no realizedBy — triggers ErrLeafCapNoService
+
+services:
+  - name: "orphan-service"
+    description: "A service with no owner"
+    # intentionally no ownedBy — triggers ErrServiceNoOwner
+
+teams:
+  - name: "Core Team"
+    type: "stream-aligned"
+    description: "The main team"

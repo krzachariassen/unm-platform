@@ -1,0 +1,84 @@
+# config/base.yaml — shared defaults (always loaded first)
+# ALL config keys are defined here. Environment files only override what differs.
+
+server:
+  port: 8080
+  host: "0.0.0.0"
+  cors_origins:
+    - "http://localhost:5173"
+  read_timeout: 30s
+  write_timeout: 30s
+  shutdown_timeout: 10s
+  session_ttl: 2h
+  static_dir: ""
+
+frontend:
+  api_base_url: "/api"
+  dev_proxy_target: "http://localhost:8080"
+  dev_server_port: 5173
+
+ai:
+  enabled: true
+  provider: openai
+  api_key_env: "UNM_OPENAI_API_KEY"
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-5.4-nano"             # fallback model for any category not in 'models'
+  models:
+    default:                 "gpt-5.4-nano"   # $0.20/$1.25 — frontier-class nano, great default
+    insights:                "gpt-5-nano"     # $0.05/$0.40 — cheapest model, perfect for structured JSON
+    query:                   "gpt-5-nano"     # $0.05/$0.40 — simple summaries and Q&A
+    advisor:                 "gpt-5.4-nano"   # $0.20/$1.25 — frontier reasoning at nano price
+    advisor_recommendations: "gpt-5.4-mini"   # $0.75/$4.50 — strongest mini for complex reports
+    advisor_whatif-scenario:  "gpt-5.4-mini"  # $0.75/$4.50 — complex what-if scenarios
+    whatif:                   "gpt-5.4-mini"  # $0.75/$4.50 — changeset impact assessment
+  request_timeout: 60s
+  timeouts:
+    default:                 60s    # standard requests
+    insights:                30s    # structured JSON, fast models
+    query:                   30s    # simple Q&A, fast models
+    advisor_recommendations: 300s   # complex multi-section report, needs time
+    advisor_whatif-scenario:  300s  # complex what-if scenarios
+    whatif:                   120s  # changeset impact assessment
+  reasoning:
+    default:                 "low"      # fallback — minimal chain-of-thought
+    insights:                "none"     # structured JSON from pre-analyzed data, no reasoning needed
+    query:                   "none"     # simple summaries, no reasoning needed
+    advisor:                 "low"      # domain-specific questions, prompt is well-structured
+    advisor_recommendations: "low"      # prompt is highly structured with explicit rules — low reasoning sufficient
+    advisor_whatif-scenario:  "low"     # well-structured scenario prompt
+    whatif:                   "low"     # changeset impact assessment
+
+analysis:
+  default_team_size: 5
+  overloaded_capability_threshold: 6
+  cognitive_load:
+    domain_spread_thresholds: [4, 6]
+    service_load_thresholds: [2.0, 3.0]
+    interaction_load_thresholds: [4, 7]
+    dependency_load_thresholds: [5, 9]
+  interaction_weights:
+    collaboration: 3
+    facilitating: 2
+    x-as-a-service: 1
+  bottleneck:
+    fan_in_warning: 5
+    fan_in_critical: 10
+  signals:
+    need_team_span_warning: 2
+    need_team_span_critical: 3
+    high_span_service_threshold: 3
+    interaction_over_reliance: 4
+    depth_chain_threshold: 4
+  value_chain:
+    at_risk_team_span: 3
+
+features:
+  debug_routes: true
+  debug_example_paths:
+    - "../examples/inca.unm.extended.yaml"
+    - "../../examples/inca.unm.extended.yaml"
+    - "examples/inca.unm.extended.yaml"
+
+logging:
+  level: "info"
+  format: "text"

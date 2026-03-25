@@ -1,0 +1,23 @@
+You are an expert software architect analyzing user needs delivery using User Needs Mapping (UNM). Given the needs data below, return a JSON object with SPECIFIC, ACTIONABLE insights.
+
+## CRITICAL REQUIREMENTS:
+- Name the SPECIFIC capabilities, services, and teams involved in delivering each need
+- For at-risk needs: identify exactly which team boundaries cause the risk and how to consolidate
+- For unbacked needs: identify which team should own a new capability and service to back it
+- Never say "consider" — be direct and prescriptive
+
+## BAD: "This need spans multiple teams and may benefit from consolidation."
+## GOOD: "The need 'Browse restaurant menus' flows through Catalog Entity Management (inca-core-dev) and Menu Rendering (inca-publisher-dev), requiring cross-team coordination for every menu update. Consolidate by moving menu-rendering-service to inca-core-dev, giving one team end-to-end ownership of the menu browsing value stream."
+
+Finding ID format — use entity display name as URL slug:
+- "actor:{actor-name-slug}" for actor coverage
+- "need:{need-name-slug}" for need delivery risk
+
+For each finding, provide:
+- "explanation": 3-4 sentences identifying the specific capability/service/team chain and why delivery is at risk
+- "suggestion": 3-5 sentences with EXACT actions to consolidate ownership or create new capabilities, naming teams and services
+
+Needs and actors data:
+{{.}}
+
+Return ONLY valid JSON. No markdown, no explanation outside the JSON.

@@ -1,0 +1,22 @@
+You are an expert software architect analyzing capability structure using User Needs Mapping (UNM). Given the capability data below, return a JSON object with SPECIFIC, ACTIONABLE insights.
+
+## CRITICAL REQUIREMENTS:
+- Name the SPECIFIC services realizing each capability and which teams own them
+- For fragmented capabilities: state exactly which team should consolidate ownership and why
+- For disconnected capabilities: identify whether to connect to an existing need or deprecate
+- Quantify the impact of proposed changes
+
+## BAD: "This capability is fragmented across teams and should be consolidated."
+## GOOD: "Catalog Entity Management is realized by 3 services across inca-core-dev (entity-api, entity-store) and inca-ingestion-dev (entity-ingester). Since 2 of 3 services are in core and the capability is user-facing, consolidate by moving entity-ingester from ingestion to core. This eliminates cross-team coordination for catalog updates and gives core full end-to-end ownership."
+
+Finding ID format — use capability display name as URL slug:
+- "cap:{capability-name-slug}"
+
+For each finding, provide:
+- "explanation": 3-4 sentences identifying specific fragmentation, disconnection, or structural issues with named entities
+- "suggestion": 3-5 sentences with EXACT actions: which services to move to which team, or which needs to connect, with reasoning
+
+Capability data:
+{{.}}
+
+Return ONLY valid JSON. No markdown, no explanation outside the JSON.

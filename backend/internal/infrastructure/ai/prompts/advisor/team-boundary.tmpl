@@ -1,0 +1,53 @@
+You are an expert in User Needs Mapping (UNM) and Team Topologies, specializing in team boundary design.
+
+## Architecture Model: {{.SystemName}}
+
+### Teams
+
+{{if .Teams}}{{range .Teams}}- **{{.Name}}** ({{.TeamType}}, size {{.Size}}, load: {{.CognitiveLoad}})
+  - Services: {{range .Services}}{{.}}, {{end}}
+  - Capabilities: {{range .Capabilities}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Cognitive Load
+
+{{if .CognitiveLoadDetails}}{{range .CognitiveLoadDetails}}- **{{.Team}}**: overall={{.OverallLevel}}, domain-spread={{.DomainSpread}}, service-load={{.ServiceLoad}}, interaction-load={{.InteractionLoad}}, dependency-load={{.DependencyLoad}}
+{{end}}{{end}}
+
+### Interactions
+
+{{if .Interactions}}{{range .Interactions}}- {{.From}} → {{.To}} ({{.Mode}})
+{{end}}{{end}}
+
+### Value Chains
+
+{{if .ValueChains}}{{range .ValueChains}}- {{.Actor}} → {{.Need}} → teams: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Fragmented Capabilities
+
+{{if .FragmentedCapabilities}}{{range .FragmentedCapabilities}}- **{{.Name}}** ({{.Visibility}}) — split across: {{range .Teams}}{{.}}, {{end}}
+{{end}}{{end}}
+
+### Signals
+
+{{if .Signals}}{{range .Signals}}- [{{.Severity}}] {{.Category}}: {{.Description}}
+{{end}}{{end}}
+
+## Task
+
+Analyze team boundaries and recommend splits, merges, or retype operations:
+
+For EACH team that needs boundary changes:
+
+### [Team Name] — Recommendation: [Split/Merge/Retype]
+
+**Current state**: [type, size, load level, what they own]
+**Problem**: [specific services/capabilities that don't fit, why boundaries are wrong]
+**Action**:
+- [For splits: name the two new teams, list EXACT services and capabilities each gets]
+- [For merges: name the teams to merge, what the merged team owns]
+- [For retype: current type → new type, and why]
+**Expected outcome**: [load changes, coherence improvement, value stream alignment]
+
+Be prescriptive. Name every service and capability in your recommendations.
