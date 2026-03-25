@@ -16,6 +16,15 @@ Read these files in order before starting:
 8. `.claude/rules/tdd.md` -- testing protocol
 9. `.claude/rules/go-conventions.md` -- Go conventions
 10. `.claude/agents/backend-engineer/anti-patterns.md` -- what NOT to do
+11. `.claude/rules/git-flow.md` -- branch workflow (NEVER commit to main)
+
+## Git Flow
+
+Before writing any code, ensure you are on a feature branch:
+```bash
+git branch --show-current  # Must NOT be "main"
+# If on main: git checkout -b feat/<task-description>
+```
 
 ## Task
 
@@ -23,8 +32,10 @@ $ARGUMENTS
 
 ## Completion Criteria
 
-1. All tests pass: `cd backend && go test ./...`
-2. No vet warnings: `cd backend && go vet ./...`
-3. Code follows Clean Architecture (no layer violations)
-4. Tests written first (TDD)
-5. MEMORY.md updated if new learnings discovered
+1. Work is on a feature branch (NOT main)
+2. All tests pass: `cd backend && go test ./...`
+3. No vet warnings: `cd backend && go vet ./...`
+4. Code follows Clean Architecture (no layer violations)
+5. Tests written first (TDD)
+6. Changes committed and pushed: `git push -u origin HEAD`
+7. MEMORY.md updated if new learnings discovered

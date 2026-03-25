@@ -15,6 +15,15 @@ Read these files in order before starting:
 7. `.claude/rules/clean-architecture.md` -- backend layer rules
 8. `.claude/rules/react-conventions.md` -- frontend conventions
 9. `.claude/rules/tdd.md` -- testing protocol
+10. `.claude/rules/git-flow.md` -- branch workflow (NEVER commit to main)
+
+## Git Flow
+
+Before writing any code, ensure you are on a feature branch:
+```bash
+git branch --show-current  # Must NOT be "main"
+# If on main: git checkout -b feat/<task-description>
+```
 
 ## Task
 
@@ -22,9 +31,11 @@ $ARGUMENTS
 
 ## Completion Criteria
 
-1. Backend tests pass: `cd backend && go test ./...`
-2. Frontend types clean: `cd frontend && npx tsc --noEmit`
-3. Frontend builds: `cd frontend && npx vite build`
-4. API contract consistent (Go JSON tags match TypeScript types)
-5. End-to-end flow verified
-6. MEMORY.md updated if new learnings discovered
+1. Work is on a feature branch (NOT main)
+2. Backend tests pass: `cd backend && go test ./...`
+3. Frontend types clean: `cd frontend && npx tsc --noEmit`
+4. Frontend builds: `cd frontend && npx vite build`
+5. API contract consistent (Go JSON tags match TypeScript types)
+6. End-to-end flow verified
+7. Changes committed and pushed: `git push -u origin HEAD`
+8. MEMORY.md updated if new learnings discovered

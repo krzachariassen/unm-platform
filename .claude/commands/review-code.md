@@ -14,6 +14,7 @@ Read these files in order before starting:
 6. `.claude/rules/tdd.md` -- testing protocol
 7. `.claude/rules/go-conventions.md` -- Go conventions
 8. `.claude/rules/react-conventions.md` -- React conventions
+9. `.claude/rules/git-flow.md` -- branch workflow
 
 ## Task
 
@@ -28,6 +29,7 @@ Automatically flag these patterns if found:
 - `opacity-0` or `opacity: 0` on interactive elements
 - Floating panel without backdrop dismiss handler
 - Warning icon without text explanation
+- Commits directly on `main` branch (must use feature branches)
 
 ## Output
 

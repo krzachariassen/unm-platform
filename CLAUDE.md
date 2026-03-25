@@ -47,7 +47,8 @@ monolithic context file, specialized agents get focused, composable context.
 │   ├── code-reviewer/       # Code quality reviewer
 │   ├── code-to-dsl/         # Codebase-to-UNM model generator
 │   └── documentation-writer/# Docs, README, examples, tutorials
-├── commands/                # Orchestrator slash commands
+├── commands/                # Orchestrator + direct commands
+│   ├── run.md               # /run <task> — AUTO-ROUTING ORCHESTRATOR
 │   ├── backend.md           # /backend <task>
 │   ├── frontend.md          # /frontend <task>
 │   ├── fullstack.md         # /fullstack <task>
@@ -58,6 +59,7 @@ monolithic context file, specialized agents get focused, composable context.
 └── rules/                   # Engineering rules (auto-loaded)
     ├── clean-architecture.md
     ├── tdd.md
+    ├── git-flow.md
     ├── go-conventions.md
     ├── react-conventions.md
     └── agent-teams.md
@@ -70,40 +72,49 @@ Each **agent** has:
 - `MEMORY.md` -- operational memory (learnings from past sessions)
 - Specialized files (anti-patterns, checklists, templates)
 
-Each **command** is an orchestrator that assembles the right context
-for a task. Commands reference agents and common modules.
-
 **Rules** in `.claude/rules/` are automatically loaded and apply to all agents.
 
-### Using Commands (Claude Code)
+### Orchestrator (recommended)
+
+Use `/run` for any task. The orchestrator auto-classifies intent, routes to
+the right agent(s), decomposes multi-layer tasks, and spawns agent teams
+for parallel work when appropriate.
 
 ```bash
-# Backend task
-claude "/backend Implement a new analyzer for team interaction diversity"
+# Single-agent tasks (orchestrator routes automatically)
+/run Add a new analyzer for team interaction diversity
+/run Fix the capability badge colors in CapabilityView
+/run Update README.md with the current project structure
 
-# Frontend task
-claude "/frontend Add a new filter chip to the Ownership view for platform teams"
+# Multi-agent tasks (orchestrator decomposes and coordinates)
+/run Add a priority field to needs — update the domain entity, API, and UI
+/run Add CSV export endpoint and a Download button in the frontend
 
-# Full-stack task
-claude "/fullstack Add a new /api/v1/models/{id}/export/csv endpoint and a Download CSV button"
+# Reviews (orchestrator routes to reviewer agents)
+/run Review the changeset system for architecture violations
+/run Do a UX review of the Capability View page
+```
 
-# UI review
-claude "/review-ui Review the Capability View page for UX issues"
+The orchestrator determines whether to use a single agent, sequential
+agents, or parallel agent teams based on the task structure.
 
-# Code review
-claude "/review-code Review the changeset system (entity/changeset.go + service/changeset_applier.go)"
+### Direct Agent Commands
 
-# Validation
-claude "/validate Run full backend + frontend validation"
+For precise control, invoke agents directly:
 
-# Documentation
-claude "/docs Update README.md to reflect current project state"
-claude "/docs Create a getting-started tutorial with a BookShelf example"
-claude "/docs Create DSL-by-example guide covering all entity types"
+```bash
+/backend <task>       # Go backend only
+/frontend <task>      # React frontend only
+/fullstack <task>     # Tightly coupled cross-stack
+/docs <task>          # Documentation and examples
+/review-code <scope>  # Code quality review
+/review-ui <scope>    # UX review
+/validate             # Full build + test validation
 ```
 
 ## Key Principles
 
+- **Git Flow**: Never commit to main. All work on feature branches. See `.claude/rules/git-flow.md`.
 - **TDD**: Red -> Green -> Refactor. No code without a failing test first.
 - **Clean Architecture**: Domain is pure Go with zero deps. Dependencies point inward.
 - **Agent Teams**: Parallelize independent work. See `.claude/rules/agent-teams.md`.
@@ -123,4 +134,5 @@ claude "/docs Create DSL-by-example guide covering all entity types"
 - Do not mock OpenAI in tests (use real API or skip)
 - Do not hardcode view logic into the model
 - Do not mix abstraction levels in view projections
+- Do not commit directly to main -- always use feature branches
 - Do not let two teammates edit the same file

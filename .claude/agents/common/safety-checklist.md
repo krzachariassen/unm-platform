@@ -16,6 +16,12 @@ Before declaring any task complete, verify ALL of the following:
 - [ ] `cd frontend && npx vite build` succeeds (zero errors)
 - [ ] No linter errors in edited files
 
+## Git Flow
+
+- [ ] NOT on `main` — work is on a feature branch (`git branch --show-current`)
+- [ ] Branch name follows convention: `<type>/<short-description>`
+- [ ] Commits are on the feature branch, not main
+
 ## Both
 
 - [ ] No hardcoded secrets or API keys in committed code
@@ -23,3 +29,4 @@ Before declaring any task complete, verify ALL of the following:
 - [ ] Commit message follows: `<type>(<scope>): <description>`
   Types: feat, fix, refactor, test, docs, chore
   Scopes: domain, parser, validator, api, frontend, ai, changeset
+- [ ] Branch pushed: `git push -u origin HEAD`
