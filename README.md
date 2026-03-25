@@ -91,10 +91,9 @@ docs/                       # Project documentation
 ├── BACKLOG.md              # Phased product backlog
 ├── ENGINEERING_PRINCIPLES.md
 ├── UNM_DSL_SPECIFICATION.md  # Complete DSL syntax and meta-model
+├── YAML_GUIDE.md           # Practical guide to writing .unm.yaml models
 ├── CODE_TO_DSL_AGENT.md    # Codebase-to-UNM model generation process
-├── CONFIGURATION.md        # Config system reference
-├── ARCHITECTURE_REVIEW.md  # Architecture review notes
-└── UI_BACKLOG.md           # Frontend UI backlog
+└── CONFIGURATION.md        # Config system reference
 
 examples/                   # Example UNM models
 └── inca.unm.yaml           # Reference model
@@ -175,4 +174,9 @@ See [CLAUDE.md](CLAUDE.md) for the full agent framework documentation.
 
 ## License
 
-Internal — Uber Technologies, Inc.
+Copyright (c) 2026 Kristian Zachariassen. All rights reserved.
+
+This software and its source code are proprietary and confidential.
+Unauthorized copying, distribution, modification, or use of any part of this
+project, via any medium, is strictly prohibited without the express written
+permission of the author. See [LICENSE](LICENSE) for full terms.
