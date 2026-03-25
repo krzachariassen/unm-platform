@@ -22,24 +22,60 @@ export function ModelProvider({ children }: { children: ReactNode }) {
   const [loadedAt, setLoadedAt] = useState<Date | null>(null)
   const [isHydrating, setIsHydrating] = useState(true)
 
-  // On mount: restore from localStorage if available.
+  // On mount: restore from localStorage if available, then verify the model
+  // still exists on the backend. If the backend returns 404, the model is
+  // stale (e.g. server restarted) — clear localStorage so the user sees a
+  // clean empty state instead of rendering stale data.
   useEffect(() => {
     const storedId = localStorage.getItem(LS_MODEL_ID)
     const storedResult = localStorage.getItem(LS_PARSE_RESULT)
     const storedLoadedAt = localStorage.getItem(LS_LOADED_AT)
-    if (storedId && storedResult) {
-      try {
-        const parsed = JSON.parse(storedResult) as ParseResponse
+
+    if (!storedId || !storedResult) {
+      // Nothing stored — nothing to verify.
+      setIsHydrating(false)
+      return
+    }
+
+    let parsed: ParseResponse
+    try {
+      parsed = JSON.parse(storedResult) as ParseResponse
+    } catch {
+      // Corrupt localStorage entry — clear and bail out.
+      localStorage.removeItem(LS_MODEL_ID)
+      localStorage.removeItem(LS_PARSE_RESULT)
+      localStorage.removeItem(LS_LOADED_AT)
+      setIsHydrating(false)
+      return
+    }
+
+    // Verify the model still exists on the backend before applying state.
+    // Use a direct fetch (not api.ts) to avoid circular import issues.
+    fetch(`/api/models/${storedId}/actors`)
+      .then((res) => {
+        if (res.status === 404) {
+          // Model is gone — clear stale localStorage entry.
+          localStorage.removeItem(LS_MODEL_ID)
+          localStorage.removeItem(LS_PARSE_RESULT)
+          localStorage.removeItem(LS_LOADED_AT)
+        } else {
+          // Model exists (any non-404 response, including server errors).
+          // Trust the cached data and restore state.
+          setModelId(storedId)
+          setParseResult(parsed)
+          setLoadedAt(storedLoadedAt ? new Date(storedLoadedAt) : null)
+        }
+      })
+      .catch(() => {
+        // Network error (e.g. backend unreachable) — keep the cached model
+        // so the user isn't unexpectedly logged out on a flaky connection.
         setModelId(storedId)
         setParseResult(parsed)
         setLoadedAt(storedLoadedAt ? new Date(storedLoadedAt) : null)
-      } catch {
-        localStorage.removeItem(LS_MODEL_ID)
-        localStorage.removeItem(LS_PARSE_RESULT)
-        localStorage.removeItem(LS_LOADED_AT)
-      }
-    }
-    setIsHydrating(false)
+      })
+      .finally(() => {
+        setIsHydrating(false)
+      })
   }, [])
 
   const setModel = useCallback((id: string, result: ParseResponse) => {
