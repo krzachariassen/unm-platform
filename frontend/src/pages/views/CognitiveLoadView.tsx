@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { usePageInsights } from '@/hooks/usePageInsights'
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -346,7 +347,8 @@ export function CognitiveLoadView() {
   const chipActiveAll: CSSProperties = { ...chipBase, border: 'none', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', boxShadow: '0 1px 3px rgba(99,102,241,0.3)' }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <ModelRequired>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
 
       {/* Hero header */}
       <div>
@@ -531,5 +533,6 @@ export function CognitiveLoadView() {
       </div>
 
     </div>
+    </ModelRequired>
   )
 }

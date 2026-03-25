@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { GitBranch, Layers, Server, AlertTriangle, Users, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 
 const VIS_BADGE: Record<string, { bg: string; text: string }> = {
@@ -225,7 +226,8 @@ export function RealizationView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+    <ModelRequired>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -635,5 +637,6 @@ export function RealizationView() {
         </div>
       )}
     </div>
+    </ModelRequired>
   )
 }

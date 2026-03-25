@@ -1,4 +1,5 @@
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState, useMemo } from 'react'
 import {
@@ -155,7 +156,8 @@ export function DashboardPage() {
   const totalSignals = signalItems.reduce((sum, s) => sum + s.count, 0)
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+    <ModelRequired>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       {/* ─── Hero Header ─── */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
@@ -554,6 +556,7 @@ export function DashboardPage() {
 
       {/* CSS animation for spinner */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+      </div>
+    </ModelRequired>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { usePageInsights } from '@/hooks/usePageInsights'
 import { Users, ArrowRight, Zap, Layers, X, Info, Lightbulb, Sparkles, ChevronRight } from 'lucide-react'
@@ -910,7 +911,8 @@ export function TeamTopologyView() {
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <ModelRequired>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -1025,5 +1027,6 @@ export function TeamTopologyView() {
         <TableView teams={filteredTeams} interactions={filteredInteractions} insights={insights} />
       )}
     </div>
+    </ModelRequired>
   )
 }

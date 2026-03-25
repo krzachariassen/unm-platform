@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { api } from '@/lib/api'
 import { AlertTriangle, Bot } from 'lucide-react'
@@ -50,7 +51,8 @@ export function AdvisorPage() {
   }
 
   return (
-    <div className="flex flex-col h-full max-w-3xl">
+    <ModelRequired>
+      <div className="flex flex-col h-full max-w-3xl">
       {/* Header */}
       <div className="flex-shrink-0 mb-4">
         <div className="flex items-center gap-2">
@@ -146,5 +148,6 @@ export function AdvisorPage() {
         />
       </div>
     </div>
+    </ModelRequired>
   )
 }

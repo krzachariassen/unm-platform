@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Send, Loader2, Download, Check, AlertTriangle, RotateCcw } from 'lucide-react'
@@ -137,7 +138,8 @@ export function EditModelPage() {
   if (isHydrating || !modelId || !parseResult) return null
 
   return (
-    <div className="max-w-7xl space-y-6">
+    <ModelRequired>
+      <div className="max-w-7xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#111827' }}>Edit Model</h1>
@@ -290,5 +292,6 @@ export function EditModelPage() {
         </Card>
       </div>
     </div>
+    </ModelRequired>
   )
 }

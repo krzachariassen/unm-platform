@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import type { ParseResponse } from './api'
 
 interface ModelContextValue {
@@ -77,19 +76,11 @@ export function useModel() {
 
 /**
  * Use in protected pages that require a loaded model.
- * Returns model state. Redirects to "/" after hydration if no model is loaded.
- * During hydration, returns isHydrating=true so the page can show a spinner
- * instead of triggering a premature redirect.
+ * Returns model state. Pages should use <ModelRequired> to handle the guard UI
+ * (spinner during hydration, empty state when no model is loaded).
  */
 export function useRequireModel() {
   const { modelId, parseResult, loadedAt, isHydrating, setModel, clearModel } = useModel()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (!isHydrating && !modelId) {
-      navigate('/')
-    }
-  }, [isHydrating, modelId, navigate])
 
   return { modelId, parseResult, loadedAt, isHydrating, setModel, clearModel }
 }

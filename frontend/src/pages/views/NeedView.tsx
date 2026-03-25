@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { usePageInsights, type InsightStatus } from '@/hooks/usePageInsights'
 import { Users, Layers, AlertTriangle, ChevronDown, ChevronUp, Info, Lightbulb, Sparkles } from 'lucide-react'
@@ -346,7 +347,8 @@ export function NeedView() {
     .filter(g => !query || g.needs.length > 0 || matchesQuery(g.actor.label, query))
 
   return (
-    <div className="space-y-8">
+    <ModelRequired>
+      <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
@@ -445,5 +447,6 @@ export function NeedView() {
         ))}
       </div>
     </div>
+    </ModelRequired>
   )
 }

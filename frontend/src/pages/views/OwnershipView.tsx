@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
+import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { AntiPatternPanel } from '@/components/AntiPatternPanel'
 import { usePageInsights } from '@/hooks/usePageInsights'
@@ -325,7 +326,8 @@ export function OwnershipView() {
   }
 
   return (
-    <div className="space-y-6 relative">
+    <ModelRequired>
+      <div className="space-y-6 relative">
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
         <div>
           <h1 style={H1_GRADIENT}>Ownership View</h1>
@@ -1090,5 +1092,6 @@ export function OwnershipView() {
 
       <AntiPatternPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
     </div>
+    </ModelRequired>
   )
 }
