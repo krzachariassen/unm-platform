@@ -880,8 +880,8 @@ type enrichedCognitiveLoadResponse struct {
 }
 
 type loadDimensionView struct {
-	Value int    `json:"value"`
-	Level string `json:"level"`
+	Value float64 `json:"value"`
+	Level string  `json:"level"`
 }
 
 type enrichedTeamLoad struct {

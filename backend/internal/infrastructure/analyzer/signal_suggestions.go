@@ -101,7 +101,7 @@ func (g *SignalSuggestionGenerator) Generate(
 		}
 		var highDims []string
 		if tl.DomainSpread.Level == LoadHigh {
-			highDims = append(highDims, fmt.Sprintf("domain-spread=%d", tl.DomainSpread.Value))
+			highDims = append(highDims, fmt.Sprintf("domain-spread=%g", tl.DomainSpread.Value))
 		}
 		if tl.ServiceLoad.Level == LoadHigh {
 			highDims = append(highDims, fmt.Sprintf("service-load=%d/%d", tl.ServiceCount, tl.TeamSize))

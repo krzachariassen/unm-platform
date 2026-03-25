@@ -136,7 +136,7 @@ func TestCognitiveLoadAnalyzer_AlphaDimensions(t *testing.T) {
 		t.Errorf("alpha DomainSpread.Level: want high, got %s", alpha.DomainSpread.Level)
 	}
 	if alpha.DomainSpread.Value != 7 {
-		t.Errorf("alpha DomainSpread.Value: want 7, got %d", alpha.DomainSpread.Value)
+		t.Errorf("alpha DomainSpread.Value: want 7, got %g", alpha.DomainSpread.Value)
 	}
 
 	// Service load: 3 services / 5 people = 0.6 → low (threshold >2)

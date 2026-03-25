@@ -276,13 +276,13 @@ func printCognitiveLoad(w io.Writer, report analyzer.CognitiveLoadReport) {
 			if !tl.SizeIsExplicit {
 				sizeNote = " (size?)"
 			}
-			fmt.Fprintf(w, "  %-30s %4d/%-3s %4d/%-3s %4d/%-3s %4d/%-3s %7s%s\n",
-				tl.Team.Name,
-				tl.DomainSpread.Value, tl.DomainSpread.Level,
-				tl.ServiceLoad.Value, tl.ServiceLoad.Level,
-				tl.InteractionLoad.Value, tl.InteractionLoad.Level,
-				tl.DependencyLoad.Value, tl.DependencyLoad.Level,
-				tl.OverallLevel, sizeNote)
+		fmt.Fprintf(w, "  %-30s %4g/%-3s %4g/%-3s %4g/%-3s %4g/%-3s %7s%s\n",
+			tl.Team.Name,
+			tl.DomainSpread.Value, tl.DomainSpread.Level,
+			tl.ServiceLoad.Value, tl.ServiceLoad.Level,
+			tl.InteractionLoad.Value, tl.InteractionLoad.Level,
+			tl.DependencyLoad.Value, tl.DependencyLoad.Level,
+			tl.OverallLevel, sizeNote)
 		}
 	}
 	fmt.Fprintln(w)

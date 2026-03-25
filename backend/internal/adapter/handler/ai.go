@@ -578,13 +578,13 @@ func buildAIPromptData(m *entity.UNMModel, userQuestion string, h *Handler) map[
 		Team               string
 		OverallLevel       string
 		DomainSpread       string
-		DomainSpreadVal    int
+		DomainSpreadVal    float64
 		ServiceLoad        string
-		ServiceLoadVal     int
+		ServiceLoadVal     float64
 		InteractionLoad    string
-		InteractionLoadVal int
+		InteractionLoadVal float64
 		DependencyLoad     string
-		DependencyLoadVal  int
+		DependencyLoadVal  float64
 		ServiceCount       int
 		CapabilityCount    int
 		TeamSize           int

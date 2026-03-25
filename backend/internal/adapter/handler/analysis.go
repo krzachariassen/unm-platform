@@ -156,8 +156,8 @@ func buildFragmentationResponse(report analyzer.FragmentationReport) map[string]
 
 func buildCognitiveLoadResponse(report analyzer.CognitiveLoadReport) map[string]any {
 	type dimView struct {
-		Value int    `json:"value"`
-		Level string `json:"level"`
+		Value float64 `json:"value"`
+		Level string  `json:"level"`
 	}
 	type teamLoadView struct {
 		Team             teamView `json:"team"`

@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"math"
 	"sort"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
@@ -40,8 +41,10 @@ func InteractionWeightWithConfig(mode valueobject.InteractionMode, w entity.Inte
 }
 
 // LoadDimension is a single axis of the structural load assessment.
+// Value holds the assessed metric: raw count for most dimensions,
+// per-person ratio for ServiceLoad.
 type LoadDimension struct {
-	Value int       `json:"value"`
+	Value float64   `json:"value"`
 	Level LoadLevel `json:"level"`
 }
 
@@ -178,7 +181,7 @@ func assessDomainSpreadCfg(caps int, thresholds [2]int) LoadDimension {
 	} else if caps >= thresholds[0] {
 		level = LoadMedium
 	}
-	return LoadDimension{Value: caps, Level: level}
+	return LoadDimension{Value: float64(caps), Level: level}
 }
 
 func assessServiceLoadCfg(services, teamSize int, thresholds [2]float64) LoadDimension {
@@ -192,7 +195,7 @@ func assessServiceLoadCfg(services, teamSize int, thresholds [2]float64) LoadDim
 	} else if ratio > thresholds[0] {
 		level = LoadMedium
 	}
-	return LoadDimension{Value: services, Level: level}
+	return LoadDimension{Value: math.Round(ratio*10) / 10, Level: level}
 }
 
 func assessInteractionLoadCfg(weightedScore int, thresholds [2]int) LoadDimension {
@@ -202,7 +205,7 @@ func assessInteractionLoadCfg(weightedScore int, thresholds [2]int) LoadDimensio
 	} else if weightedScore >= thresholds[0] {
 		level = LoadMedium
 	}
-	return LoadDimension{Value: weightedScore, Level: level}
+	return LoadDimension{Value: float64(weightedScore), Level: level}
 }
 
 func assessDependencyLoadCfg(deps int, thresholds [2]int) LoadDimension {
@@ -212,7 +215,7 @@ func assessDependencyLoadCfg(deps int, thresholds [2]int) LoadDimension {
 	} else if deps >= thresholds[0] {
 		level = LoadMedium
 	}
-	return LoadDimension{Value: deps, Level: level}
+	return LoadDimension{Value: float64(deps), Level: level}
 }
 
 func worstLevel(levels ...LoadLevel) LoadLevel {
@@ -237,7 +240,7 @@ func levelRank(l LoadLevel) int {
 }
 
 // compositeScore produces a single number for sort tiebreaking.
-// It sums raw dimension values — NOT a "cognitive load percentage."
-func compositeScore(tl TeamLoad) int {
+// It sums dimension values — NOT a "cognitive load percentage."
+func compositeScore(tl TeamLoad) float64 {
 	return tl.DomainSpread.Value + tl.ServiceLoad.Value + tl.InteractionLoad.Value + tl.DependencyLoad.Value
 }
