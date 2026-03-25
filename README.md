@@ -96,7 +96,7 @@ docs/                       # Project documentation
 └── CONFIGURATION.md        # Config system reference
 
 examples/                   # Example UNM models
-└── inca.unm.yaml           # Reference model
+└── example.unm.yaml        # Reference model
 
 scripts/                    # Utility scripts (publishing, deployment)
 
@@ -119,7 +119,7 @@ cd frontend && npm install && npm run dev
 The backend starts on port **8080**, the frontend on port **5173**.
 
 Open http://localhost:5173, go to the Upload page, and drag-drop a `.unm.yaml` file to load a model.
-A reference model is available at `examples/inca.unm.yaml`.
+Example models are available in the `examples/` directory.
 
 ### AI Features (optional)
 
