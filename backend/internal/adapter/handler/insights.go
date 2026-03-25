@@ -8,8 +8,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/uber/unm-platform/internal/adapter/repository"
-	"github.com/uber/unm-platform/internal/infrastructure/ai"
+	"github.com/krzachariassen/unm-platform/internal/adapter/repository"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/ai"
 )
 
 // signalFinding is a single labelled finding sent to the AI for the signals domain.

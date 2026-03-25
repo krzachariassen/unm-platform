@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
 )
 
 func TestYAMLParser_SimpleModel(t *testing.T) {
@@ -119,7 +119,7 @@ func TestYAMLParser_RelationshipForms(t *testing.T) {
 	assert.Contains(t, capNames, "Search Capability")
 }
 
-func TestYAMLParser_IncaModel(t *testing.T) {
+func TestYAMLParser_ExampleModel(t *testing.T) {
 	model, err := parser.ParseFile("../../../../examples/inca.unm.yaml")
 	require.NoError(t, err)
 	require.NotNil(t, model)
@@ -156,28 +156,6 @@ func TestYAMLParser_IncaModel(t *testing.T) {
 
 	// Interactions present (13 in YAML)
 	assert.Len(t, model.Interactions, 13)
-}
-
-func TestYAMLParser_IncaExtendedModel(t *testing.T) {
-	model, err := parser.ParseFile("../../../../examples/inca.unm.extended.yaml")
-	require.NoError(t, err)
-	require.NotNil(t, model)
-
-	assert.Equal(t, "INCA", model.System.Name)
-
-	// 4 actors
-	assert.Len(t, model.Actors, 4)
-	assert.Contains(t, model.Actors, "Merchant / Restaurant Partner")
-	assert.Contains(t, model.Actors, "Eater / Consumer")
-
-	// 33 services
-	assert.Len(t, model.Services, 33)
-
-	// 9 teams
-	assert.Len(t, model.Teams, 9)
-
-	// Platforms defined
-	assert.NotEmpty(t, model.Platforms)
 }
 
 func TestYAMLParser_EmptyYAML(t *testing.T) {

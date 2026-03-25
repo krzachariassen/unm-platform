@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/uber/unm-platform/internal/domain/service"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
-	"github.com/uber/unm-platform/internal/usecase"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // registerDebugRoutes registers development-only helper routes.

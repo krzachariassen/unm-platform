@@ -1,6 +1,6 @@
 package analyzer
 
-import "github.com/uber/unm-platform/internal/domain/entity"
+import "github.com/krzachariassen/unm-platform/internal/domain/entity"
 
 // GapReport holds the result of a gap analysis pass over a UNMModel.
 type GapReport struct {

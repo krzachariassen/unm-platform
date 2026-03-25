@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // QueryEngine provides structured queries against a UNMModel.

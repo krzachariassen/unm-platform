@@ -1,6 +1,6 @@
 package analyzer
 
-import "github.com/uber/unm-platform/internal/domain/entity"
+import "github.com/krzachariassen/unm-platform/internal/domain/entity"
 
 // FragmentedCapability pairs a Capability with all Teams that own it.
 type FragmentedCapability struct {

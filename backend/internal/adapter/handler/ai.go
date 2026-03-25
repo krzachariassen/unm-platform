@@ -9,9 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/infrastructure/ai"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/ai"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
 )
 
 // registerAIRoutes registers the AI advisor endpoints.

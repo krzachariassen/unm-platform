@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
 )
 
 // ── Anti-pattern detection ────────────────────────────────────────────────────

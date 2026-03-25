@@ -1,4 +1,4 @@
-module github.com/uber/unm-platform
+module github.com/krzachariassen/unm-platform
 
 go 1.25.0
 

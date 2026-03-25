@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	domainservice "github.com/uber/unm-platform/internal/domain/service"
-	"github.com/uber/unm-platform/internal/usecase"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	domainservice "github.com/krzachariassen/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // stubParser simulates a ModelParser for testing.

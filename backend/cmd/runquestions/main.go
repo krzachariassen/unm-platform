@@ -1,4 +1,4 @@
-// Starts the UNM server, loads inca.unm.yaml via the API, then runs all
+// Starts the UNM server, loads the example model via the API, then runs all
 // 30 AI questions through POST /api/models/{id}/ask and prints each response.
 //
 // Usage: source ../ai.env && go run ./cmd/runquestions/
@@ -63,11 +63,11 @@ func main() {
 		time.Sleep(500 * time.Millisecond)
 	}
 
-	// Load INCA model
-	incaPath := filepath.Join("..", "examples", "inca.unm.yaml")
-	yamlBytes, err := os.ReadFile(incaPath)
+	// Load example model
+	examplePath := filepath.Join("..", "examples", "inca.unm.yaml")
+	yamlBytes, err := os.ReadFile(examplePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "read inca: %v\n", err)
+		fmt.Fprintf(os.Stderr, "read example: %v\n", err)
 		os.Exit(1)
 	}
 

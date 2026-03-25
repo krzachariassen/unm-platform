@@ -3,8 +3,8 @@ package analyzer
 import (
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // helper to create a minimal model with a need → capability → service → team chain.

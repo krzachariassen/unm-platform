@@ -1,6 +1,6 @@
 package analyzer
 
-import "github.com/uber/unm-platform/internal/domain/entity"
+import "github.com/krzachariassen/unm-platform/internal/domain/entity"
 
 // DependencyCycle holds the ordered list of node names that form a cycle.
 // The first and last element are the same to clearly show the loop,

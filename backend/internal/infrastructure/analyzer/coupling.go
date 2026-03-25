@@ -3,7 +3,7 @@ package analyzer
 import (
 	"sort"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 // DataAssetCoupling describes coupling between services mediated by a shared data asset.
