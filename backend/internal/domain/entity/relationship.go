@@ -1,6 +1,6 @@
 package entity
 
-import "github.com/uber/unm-platform/internal/domain/valueobject"
+import "github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 
 // Relationship is a directed link to another entity, with optional description and role.
 type Relationship struct {

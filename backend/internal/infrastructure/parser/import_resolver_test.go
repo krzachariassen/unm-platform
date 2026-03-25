@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
 )
 
 func TestParseDSLFile_SimpleFile(t *testing.T) {

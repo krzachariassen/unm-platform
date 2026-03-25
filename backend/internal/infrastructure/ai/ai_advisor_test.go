@@ -13,10 +13,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/infrastructure/ai"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/ai"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
 	"gopkg.in/yaml.v3"
 )
 

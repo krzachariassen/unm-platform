@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
 )
 
 // mustAddService is a helper that creates and adds a service to the model, fataling on error.

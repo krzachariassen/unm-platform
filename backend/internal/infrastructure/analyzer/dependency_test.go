@@ -3,8 +3,8 @@ package analyzer
 import (
 	"testing"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // mustServiceID is a helper to create a valueobject.EntityID from a string, fataling on error.

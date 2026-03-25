@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // DepthChainThreshold is the default maximum service dependency chain depth before a coupling

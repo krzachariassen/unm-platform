@@ -3,8 +3,8 @@ package analyzer
 import (
 	"fmt"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
 )
 
 // ChangeKind describes whether a metric improved, regressed, or stayed the same.

@@ -10,14 +10,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/uber/unm-platform/internal/adapter/handler"
-	"github.com/uber/unm-platform/internal/adapter/repository"
-	"github.com/uber/unm-platform/internal/domain/service"
-	"github.com/uber/unm-platform/internal/infrastructure/ai"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
-	"github.com/uber/unm-platform/internal/infrastructure/config"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
-	"github.com/uber/unm-platform/internal/usecase"
+	"github.com/krzachariassen/unm-platform/internal/adapter/handler"
+	"github.com/krzachariassen/unm-platform/internal/adapter/repository"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/ai"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/config"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 func main() {

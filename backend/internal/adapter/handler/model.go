@@ -3,10 +3,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/uber/unm-platform/internal/domain/service"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
-	"github.com/uber/unm-platform/internal/infrastructure/serializer"
-	"github.com/uber/unm-platform/internal/usecase"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/serializer"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // registerModelRoutes registers POST /api/models/parse and POST /api/models/validate.

@@ -7,12 +7,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/service"
-	"github.com/uber/unm-platform/internal/infrastructure/analyzer"
-	infraconfig "github.com/uber/unm-platform/internal/infrastructure/config"
-	"github.com/uber/unm-platform/internal/infrastructure/parser"
-	"github.com/uber/unm-platform/internal/usecase"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
+	infraconfig "github.com/krzachariassen/unm-platform/internal/infrastructure/config"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 func main() {

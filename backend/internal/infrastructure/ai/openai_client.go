@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 const defaultBaseURL = "https://api.openai.com/v1"

@@ -3,8 +3,8 @@ package dsl
 import (
 	"fmt"
 
-	"github.com/uber/unm-platform/internal/domain/entity"
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // Transform converts a parsed DSL File AST into a UNMModel domain object.

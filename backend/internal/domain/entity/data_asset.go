@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/uber/unm-platform/internal/domain/valueobject"
+	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
 
 // DataAsset type constants.
