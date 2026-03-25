@@ -24,7 +24,6 @@ WORKDIR /app
 COPY --from=backend-build /server /app/server
 COPY --from=frontend-build /app/frontend/dist /app/dist
 COPY config/ /app/config/
-COPY examples/ /app/examples/
 
 ENV UNM_ENV=production
 
