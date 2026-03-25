@@ -45,14 +45,16 @@ monolithic context file, specialized agents get focused, composable context.
 │   ├── fullstack-engineer/  # Cross-stack feature developer
 │   ├── ui-reviewer/         # UX review specialist
 │   ├── code-reviewer/       # Code quality reviewer
-│   └── code-to-dsl/         # Codebase-to-UNM model generator
+│   ├── code-to-dsl/         # Codebase-to-UNM model generator
+│   └── documentation-writer/# Docs, README, examples, tutorials
 ├── commands/                # Orchestrator slash commands
 │   ├── backend.md           # /backend <task>
 │   ├── frontend.md          # /frontend <task>
 │   ├── fullstack.md         # /fullstack <task>
 │   ├── review-ui.md         # /review-ui <scope>
 │   ├── review-code.md       # /review-code <scope>
-│   └── validate.md          # /validate
+│   ├── validate.md          # /validate
+│   └── docs.md              # /docs <task>
 └── rules/                   # Engineering rules (auto-loaded)
     ├── clean-architecture.md
     ├── tdd.md
@@ -93,6 +95,11 @@ claude "/review-code Review the changeset system (entity/changeset.go + service/
 
 # Validation
 claude "/validate Run full backend + frontend validation"
+
+# Documentation
+claude "/docs Update README.md to reflect current project state"
+claude "/docs Create a getting-started tutorial with a BookShelf example"
+claude "/docs Create DSL-by-example guide covering all entity types"
 ```
 
 ## Key Principles

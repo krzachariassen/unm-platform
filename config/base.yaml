@@ -75,9 +75,9 @@ analysis:
 features:
   debug_routes: true
   debug_example_paths:
-    - "../examples/inca.unm.extended.yaml"
-    - "../../examples/inca.unm.extended.yaml"
-    - "examples/inca.unm.extended.yaml"
+    - "../examples/inca.unm.yaml"
+    - "../../examples/inca.unm.yaml"
+    - "examples/inca.unm.yaml"
 
 logging:
   level: "info"
