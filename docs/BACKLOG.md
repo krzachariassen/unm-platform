@@ -76,19 +76,19 @@ failure. The bottleneck analyzer ignores external dependency fan-in entirely.
 
 ### Part B: Quality Hardening — MINOR
 
-- [ ] **6.10.17** — Missing handler tests for health, signals, insights,
+- [x] **6.10.17** — Missing handler tests for health, signals, insights,
       middleware, debug endpoints. (#backend)
-- [ ] **6.10.18** — No frontend tests. Add vitest + smoke tests for
+- [x] **6.10.18** — No frontend tests. Add vitest + smoke tests for
       model-context, api.ts, and 3 major views. (#frontend)
-- [ ] **6.10.19** — Empty AI question validation. Return 400 on empty/whitespace.
+- [x] **6.10.19** — Empty AI question validation. Return 400 on empty/whitespace.
       _File: `ai.go`_ (#backend)
-- [ ] **6.10.20** — Inconsistent error handling in frontend API client.
+- [x] **6.10.20** — Inconsistent error handling in frontend API client.
       Standardize all functions to use extractError. _File: `api.ts`_ (#frontend)
-- [ ] **6.10.21** — Config handler duplicates JSON encoding instead of using
+- [x] **6.10.21** — Config handler duplicates JSON encoding instead of using
       writeJSON helper. _File: `config_handler.go`_ (#backend)
-- [ ] **6.10.22** — `@import` PostCSS warning. Move Google Fonts import above
+- [x] **6.10.22** — `@import` PostCSS warning. Move Google Fonts import above
       @tailwind directives. _File: `index.css`_ (#frontend)
-- [ ] **6.10.23** — http.Client in OpenAI client has no default timeout.
+- [x] **6.10.23** — http.Client in OpenAI client has no default timeout.
       Add 120s safety net. _File: `openai_client.go`_ (#backend)
 
 ---
