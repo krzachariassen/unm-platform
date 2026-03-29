@@ -41,3 +41,26 @@ declare `realizedBy`. Data assets and external dependencies declare `usedBy`.
 - Long: `{target: "service-name", description: "Calls feed-api for fetching"}`
 
 Both can be mixed in the same list.
+
+## Ubiquitous Language
+
+Use UNM/Team Topologies vocabulary consistently across code, tests, docs, and conversations:
+
+| Use this | Not this |
+|----------|----------|
+| Capability | feature, module |
+| Need | requirement, user story |
+| Realizes (service → capability) | implements |
+| Stream-aligned | product team, feature team |
+| Interaction mode | communication pattern |
+
+## Value Objects
+
+| Type | Values |
+|------|--------|
+| `TeamType` | stream-aligned, platform, enabling, complicated-subsystem |
+| `InteractionMode` | collaboration, x-as-a-service, facilitating |
+| `Visibility` | user-facing, domain, foundational, infrastructure |
+| `Severity` | low, medium, high, critical |
+| `Confidence` | 0.0–1.0 score with evidence string |
+| `MappingStatus` | asserted, inferred, candidate, deprecated |
