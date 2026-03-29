@@ -112,11 +112,6 @@ export interface TeamLoad {
   capabilities: string[]
 }
 
-export interface CognitiveLoadAnalysis {
-  type: string
-  team_loads: TeamLoad[]
-}
-
 export interface AntiPattern {
   code: string
   message: string
@@ -444,22 +439,6 @@ export const api = {
     return res.json()
   },
 
-  async getAnalysis(id: string, type: string): Promise<Record<string, unknown>> {
-    const res = await fetch(`${API_BASE}/models/${id}/analyze/${type}`)
-    if (!res.ok) throw new Error(await extractError(res, `Failed to fetch ${type} analysis`))
-    return res.json()
-  },
-
-  async analyzeAll(yaml: string): Promise<Record<string, unknown>> {
-    const res = await fetch(`${API_BASE}/analyze/all`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/yaml' },
-      body: yaml,
-    })
-    if (!res.ok) throw new Error(await extractError(res, 'Analysis failed'))
-    return res.json()
-  },
-
   async getSignals(id: string): Promise<SignalsViewResponse> {
     const res = await fetch(`${API_BASE}/models/${id}/views/signals`)
     if (!res.ok) throw new Error(await extractError(res, 'Failed to fetch signals'))
@@ -532,15 +511,4 @@ export const api = {
     return res.json()
   },
 
-  async getNeedView(modelId: string): Promise<NeedViewResponse> {
-    const r = await fetch(`/api/models/${encodeURIComponent(modelId)}/views/need`)
-    if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch need view'))
-    return r.json()
-  },
-
-  async getCapabilityView(modelId: string): Promise<CapabilityViewResponse> {
-    const r = await fetch(`/api/models/${encodeURIComponent(modelId)}/views/capability`)
-    if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch capability view'))
-    return r.json()
-  },
 }
