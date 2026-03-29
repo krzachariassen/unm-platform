@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { ParseResponse } from './api'
+import { config } from './config'
 
 interface ModelContextValue {
   modelId: string | null
@@ -50,8 +51,8 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     }
 
     // Verify the model still exists on the backend before applying state.
-    // Use a direct fetch (not api.ts) to avoid circular import issues.
-    fetch(`/api/models/${storedId}/actors`)
+    // Import config directly (not api.ts) to avoid circular import issues.
+    fetch(`${config.apiBaseUrl}/models/${storedId}/actors`)
       .then((res) => {
         if (res.status === 404) {
           // Model is gone — clear stale localStorage entry.
