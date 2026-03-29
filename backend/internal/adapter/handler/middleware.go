@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
-	"strings"
 	"time"
 )
 
@@ -20,22 +19,35 @@ func loggingMiddleware(next http.Handler) http.Handler {
 // makeCORSMiddleware creates a CORS middleware that allows the given origins.
 // If origins is empty or contains "*", it allows all origins.
 func makeCORSMiddleware(origins []string) func(http.Handler) http.Handler {
-	allowOrigin := "*"
-	if len(origins) > 0 {
+	allowAll := false
+	if len(origins) == 0 {
+		allowAll = true
+	} else {
 		for _, o := range origins {
 			if o == "*" {
-				allowOrigin = "*"
+				allowAll = true
 				break
 			}
 		}
-		if allowOrigin != "*" {
-			allowOrigin = strings.Join(origins, ", ")
-		}
+	}
+
+	// Build a fast lookup set for the allowed origins list.
+	allowedSet := make(map[string]bool, len(origins))
+	for _, o := range origins {
+		allowedSet[o] = true
 	}
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+			if allowAll {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			} else {
+				origin := r.Header.Get("Origin")
+				if allowedSet[origin] {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					w.Header().Add("Vary", "Origin")
+				}
+			}
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Replace-Model")
 			if r.Method == http.MethodOptions {

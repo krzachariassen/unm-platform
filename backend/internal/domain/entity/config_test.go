@@ -238,8 +238,8 @@ func TestDefaultConfig(t *testing.T) {
 	}
 
 	// Features
-	if !cfg.Features.DebugRoutes {
-		t.Error("expected debug_routes true by default")
+	if cfg.Features.DebugRoutes {
+		t.Error("expected debug_routes false by default")
 	}
 
 	// Logging
