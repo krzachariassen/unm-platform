@@ -18,11 +18,13 @@ func (h *Handler) registerDebugRoutes(mux *http.ServeMux) {
 // returning the same response shape as POST /api/models/parse.
 // The server must be started from the backend/ directory for the relative path to resolve.
 func (h *Handler) handleLoadExample(w http.ResponseWriter, r *http.Request) {
-	// Try a few candidate paths relative to cwd
-	candidates := []string{
-		"../examples/inca.unm.extended.yaml",
-		"../../examples/inca.unm.extended.yaml",
-		"examples/inca.unm.extended.yaml",
+	candidates := h.cfg.Features.DebugExamplePaths
+	if len(candidates) == 0 {
+		candidates = []string{
+			"../examples/inca.unm.yaml",
+			"../../examples/inca.unm.yaml",
+			"examples/inca.unm.yaml",
+		}
 	}
 
 	var (
