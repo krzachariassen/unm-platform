@@ -57,6 +57,7 @@ type CapabilityNode struct {
 	Name        string
 	Description string
 	Visibility  string
+	Parent      string // flat parent reference (9.1.2)
 	RealizedBy  []RelationshipNode
 	DependsOn   []RelationshipNode
 	Children    []*CapabilityNode
@@ -69,12 +70,28 @@ type RelationshipNode struct {
 	Role        string // primary, supporting, consuming, or ""
 }
 
+// ServiceRealizesNode represents a service realizes relationship in the DSL.
+type ServiceRealizesNode struct {
+	Target string
+	Role   string // primary, supporting, consuming, or ""
+}
+
 // ServiceNode represents a service block in the DSL.
 type ServiceNode struct {
-	Name        string
+	Name         string
+	Description  string
+	OwnedBy      string
+	DependsOn    []RelationshipNode
+	Realizes     []ServiceRealizesNode // 9.3.5
+	ExternalDeps []string              // 9.4.3
+}
+
+// TeamInteractionNode represents an inline interaction declaration inside a team block.
+type TeamInteractionNode struct {
+	With        string
+	Mode        string
+	Via         string
 	Description string
-	OwnedBy     string
-	DependsOn   []RelationshipNode
 }
 
 // TeamNode represents a team block in the DSL.
@@ -84,6 +101,7 @@ type TeamNode struct {
 	Description string
 	Size        int
 	Owns        []string
+	Interacts   []TeamInteractionNode // 9.5.3
 }
 
 // PlatformNode represents a platform block in the DSL.
