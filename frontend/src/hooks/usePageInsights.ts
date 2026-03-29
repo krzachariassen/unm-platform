@@ -70,7 +70,7 @@ export function usePageInsights(domain: string): {
 
           clearTimeoutTimer()
           setLoading(false)
-          if (r.error === 'ai_unavailable' || r.error === 'ai_parse_error') {
+          if (r.status === 'failed' || r.error === 'ai_unavailable' || r.error === 'ai_parse_error') {
             setAiError(true)
             setStatus('error')
           } else {
