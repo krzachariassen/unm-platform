@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { ZoomIn, ZoomOut, Maximize2, Pencil } from 'lucide-react'
-import { api, type ViewNode, type ViewEdge, type ChangeAction } from '@/lib/api'
+import { api, type ViewNode, type ViewEdge, type ChangeAction, type UNMMapViewResponse } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { usePageInsights } from '@/hooks/usePageInsights'
+import { LoadingState, ErrorState } from '@/components/ViewState'
+import { slug } from '@/lib/slug'
 import { EditPanel } from '@/components/changeset/EditPanel'
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
@@ -35,23 +37,6 @@ function teamColor(name: string): string {
 
 // ─── Data types ────────────────────────────────────────────────────────────────
 interface SvcInfo { id: string; label: string; teamName: string }
-
-interface UNMMapExtDep {
-  id: string
-  name: string
-  description?: string
-  service_count: number
-  services: string[]
-  is_critical: boolean
-  is_warning: boolean
-}
-
-interface UNMMapViewResponse {
-  view_type: string
-  nodes: ViewNode[]
-  edges: ViewEdge[]
-  external_deps?: UNMMapExtDep[]
-}
 
 interface PNode {
   id: string; label: string; type: 'actor' | 'need' | 'capability' | 'ext-dep'
@@ -494,9 +479,8 @@ export function UNMMapView() {
   const loadMap = useCallback(() => {
     if (isHydrating || !modelId) return
     setLoading(true)
-    api.getView(modelId, 'unm-map')
-      .then((rawData) => {
-        const data = rawData as unknown as UNMMapViewResponse
+    api.getUNMMapView(modelId)
+      .then((data) => {
         const actors = data.nodes.filter(n => n.type === 'actor')
         const needs  = data.nodes.filter(n => n.type === 'need')
         const caps   = data.nodes.filter(n => n.type === 'capability')
@@ -524,7 +508,7 @@ export function UNMMapView() {
         setLayout(builtLayout)
         setChainData({ actorToNeed, needToCap, capDepEdges, extDepToCapIds, capToExtDepIds })
       })
-      .catch(e => setError((e as Error).message))
+      .catch((e: unknown) => setError((e as Error).message))
       .finally(() => setLoading(false))
   }, [isHydrating, modelId])
 
@@ -638,8 +622,8 @@ export function UNMMapView() {
     } else {
       const cfg = VIS[node.vis ?? 'foundational']
       const svcsText = node.svcs?.map(s => `${s.label}${s.teamName ? ` (${s.teamName})` : ''}`).join('\n') ?? ''
-      const slug = node.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-      const ai = insights[`cap:${slug}`] ?? insights[`cap-fragmented:${slug}`] ?? insights[`cap-disconnected:${slug}`]
+      const nodeSlug = slug(node.label)
+      const ai = insights[`cap:${nodeSlug}`] ?? insights[`cap-fragmented:${nodeSlug}`] ?? insights[`cap-disconnected:${nodeSlug}`]
       const aiFields: PanelField[] = ai
         ? [
             { label: 'AI Insight', value: ai.explanation },
@@ -691,8 +675,8 @@ export function UNMMapView() {
     }
   }, [layout])
 
-  if (loading) return <div className="flex items-center justify-center h-full text-muted-foreground">Building UNM map…</div>
-  if (error)   return <div className="flex items-center justify-center h-full text-destructive">{error}</div>
+  if (loading) return <LoadingState message="Building UNM map…" />
+  if (error)   return <ErrorState message={error} />
   if (!layout) return null
 
   const { pnodes, conns, depConns, extDepConns, canvasWidth, canvasH, actorGroups, bands } = layout

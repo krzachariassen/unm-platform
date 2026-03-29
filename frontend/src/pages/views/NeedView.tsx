@@ -1,19 +1,13 @@
-import { useEffect, useState } from 'react'
-import { api } from '@/lib/api'
-import { useRequireModel } from '@/lib/model-context'
+import { useState } from 'react'
+import { api, type NeedViewResponse } from '@/lib/api'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { usePageInsights, type InsightStatus } from '@/hooks/usePageInsights'
+import { useModelView } from '@/hooks/useModelView'
+import { LoadingState, ErrorState } from '@/components/ViewState'
+import { slug } from '@/lib/slug'
+import { VIS_BADGE } from '@/lib/visibility-styles'
 import { Users, Layers, AlertTriangle, ChevronDown, ChevronUp, Info, Lightbulb, Sparkles } from 'lucide-react'
-
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-
-const VIS_BADGE: Record<string, { bg: string; text: string }> = {
-  'user-facing':    { bg: '#dbeafe', text: '#1e40af' },
-  'domain':         { bg: '#ede9fe', text: '#5b21b6' },
-  'foundational':   { bg: '#d1fae5', text: '#065f46' },
-  'infrastructure': { bg: '#f1f5f9', text: '#475569' },
-}
 
 const gradientTitle: React.CSSProperties = {
   fontSize: 30,
@@ -41,49 +35,7 @@ const pill: React.CSSProperties = {
   alignItems: 'center',
 }
 
-const spinnerEl = (
-  <span
-    className="animate-spin flex-shrink-0"
-    style={{ width: 20, height: 20, border: '2px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%' }}
-  />
-)
-
-interface NeedViewCapability {
-  id: string
-  label: string
-  data: { visibility: string }
-}
-
-interface NeedViewNeed {
-  need: {
-    id: string
-    label: string
-    data: {
-      is_mapped: boolean
-      outcome?: string
-      anti_patterns?: Array<{ code: string; message: string; severity: string }>
-      team_span?: number
-      teams?: string[]
-      at_risk?: boolean
-      unbacked?: boolean
-    }
-  }
-  capabilities: NeedViewCapability[]
-}
-
-interface NeedViewGroup {
-  actor: { id: string; label: string }
-  needs: NeedViewNeed[]
-}
-
-interface NeedViewResponse {
-  view_type: string
-  total_needs: number
-  unmapped_count: number
-  groups: NeedViewGroup[]
-}
-
-// Derive the human-readable reason for at_risk.
+// ── Derive the human-readable reason for at_risk ─────────────────────────────
 // at_risk fires when team_span >= 3 OR a delivery team has high cognitive load.
 function atRiskReason(teamSpan: number): string {
   if (teamSpan >= 3) {
@@ -116,6 +68,8 @@ function StatCard({ value, label, icon: Icon, gradient, iconTint }: {
 }
 
 // ── Expandable need row ──────────────────────────────────────────────────────
+
+type NeedViewNeed = NeedViewResponse['groups'][number]['needs'][number]
 
 function NeedRow({ nr, isLast, insights, aiStatus }: {
   nr: NeedViewNeed
@@ -278,43 +232,12 @@ function NeedRow({ nr, isLast, insights, aiStatus }: {
 // ── Main view ────────────────────────────────────────────────────────────────
 
 export function NeedView() {
-  const { modelId, isHydrating } = useRequireModel()
   const { query } = useSearch()
-  const [viewData, setViewData] = useState<NeedViewResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: viewData, loading, error } = useModelView<NeedViewResponse>(api.getNeedView.bind(api))
   const { insights, status: aiStatus } = usePageInsights('needs')
 
-  useEffect(() => {
-    if (isHydrating || !modelId) return
-    api.getView(modelId, 'need')
-      .then(data => setViewData(data as unknown as NeedViewResponse))
-      .catch(e => setError((e as Error).message))
-      .finally(() => setLoading(false))
-  }, [isHydrating, modelId])
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 h-full min-h-[240px]">
-        {spinnerEl}
-        <span style={{ fontSize: 14, color: '#94a3b8', fontWeight: 500 }}>Loading need view…</span>
-      </div>
-    )
-  }
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 h-full min-h-[240px] px-4">
-        <div className="flex items-center gap-3 rounded-2xl px-5 py-4 max-w-md w-full" style={{ ...cardShell, borderColor: '#fecaca' }}>
-          <div className="rounded-xl p-2 flex-shrink-0" style={{ background: '#fee2e2' }}>
-            <span title="Error loading need view" aria-label="Error">
-              <AlertTriangle size={20} style={{ color: '#dc2626' }} />
-            </span>
-          </div>
-          <span className="text-sm font-medium" style={{ color: '#b91c1c' }}>{error}</span>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <LoadingState message="Loading need view…" />
+  if (error) return <ErrorState message={error} />
   if (!viewData) return null
 
   // Compute stats for UI-23

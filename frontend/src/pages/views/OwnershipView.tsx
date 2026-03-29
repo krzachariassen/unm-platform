@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, type OwnershipViewResponse } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { AntiPatternPanel } from '@/components/AntiPatternPanel'
 import { usePageInsights } from '@/hooks/usePageInsights'
+import { LoadingState, ErrorState } from '@/components/ViewState'
+import { slug } from '@/lib/slug'
+import { VIS_BADGE } from '@/lib/visibility-styles'
+import { TEAM_TYPE_BADGE } from '@/lib/team-type-styles'
 import { QuickAction } from '@/components/changeset/QuickAction'
-
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const H1_GRADIENT = {
   fontSize: 30,
@@ -40,49 +42,6 @@ interface NodeDetails {
   id: string; label: string; nodeType: string; data: Record<string, unknown>
 }
 
-interface AntiPattern {
-  code: string; message: string; severity: string
-}
-
-interface OwnershipViewResponse {
-  view_type: string
-  lanes: Array<{
-    team: {
-      id: string
-      label: string
-      data: { type: string; is_overloaded: boolean; anti_patterns?: AntiPattern[]; description?: string }
-    }
-    caps: Array<{
-      cap: {
-        id: string
-        label: string
-        data: { visibility: string; is_leaf: boolean; anti_patterns?: AntiPattern[]; description?: string }
-      }
-      services: Array<{
-        id: string
-        label: string
-        team_id: string
-        team_label: string
-        cap_count: number
-      }>
-      cross_team: boolean
-    }>
-    external_deps?: Array<{ id: string; label: string; description: string; service_count: number }>
-  }>
-  unowned_capabilities: Array<{ id: string; label: string; data: { visibility: string } }>
-  service_rows: Array<{
-    service: { id: string; label: string }
-    team: { id: string; label: string; data: { type: string } } | null
-    capabilities: Array<{ id: string; label: string; data: { visibility: string } }>
-  }>
-  cross_team_capabilities: Array<{ cap_id: string; cap_label: string; team_labels: string[] }>
-  high_span_services: Array<{ name: string; capability_count: number }>
-  overloaded_teams: Array<{ id: string; label: string }>
-  no_cap_count: number
-  multi_cap_count: number
-  external_dependency_count?: number
-}
-
 interface CapViewData {
   parent_groups: Array<{ id: string; label: string; children: string[] }>
   capabilities: Array<{ id: string; label: string; visibility: string }>
@@ -97,20 +56,6 @@ interface SvcPopover {
   capList: Array<{ label: string; visibility: string }>
   isHighSpan: boolean
   isFromOtherTeam: boolean
-}
-
-const VIS_BADGE: Record<string, { bg: string; text: string }> = {
-  'user-facing':    { bg: '#dbeafe', text: '#1e40af' },
-  'domain':         { bg: '#ede9fe', text: '#5b21b6' },
-  'foundational':   { bg: '#d1fae5', text: '#065f46' },
-  'infrastructure': { bg: '#f3f4f6', text: '#374151' },
-}
-
-const TEAM_TYPE_BADGE: Record<string, { bg: string; text: string }> = {
-  'stream-aligned':        { bg: '#dbeafe', text: '#1e40af' },
-  'platform':              { bg: '#ede9fe', text: '#5b21b6' },
-  'enabling':              { bg: '#d1fae5', text: '#065f46' },
-  'complicated-subsystem': { bg: '#fef3c7', text: '#92400e' },
 }
 
 const ALL_TEAM_TYPES = ['stream-aligned', 'platform', 'enabling', 'complicated-subsystem'] as const
@@ -164,23 +109,6 @@ function PillTabs({
   )
 }
 
-function LoadingBlock() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 h-full min-h-[200px]">
-      <div
-        className="rounded-full animate-spin"
-        style={{
-          width: 36,
-          height: 36,
-          border: '2px solid #e2e8f0',
-          borderTopColor: '#6366f1',
-        }}
-      />
-      <span style={{ fontSize: 14, color: '#94a3b8' }}>Loading…</span>
-    </div>
-  )
-}
-
 export function OwnershipView() {
   const { modelId, isHydrating } = useRequireModel()
   const { query, teamFilter } = useSearch()
@@ -206,12 +134,12 @@ export function OwnershipView() {
   useEffect(() => {
     if (isHydrating || !modelId) return
     Promise.all([
-      api.getView(modelId, 'ownership'),
-      api.getView(modelId, 'capability'),
+      api.getOwnershipView(modelId),
+      api.getCapabilityView(modelId),
     ]).then(([ownershipData, capData]) => {
-      setViewData(ownershipData as unknown as OwnershipViewResponse)
+      setViewData(ownershipData)
       setCapViewData(capData as unknown as CapViewData)
-    }).catch(e => setError((e as Error).message))
+    }).catch((e: unknown) => setError((e as Error).message))
       .finally(() => setLoading(false))
   }, [isHydrating, modelId])
 
@@ -250,8 +178,8 @@ export function OwnershipView() {
     return map
   }, [viewData])
 
-  if (loading) return <LoadingBlock />
-  if (error)   return <div className="flex items-center justify-center h-full" style={{ color: '#ef4444' }}>{error}</div>
+  if (loading) return <LoadingState />
+  if (error)   return <ErrorState message={error} />
   if (!viewData) return null
 
   const filteredLanes = viewData.lanes.filter(lane => {
@@ -816,7 +744,7 @@ export function OwnershipView() {
 
       {tab === 'domain' && (
         capViewData === null ? (
-          <LoadingBlock />
+          <LoadingState />
         ) : (
           <div className="space-y-3">
             {capViewData.parent_groups.map(group => {

@@ -1,47 +1,13 @@
-import { useEffect, useState, useMemo, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GitBranch, Layers, Server, AlertTriangle, Users, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react'
-import { api } from '@/lib/api'
+import { api, type RealizationViewResponse, type NeedViewResponse } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
-
-const VIS_BADGE: Record<string, { bg: string; text: string }> = {
-  'user-facing':    { bg: '#dbeafe', text: '#1e40af' },
-  'domain':         { bg: '#ede9fe', text: '#5b21b6' },
-  'foundational':   { bg: '#d1fae5', text: '#065f46' },
-  'infrastructure': { bg: '#f1f5f9', text: '#475569' },
-}
-
-const TEAM_TYPE_BADGE: Record<string, { bg: string; text: string }> = {
-  'stream-aligned':        { bg: '#dbeafe', text: '#1e40af' },
-  'platform':              { bg: '#ede9fe', text: '#5b21b6' },
-  'enabling':              { bg: '#d1fae5', text: '#065f46' },
-  'complicated-subsystem': { bg: '#fef3c7', text: '#92400e' },
-}
-
-interface RealizationViewResponse {
-  view_type: string
-  no_cap_count: number
-  multi_cap_count: number
-  service_rows: Array<{
-    service: { id: string; label: string; description?: string }
-    team: { id: string; label: string; data: { type: string } } | null
-    capabilities: Array<{ id: string; label: string; data: { visibility: string } }>
-    external_deps?: string[]
-  }>
-}
-
-interface NeedViewResponse {
-  view_type: string
-  groups: Array<{
-    actor: { id: string; label: string }
-    needs: Array<{
-      need: { id: string; label: string }
-      capabilities: Array<{ id: string; label: string }>
-    }>
-  }>
-}
+import { LoadingState, ErrorState } from '@/components/ViewState'
+import { VIS_BADGE } from '@/lib/visibility-styles'
+import { TEAM_TYPE_BADGE } from '@/lib/team-type-styles'
 
 interface GroupedNeed {
   actor: string
@@ -76,12 +42,12 @@ export function RealizationView() {
   useEffect(() => {
     if (isHydrating || !modelId) { return }
     Promise.all([
-      api.getView(modelId, 'realization'),
-      api.getView(modelId, 'need'),
+      api.getRealizationView(modelId),
+      api.getNeedView(modelId),
     ]).then(([realData, nData]) => {
-      setViewData(realData as unknown as RealizationViewResponse)
-      setNeedData(nData as unknown as NeedViewResponse)
-    }).catch(e => setError((e as Error).message))
+      setViewData(realData)
+      setNeedData(nData)
+    }).catch((e: unknown) => setError((e as Error).message))
       .finally(() => setLoading(false))
   }, [isHydrating, modelId])
 
@@ -196,18 +162,8 @@ export function RealizationView() {
     )
   }, [viewData, query])
 
-  if (loading) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, height: '100%', minHeight: 300 }}>
-      <div className="animate-spin" style={{ width: 36, height: 36, borderRadius: '50%', border: '2px solid #e2e8f0', borderTopColor: '#6366f1' }} />
-      <span style={{ fontSize: 14, color: '#94a3b8' }}>Loading traceability...</span>
-    </div>
-  )
-  if (error) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, minHeight: 300 }}>
-      <AlertTriangle size={22} style={{ color: '#ef4444' }} />
-      <span style={{ fontSize: 14, color: '#ef4444', fontWeight: 600 }}>{error}</span>
-    </div>
-  )
+  if (loading) return <LoadingState message="Loading traceability…" />
+  if (error) return <ErrorState message={error} />
   if (!viewData) return null
 
   const pillBase: CSSProperties = { borderRadius: 8, padding: '7px 16px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.15s' }

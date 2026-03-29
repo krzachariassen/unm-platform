@@ -46,7 +46,8 @@ monolithic context file, specialized agents get focused, composable context.
 │   ├── ui-reviewer/         # UX review specialist
 │   ├── code-reviewer/       # Code quality reviewer
 │   ├── code-to-dsl/         # Codebase-to-UNM model generator
-│   └── documentation-writer/# Docs, README, examples, tutorials
+│   ├── documentation-writer/# Docs, README, examples, tutorials
+│   └── backlog-manager/     # Backlog maintenance
 ├── commands/                # Orchestrator + direct commands
 │   ├── run.md               # /run <task> — AUTO-ROUTING ORCHESTRATOR
 │   ├── backend.md           # /backend <task>
@@ -112,19 +113,51 @@ For precise control, invoke agents directly:
 /validate             # Full build + test validation
 ```
 
+## Cursor Rules (synced)
+
+The `.cursor/rules/` directory mirrors this agent framework for Cursor IDE:
+
+| Rule | Activation | Syncs With |
+|------|-----------|------------|
+| `ai-engineer.mdc` | Always | `CLAUDE.md` + `commands/run.md` (routing, git-flow) |
+| `backend.mdc` | `backend/**` | Backend engineer agent + rules |
+| `frontend.mdc` | `frontend/**` | Frontend engineer agent + rules |
+| `backlog.mdc` | `**/BACKLOG*.md` | Backlog manager agent |
+
+When updating agent rules in `.claude/`, keep `.cursor/rules/` in sync.
+
 ## Key Principles
 
 - **Git Flow**: Never commit to main. All work on feature branches. See `.claude/rules/git-flow.md`.
 - **TDD**: Red -> Green -> Refactor. No code without a failing test first.
 - **Clean Architecture**: Domain is pure Go with zero deps. Dependencies point inward.
 - **Agent Teams**: Parallelize independent work. See `.claude/rules/agent-teams.md`.
+- **Backlog**: Single source in `docs/BACKLOG.md`. Humans own structure and priorities; backlog-manager updates completion state and Recently Completed per agent rules.
+- **Validation Pipeline**: Run `/validate` after all code changes. Mandatory, not optional.
+- **Security**: Read `.claude/agents/common/security.md`. No secrets in code. No PII in logs.
+
+## Memory Curation Policy
+
+Each agent's `MEMORY.md` is subject to these guardrails:
+
+- **30-entry hard cap** per agent. When reached, oldest non-promoted entries are removed.
+- **Reusable knowledge only**: entries must be about platform behavior, not current task progress.
+- **Structured format**: each entry needs date, context/service area, and a clear learning.
+- **Monthly curation** by the owning engineer (see `.claude/agents/AGENT_OWNERSHIP.md`):
+  - **Promote**: entry was useful in a subsequent task → move to `anti-patterns.md`
+  - **Keep**: potentially useful, not yet validated
+  - **Prune**: older than 2 months with no reuse
+- Override tracking lives in `.claude/agent-overrides.md` (see `.claude/agents/AGENT_OWNERSHIP.md`).
 
 ## Reference Files
 
-- `docs/BACKLOG.md` -- Phased product backlog
+- `docs/BACKLOG.md` -- Work items, phased roadmap, and Recently Completed
+- `.claude/agents/AGENT_OWNERSHIP.md` -- Agent ownership, curation policy, metrics
 - `docs/ENGINEERING_PRINCIPLES.md` -- Full engineering principles
 - `docs/UNM_DSL_SPECIFICATION.md` -- DSL syntax and meta-model
 - `docs/CODE_TO_DSL_AGENT.md` -- Code analysis process for model generation
+- `docs/AI_ENGINEERING_STRATEGY.md` -- AI Engineering Strategy (updated)
+- `docs/AI_ENGINEERING_VISION.md` -- AI Engineering Vision (updated)
 - `examples/inca.unm.yaml` -- Reference model
 
 ## What NOT to Do

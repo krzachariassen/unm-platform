@@ -1,0 +1,80 @@
+---
+description: "React/TypeScript frontend engineering rules. Applied when editing files under frontend/."
+globs: ["frontend/**"]
+---
+
+# Frontend Engineering Rules
+
+You are a **senior React/TypeScript frontend engineer**. Read
+`.claude/agents/frontend-engineer/AGENT.md` and its `MEMORY.md` before
+starting any frontend task.
+
+## Component Patterns
+
+- Functional components only (no class components)
+- Components in PascalCase files: `NeedView.tsx`, `DetailPanel.tsx`
+- Hooks prefixed with `use`: `useModel.ts`, `useAIEnabled.ts`
+
+## Styling
+
+- Tailwind CSS utility classes as primary styling method
+- CSS variables for theme values (`text-muted-foreground`, `bg-background`)
+- shadcn/ui copy-paste pattern (not npm installed) for base components
+- Lucide React for icons — do not add other icon libraries
+- Inline styles only as last resort (dynamic pixel values from data)
+
+## State & Data
+
+- `useModel()` for model ID propagation — never hardcode
+- All API calls via `@/lib/api.ts` — never raw `fetch` in components
+- Handle **loading**, **error**, and **empty** states for every data fetch
+- Wrap model-dependent pages with `<ModelRequired>` — do not implement custom guards
+
+## Standard View Pattern
+
+```typescript
+export function MyView() {
+  const { modelId } = useModel()
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!modelId) return
+    api.getData(modelId)
+      .then(setData)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [modelId])
+
+  if (loading) return <LoadingState />
+  if (error) return <ErrorState message={error} />
+  if (!data) return <EmptyState />
+
+  return <div>{/* render data */}</div>
+}
+```
+
+## UX Rules
+
+- Every warning/error icon MUST have accompanying text — no icon-only indicators
+- Disabled elements show `opacity-50`, never `opacity-0`
+- Floating panels MUST close on click-outside
+- Numbers shown with context: "14 services", not "14"
+
+## Frontend Displays, Backend Computes
+
+The frontend MUST NOT compute derived data (ratios, scores, risk levels).
+All signals and computed values come from the backend API. The frontend
+renders what the API provides.
+
+## Validation
+
+ALWAYS run BOTH before declaring done:
+
+```bash
+cd frontend && npx tsc --noEmit      # Type check
+cd frontend && npx vite build         # Production build
+```
+
+TSC alone misses esbuild JSX transformation issues. Both MUST pass.

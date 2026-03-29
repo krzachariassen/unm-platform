@@ -87,26 +87,26 @@ func setupEnrichedTestModel(t *testing.T) (http.Handler, string) {
 	t.Helper()
 	store := repository.NewModelStore()
 	cfg := entity.DefaultConfig()
-	h := New(
-		cfg,
-		usecase.NewParseAndValidate(parser.NewYAMLParser(), domainservice.NewValidationEngine()),
-		analyzer.NewFragmentationAnalyzer(),
-		analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
-		analyzer.NewDependencyAnalyzer(),
-		analyzer.NewGapAnalyzer(),
-		analyzer.NewBottleneckAnalyzer(cfg.Analysis.Bottleneck),
-		analyzer.NewCouplingAnalyzer(),
-		analyzer.NewComplexityAnalyzer(),
-		analyzer.NewInteractionDiversityAnalyzer(cfg.Analysis.Signals),
-		analyzer.NewUnlinkedCapabilityAnalyzer(),
-		analyzer.NewSignalSuggestionGenerator(cfg.Analysis.Signals),
-		analyzer.NewValueChainAnalyzer(cfg.Analysis.ValueChain),
-		analyzer.NewValueStreamAnalyzer(),
-		repository.NewChangesetStore(),
-		analyzer.NewImpactAnalyzer(entity.DefaultConfig().Analysis),
-		nil, // aiClient
-		store,
-	)
+	h := New(HandlerDeps{
+		Config:            cfg,
+		ParseAndValidate:  usecase.NewParseAndValidate(parser.NewYAMLParser(), domainservice.NewValidationEngine()),
+		Fragmentation:     analyzer.NewFragmentationAnalyzer(),
+		CognitiveLoad:     analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
+		Dependency:        analyzer.NewDependencyAnalyzer(),
+		Gap:               analyzer.NewGapAnalyzer(),
+		Bottleneck:        analyzer.NewBottleneckAnalyzer(cfg.Analysis.Bottleneck),
+		Coupling:          analyzer.NewCouplingAnalyzer(),
+		Complexity:        analyzer.NewComplexityAnalyzer(),
+		Interactions:      analyzer.NewInteractionDiversityAnalyzer(cfg.Analysis.Signals),
+		Unlinked:          analyzer.NewUnlinkedCapabilityAnalyzer(),
+		SignalSuggestions: analyzer.NewSignalSuggestionGenerator(cfg.Analysis.Signals),
+		ValueChain:        analyzer.NewValueChainAnalyzer(cfg.Analysis.ValueChain),
+		ValueStream:       analyzer.NewValueStreamAnalyzer(),
+		ChangesetStore:    repository.NewChangesetStore(),
+		ImpactAnalyzer:    analyzer.NewImpactAnalyzer(entity.DefaultConfig().Analysis),
+		AIClient:          nil, // aiClient
+		Store:             store,
+	})
 	router := NewRouter(h)
 
 	p := parser.NewYAMLParser()
@@ -595,26 +595,26 @@ func setupExtDepTestModel(t *testing.T) (http.Handler, string) {
 	t.Helper()
 	store := repository.NewModelStore()
 	cfg := entity.DefaultConfig()
-	h := New(
-		cfg,
-		usecase.NewParseAndValidate(parser.NewYAMLParser(), domainservice.NewValidationEngine()),
-		analyzer.NewFragmentationAnalyzer(),
-		analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
-		analyzer.NewDependencyAnalyzer(),
-		analyzer.NewGapAnalyzer(),
-		analyzer.NewBottleneckAnalyzer(cfg.Analysis.Bottleneck),
-		analyzer.NewCouplingAnalyzer(),
-		analyzer.NewComplexityAnalyzer(),
-		analyzer.NewInteractionDiversityAnalyzer(cfg.Analysis.Signals),
-		analyzer.NewUnlinkedCapabilityAnalyzer(),
-		analyzer.NewSignalSuggestionGenerator(cfg.Analysis.Signals),
-		analyzer.NewValueChainAnalyzer(cfg.Analysis.ValueChain),
-		analyzer.NewValueStreamAnalyzer(),
-		repository.NewChangesetStore(),
-		analyzer.NewImpactAnalyzer(entity.DefaultConfig().Analysis),
-		nil, // aiClient
-		store,
-	)
+	h := New(HandlerDeps{
+		Config:            cfg,
+		ParseAndValidate:  usecase.NewParseAndValidate(parser.NewYAMLParser(), domainservice.NewValidationEngine()),
+		Fragmentation:     analyzer.NewFragmentationAnalyzer(),
+		CognitiveLoad:     analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
+		Dependency:        analyzer.NewDependencyAnalyzer(),
+		Gap:               analyzer.NewGapAnalyzer(),
+		Bottleneck:        analyzer.NewBottleneckAnalyzer(cfg.Analysis.Bottleneck),
+		Coupling:          analyzer.NewCouplingAnalyzer(),
+		Complexity:        analyzer.NewComplexityAnalyzer(),
+		Interactions:      analyzer.NewInteractionDiversityAnalyzer(cfg.Analysis.Signals),
+		Unlinked:          analyzer.NewUnlinkedCapabilityAnalyzer(),
+		SignalSuggestions: analyzer.NewSignalSuggestionGenerator(cfg.Analysis.Signals),
+		ValueChain:        analyzer.NewValueChainAnalyzer(cfg.Analysis.ValueChain),
+		ValueStream:       analyzer.NewValueStreamAnalyzer(),
+		ChangesetStore:    repository.NewChangesetStore(),
+		ImpactAnalyzer:    analyzer.NewImpactAnalyzer(entity.DefaultConfig().Analysis),
+		AIClient:          nil, // aiClient
+		Store:             store,
+	})
 	router := NewRouter(h)
 
 	p := parser.NewYAMLParser()
