@@ -5,7 +5,7 @@ import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { LoadingState, ErrorState } from '@/components/ViewState'
-import type { SignalsViewResponse, SignalsNeedRisk, SignalsCapItem, SignalsTeamItem, SignalsServiceItem } from '@/lib/api'
+import type { SignalsViewResponse, SignalsNeedRisk, SignalsCapItem, SignalsTeamItem, SignalsServiceItem, SignalsExtDepItem } from '@/lib/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
@@ -13,23 +13,6 @@ import {
   Zap, Link2Off, GitMerge, Server, TrendingDown, ChevronDown, ChevronUp,
   Info, Lightbulb, Link2, Sparkles, X,
 } from 'lucide-react'
-
-// ── Local types for new backend fields ─────────────────────────────────────────
-
-interface ExtDepItem {
-  dep_name: string
-  service_count: number
-  services: string[]
-  is_critical: boolean
-  is_warning: boolean
-}
-
-interface OrgLayerWithExtDeps {
-  top_teams_by_structural_load: import('@/lib/api').SignalsTeamItem[]
-  critical_bottleneck_services: import('@/lib/api').SignalsServiceItem[]
-  low_coherence_teams: import('@/lib/api').SignalsTeamItem[]
-  critical_external_deps?: ExtDepItem[]
-}
 
 // ── Risk styling ────────────────────────────────────────────────────────────────
 
@@ -294,7 +277,7 @@ function ServiceRow({ item }: { item: SignalsServiceItem }) {
   return <ExpandableRow summary={summary} explanation={explanation} suggestion={suggestion} />
 }
 
-function ExtDepRow({ item }: { item: ExtDepItem }) {
+function ExtDepRow({ item }: { item: SignalsExtDepItem }) {
   const color = item.is_critical ? 'red' : 'amber'
   const summary = (
     <div className="w-full space-y-2">
@@ -714,7 +697,7 @@ function buildArchSummary(arch: SignalsViewResponse['architecture_layer']): stri
   return lines.join('\n')
 }
 
-function buildOrgSummary(org: OrgLayerWithExtDeps): string {
+function buildOrgSummary(org: SignalsViewResponse['organization_layer']): string {
   const lines: string[] = []
   if (org.top_teams_by_structural_load.length > 0) {
     lines.push(`High structural load teams (${org.top_teams_by_structural_load.length}): ${org.top_teams_by_structural_load.map(t => `"${t.team_name}" (${t.overall_level}, ${t.service_count} svcs, ${t.capability_count} caps)`).join('; ')}`)
@@ -775,7 +758,7 @@ export function SignalsView() {
 
   const ux = data.user_experience_layer
   const arch = data.architecture_layer
-  const org = data.organization_layer as OrgLayerWithExtDeps
+  const org = data.organization_layer
 
   const uxCount = ux.needs_requiring_3plus_teams.length + ux.needs_with_no_capability_backing.length + ux.needs_at_risk.length
   const archCount = arch.user_facing_caps_with_cross_team_services.length + arch.capabilities_not_connected_to_any_need.length + arch.capabilities_fragmented_across_teams.length
