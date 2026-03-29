@@ -62,7 +62,80 @@ echo "EXIT_CODE: $?"
 Report any matches as FAIL with the file:line and matched pattern.
 If no matches, report PASS.
 
-### Gate 6: Diff Coverage (Advisory)
+### Gate 6: CI Parity — Git-Tracked Test Fixtures
+
+Tests that reference files via relative paths (e.g. `examples/`, `testdata/`)
+will pass locally if the file exists on disk — even if it is gitignored and
+therefore absent in CI's clean checkout. This gate catches that class of bug.
+
+```bash
+# Find all fixture file paths referenced in Go test files,
+# resolve them relative to each test file's location,
+# and verify each resolved path is tracked in git.
+echo "=== Checking test fixture files are git-tracked ==="
+python3 - <<'PYEOF'
+import os, subprocess, sys, re
+
+repo_root = subprocess.check_output(["git", "rev-parse", "--show-toplevel"]).decode().strip()
+failures = []
+
+for dirpath, _, files in os.walk(os.path.join(repo_root, "backend")):
+    for fname in files:
+        if not fname.endswith("_test.go"):
+            continue
+        filepath = os.path.join(dirpath, fname)
+        with open(filepath) as f:
+            content = f.read()
+        # Extract quoted paths that look like fixture references
+        for match in re.finditer(r'"([^"]*(?:examples|testdata)[^"]*\.(?:yaml|json|unm))"', content):
+            ref = match.group(1)
+            resolved = os.path.normpath(os.path.join(dirpath, ref))
+            rel = os.path.relpath(resolved, repo_root)
+            result = subprocess.run(
+                ["git", "ls-files", "--error-unmatch", rel],
+                cwd=repo_root, capture_output=True
+            )
+            if result.returncode != 0:
+                failures.append(f"  NOT IN GIT: {rel}  (referenced in {os.path.relpath(filepath, repo_root)})")
+
+if failures:
+    print("FAIL — fixture files referenced in tests but not committed to git:")
+    for f in sorted(set(failures)):
+        print(f)
+    sys.exit(1)
+else:
+    print("PASS — all test fixture files are git-tracked.")
+    sys.exit(0)
+PYEOF
+echo "EXIT_CODE: $?"
+```
+
+### Gate 7: CI Parity — No Private Registry in package-lock.json
+
+`npm ci` uses resolved URLs from `package-lock.json` directly, ignoring
+`.npmrc` overrides. If the lockfile was generated on a machine with a private
+registry configured (e.g. Artifactory, Verdaccio, internal mirrors), CI runners
+without credentials will fail with E401. This gate catches that.
+
+```bash
+echo "=== Checking package-lock.json for private registry URLs ==="
+PRIVATE_HITS=$(grep -c '"resolved"' frontend/package-lock.json 2>/dev/null && \
+  grep '"resolved"' frontend/package-lock.json | \
+  grep -v '"https://registry\.npmjs\.org/' | \
+  grep -v '"https://registry\.yarnpkg\.com/' | \
+  head -5)
+if [ -n "$PRIVATE_HITS" ]; then
+  echo "FAIL — package-lock.json contains non-public resolved URLs:"
+  echo "$PRIVATE_HITS"
+  echo "Fix: rm frontend/package-lock.json frontend/node_modules && cd frontend && npm install --registry https://registry.npmjs.org/ --userconfig /dev/null"
+  echo "EXIT_CODE: 1"
+else
+  echo "All resolved URLs point to public registry."
+  echo "EXIT_CODE: 0"
+fi
+```
+
+### Gate 8: Diff Coverage (Advisory)
 
 If changes have been made (unstaged or staged files exist):
 
@@ -92,7 +165,9 @@ After running ALL gates, produce this exact report format:
 ║ Gate 3: Backend Tests        [PASS|FAIL]          ║
 ║ Gate 4: Frontend Build       [PASS|FAIL]          ║
 ║ Gate 5: Security Scan        [PASS|FAIL]          ║
-║ Gate 6: Diff Coverage        [PASS|WARN|N/A]      ║
+║ Gate 6: CI Parity — Fixtures [PASS|FAIL]          ║
+║ Gate 7: CI Parity — Registry [PASS|FAIL]          ║
+║ Gate 8: Diff Coverage        [PASS|WARN|N/A]      ║
 ╠══════════════════════════════════════════════════╣
 ║ Result: [ALL GATES PASSED | X GATE(S) FAILED]    ║
 ╚══════════════════════════════════════════════════╝
@@ -120,8 +195,8 @@ If any gate FAILS and you are running as part of the orchestrator workflow:
 
 ```
 /validate              # Run all gates
-/validate backend      # Run gates 1-3 + 5 only
-/validate frontend     # Run gates 4-5 only
+/validate backend      # Run gates 1-3 + 5-6 only
+/validate frontend     # Run gates 4-5 + 7 only
 ```
 
 $ARGUMENTS
