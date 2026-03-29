@@ -179,6 +179,33 @@ func TestCompleteJSON_WithModelOverride(t *testing.T) {
 	assert.Equal(t, "gpt-5-nano", capturedBody.Model, "model override should be used in JSON request")
 }
 
+// TestOpenAIClient_DefaultTimeout verifies that all constructors set a non-zero
+// HTTP client timeout as a safety net against hung connections (6.10.23).
+func TestOpenAIClient_DefaultTimeout(t *testing.T) {
+	t.Run("NewOpenAIClientWithKey", func(t *testing.T) {
+		c := NewOpenAIClientWithKey("key", "gpt-4o")
+		assert.NotZero(t, c.httpClient.Timeout, "http.Client must have a non-zero timeout")
+	})
+
+	t.Run("NewOpenAIClientFromConfig", func(t *testing.T) {
+		cfg := entity.AIConfig{
+			APIKey:  "key",
+			BaseURL: "https://api.openai.com/v1",
+			Model:   "gpt-4o",
+		}
+		c, err := NewOpenAIClientFromConfig(cfg)
+		require.NoError(t, err)
+		assert.NotZero(t, c.httpClient.Timeout, "http.Client must have a non-zero timeout")
+	})
+
+	t.Run("NewOpenAIClient_EnvKey", func(t *testing.T) {
+		t.Setenv("UNM_OPENAI_API_KEY", "env-key")
+		c, err := NewOpenAIClient()
+		require.NoError(t, err)
+		assert.NotZero(t, c.httpClient.Timeout, "http.Client must have a non-zero timeout")
+	})
+}
+
 func TestCompleteJSON_SetsResponseFormat(t *testing.T) {
 	var capturedBody map[string]interface{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
