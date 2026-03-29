@@ -50,29 +50,29 @@ func main() {
 		store.StartEviction(cfg.Server.SessionTTL, 5*time.Minute)
 		defer store.StopEviction()
 	}
-	h := handler.New(
-		*cfg,
-		usecase.NewParseAndValidate(parser.NewYAMLParser(), service.NewValidationEngine()),
-		analyzer.NewFragmentationAnalyzer(),
-		analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
-		analyzer.NewDependencyAnalyzer(),
-		analyzer.NewGapAnalyzer(),
-		analyzer.NewBottleneckAnalyzer(cfg.Analysis.Bottleneck),
-		analyzer.NewCouplingAnalyzer(),
-		analyzer.NewComplexityAnalyzer(),
-		analyzer.NewInteractionDiversityAnalyzer(cfg.Analysis.Signals),
-		analyzer.NewUnlinkedCapabilityAnalyzer(),
-		analyzer.NewSignalSuggestionGenerator(cfg.Analysis.Signals),
-		analyzer.NewValueChainAnalyzerWithCogLoad(
+	h := handler.New(handler.HandlerDeps{
+		Config:            *cfg,
+		ParseAndValidate:  usecase.NewParseAndValidate(parser.NewYAMLParser(), service.NewValidationEngine()),
+		Fragmentation:     analyzer.NewFragmentationAnalyzer(),
+		CognitiveLoad:     analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
+		Dependency:        analyzer.NewDependencyAnalyzer(),
+		Gap:               analyzer.NewGapAnalyzer(),
+		Bottleneck:        analyzer.NewBottleneckAnalyzer(cfg.Analysis.Bottleneck),
+		Coupling:          analyzer.NewCouplingAnalyzer(),
+		Complexity:        analyzer.NewComplexityAnalyzer(),
+		Interactions:      analyzer.NewInteractionDiversityAnalyzer(cfg.Analysis.Signals),
+		Unlinked:          analyzer.NewUnlinkedCapabilityAnalyzer(),
+		SignalSuggestions: analyzer.NewSignalSuggestionGenerator(cfg.Analysis.Signals),
+		ValueChain: analyzer.NewValueChainAnalyzerWithCogLoad(
 			cfg.Analysis.ValueChain,
 			analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
 		),
-		analyzer.NewValueStreamAnalyzer(),
-		csStore,
-		analyzer.NewImpactAnalyzer(cfg.Analysis),
-		aiClient,
-		store,
-	)
+		ValueStream:    analyzer.NewValueStreamAnalyzer(),
+		ChangesetStore: csStore,
+		ImpactAnalyzer: analyzer.NewImpactAnalyzer(cfg.Analysis),
+		AIClient:       aiClient,
+		Store:          store,
+	})
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	writeTimeout := cfg.Server.WriteTimeout
