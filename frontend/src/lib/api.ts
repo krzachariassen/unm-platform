@@ -234,6 +234,14 @@ export interface SignalsServiceItem {
   fan_in: number
 }
 
+export interface SignalsExtDepItem {
+  dep_name: string
+  service_count: number
+  services: string[]
+  is_critical: boolean
+  is_warning: boolean
+}
+
 export interface SignalsViewResponse {
   view_type: string
   health: {
@@ -255,6 +263,7 @@ export interface SignalsViewResponse {
     top_teams_by_structural_load: SignalsTeamItem[]
     critical_bottleneck_services: SignalsServiceItem[]
     low_coherence_teams: SignalsTeamItem[]
+    critical_external_deps?: SignalsExtDepItem[]
   }
 }
 
