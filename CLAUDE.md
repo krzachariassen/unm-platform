@@ -152,9 +152,7 @@ Each agent's `MEMORY.md` is subject to these guardrails:
 
 - `docs/BACKLOG.md` -- Work items, phased roadmap, and Recently Completed
 - `.claude/agents/AGENT_OWNERSHIP.md` -- Agent ownership, curation policy, metrics
-- `docs/ENGINEERING_PRINCIPLES.md` -- Full engineering principles
 - `docs/UNM_DSL_SPECIFICATION.md` -- DSL syntax and meta-model
-- `docs/CODE_TO_DSL_AGENT.md` -- Code analysis process for model generation
 - `docs/AI_ENGINEERING_STRATEGY.md` -- AI Engineering Strategy (updated)
 - `docs/AI_ENGINEERING_VISION.md` -- AI Engineering Vision (updated)
 - `examples/inca.unm.yaml` -- Reference model
