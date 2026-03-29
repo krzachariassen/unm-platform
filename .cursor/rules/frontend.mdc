@@ -70,11 +70,10 @@ renders what the API provides.
 
 ## Validation
 
-ALWAYS run BOTH before declaring done:
+ALWAYS run before declaring done:
 
 ```bash
-cd frontend && npx tsc --noEmit      # Type check
-cd frontend && npx vite build         # Production build
+cd frontend && npm run build   # tsc -b && vite build (matches CI/Dockerfile)
 ```
 
-TSC alone misses esbuild JSX transformation issues. Both MUST pass.
+Must pass with zero errors.

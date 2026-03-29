@@ -31,9 +31,8 @@ $ARGUMENTS
 ## Completion Criteria
 
 1. Work is on a feature branch (NOT main)
-2. TypeScript clean: `cd frontend && npx tsc --noEmit`
-3. Build succeeds: `cd frontend && npx vite build`
-4. No warning icons without explanation text
-5. All data displays handle empty/loading/error states
-6. Changes committed and pushed: `git push -u origin HEAD`
-7. MEMORY.md updated if new learnings discovered
+2. `cd frontend && npm run build` passes
+3. No warning icons without explanation text
+4. All data displays handle empty/loading/error states
+5. Changes committed and pushed: `git push -u origin HEAD`
+6. MEMORY.md updated if new learnings discovered

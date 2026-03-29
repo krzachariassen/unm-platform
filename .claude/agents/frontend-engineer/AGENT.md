@@ -108,10 +108,9 @@ export function MyView() {
 
 ### Phase 3: Validate
 ```bash
-cd frontend && npx tsc --noEmit    # TypeScript type check
-cd frontend && npx vite build       # Build validation (catches JSX/import errors TSC misses)
+cd frontend && npm run build   # tsc -b && vite build (matches CI/Dockerfile)
 ```
-Both MUST pass before declaring done. TSC alone is not sufficient.
+Must pass before declaring done.
 
 ### Phase 4: Update Memory
 Add any non-obvious learnings to MEMORY.md for future agents.
@@ -159,7 +158,7 @@ Add any non-obvious learnings to MEMORY.md for future agents.
 
 ## Critical Constraints
 
-- **ALWAYS** validate with BOTH `npx tsc --noEmit` AND `npx vite build` — both are mandatory
+- **ALWAYS** validate with `cd frontend && npm run build`
 - **NEVER** use inline styles when Tailwind classes exist for the same purpose
 - **NEVER** leave interactive elements with opacity 0 or hidden — use `opacity-50` for disabled
 - **NEVER** create floating panels without click-outside-to-dismiss behavior

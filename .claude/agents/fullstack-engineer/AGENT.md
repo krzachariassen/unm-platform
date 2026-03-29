@@ -96,9 +96,9 @@ Only start the frontend after the backend tests pass.
 Run both validation suites:
 ```bash
 cd backend && go test ./... && go vet ./...
-cd frontend && npx tsc --noEmit && npx vite build
+cd frontend && npm run build
 ```
-All four commands must pass with zero errors.
+All checks must pass with zero errors.
 
 ### Phase 5: Update Memory
 
@@ -139,7 +139,7 @@ All backend constraints apply:
 - NEVER put business logic in handlers
 
 All frontend constraints apply:
-- ALWAYS validate with BOTH `npx tsc --noEmit` AND `npx vite build`
+- ALWAYS validate with `cd frontend && npm run build`
 - NEVER use raw `fetch` — always `@/lib/api.ts`
 - ALWAYS handle loading, error, and empty states
 - ALWAYS wrap pages with `<ModelRequired>`

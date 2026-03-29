@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { ZoomIn, ZoomOut, Maximize2, Pencil } from 'lucide-react'
-import { api, type ViewNode, type ViewEdge, type ChangeAction, type UNMMapViewResponse } from '@/lib/api'
+import { api, type ViewNode, type ViewEdge, type ChangeAction, type UNMMapExtDep } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { usePageInsights } from '@/hooks/usePageInsights'

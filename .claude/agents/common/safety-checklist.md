@@ -12,8 +12,7 @@ Before declaring any task complete, verify ALL of the following:
 
 ## Frontend Changes
 
-- [ ] `cd frontend && npx tsc --noEmit` passes (zero errors)
-- [ ] `cd frontend && npx vite build` succeeds (zero errors)
+- [ ] `cd frontend && npm run build` passes (zero errors; runs `tsc -b` + `vite build`)
 - [ ] No linter errors in edited files
 
 ## Git Flow

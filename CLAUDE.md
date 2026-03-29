@@ -16,8 +16,7 @@ cd backend && go run ./cmd/server/       # Run server (port 8080)
 
 # Frontend
 cd frontend && npm install               # Install deps
-cd frontend && npx tsc --noEmit          # Type check
-cd frontend && npx vite build            # Production build
+cd frontend && npm run build             # Full build (tsc -b + vite build)
 cd frontend && npm run dev               # Dev server (port 5173)
 
 # AI tests (require API key)

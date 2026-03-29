@@ -17,8 +17,9 @@ needs, and actors for dropdown population. Entity fields use `type: 'entity'` wi
 options based on entity_type selection.
 
 ### 2025-03 — Build validation
-TSC alone misses esbuild JSX transformation issues. ALWAYS run both
-`npx tsc --noEmit` AND `npx vite build` to catch all errors.
+`cd frontend && npm run build` runs `tsc -b && vite build`, matching CI/Dockerfile.
+It catches TypeScript project-mode issues (e.g. unused imports), JSX/transform errors,
+and the production bundle in one command.
 
 ### 2025-03 — Adjacent JSX in map callbacks
 Multiple JSX elements returned from `.map()` must be wrapped in a fragment or

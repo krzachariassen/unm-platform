@@ -105,6 +105,6 @@ WRONG — no verification
 
 CORRECT — tie comments to evidence
 - Checked handler delegates to AnalyzerService (handler_test.go:42)
-- Ran `go test ./...` and `npx vite build` on this branch
+- Ran `go test ./...` and `npm run build` on this branch
 - Open question: should empty `dependsOn` be validated? Not blocking.
 ```
