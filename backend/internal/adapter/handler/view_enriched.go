@@ -1029,9 +1029,9 @@ func buildServiceRows(m *entity.UNMModel, svcCapCount map[string]int) []serviceR
 		return rows[i].svc.Name < rows[j].svc.Name
 	})
 
-	var result []serviceRow
+	result := make([]serviceRow, 0, len(rows))
 	for _, r := range rows {
-		var capRefs []capRef
+		capRefs := make([]capRef, 0, len(r.caps))
 		for _, c := range r.caps {
 			capRefs = append(capRefs, capRef{
 				ID:    "cap-" + c.Name,

@@ -55,7 +55,7 @@ export function RealizationView() {
     if (!viewData) return new Map<string, { services: string[]; teams: Array<{ label: string; type: string }> }>()
     const map = new Map<string, { services: string[]; teams: Array<{ label: string; type: string }> }>()
     for (const row of viewData.service_rows) {
-      for (const cap of row.capabilities) {
+      for (const cap of (row.capabilities ?? [])) {
         const existing = map.get(cap.id) ?? { services: [], teams: [] }
         if (!existing.services.includes(row.service.label)) existing.services.push(row.service.label)
         if (row.team && !existing.teams.some(t => t.label === row.team!.label)) {
@@ -71,7 +71,7 @@ export function RealizationView() {
     if (!viewData) return new Map<string, string>()
     const map = new Map<string, string>()
     for (const row of viewData.service_rows) {
-      for (const cap of row.capabilities) {
+      for (const cap of (row.capabilities ?? [])) {
         map.set(cap.id, cap.data.visibility ?? '')
       }
     }
@@ -158,7 +158,7 @@ export function RealizationView() {
     return viewData.service_rows.filter(row =>
       matchesQuery(row.service.label, query) ||
       (row.team && matchesQuery(row.team.label, query)) ||
-      row.capabilities.some(c => matchesQuery(c.label, query))
+      (row.capabilities ?? []).some(c => matchesQuery(c.label, query))
     )
   }, [viewData, query])
 
@@ -536,7 +536,7 @@ export function RealizationView() {
               {filteredSvc.map((row, idx) => {
                 const teamType = row.team?.data.type ?? ''
                 const teamBadge = TEAM_TYPE_BADGE[teamType] ?? { bg: '#f1f5f9', text: '#475569' }
-                const isHighSpan = row.capabilities.length >= 3
+                const isHighSpan = (row.capabilities ?? []).length >= 3
                 const baseBg = idx % 2 === 0 ? '#ffffff' : '#fafbfc'
                 return (
                   <tr key={row.service.id}
@@ -547,7 +547,7 @@ export function RealizationView() {
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12, fontWeight: 600, color: '#334155' }}>{row.service.label}</span>
-                        {isHighSpan && <span style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed' }}>x{row.capabilities.length}</span>}
+                        {isHighSpan && <span style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed' }}>x{(row.capabilities ?? []).length}</span>}
                       </div>
                     </td>
                     <td style={{ padding: '10px 16px' }}>
@@ -558,11 +558,11 @@ export function RealizationView() {
                       )}
                     </td>
                     <td style={{ padding: '10px 16px' }}>
-                      {row.capabilities.length === 0 ? (
+                      {(row.capabilities ?? []).length === 0 ? (
                         <span style={{ fontSize: 11, fontStyle: 'italic', color: '#94a3b8' }}>no capabilities</span>
                       ) : (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                          {row.capabilities.map(cap => {
+                          {(row.capabilities ?? []).map(cap => {
                             const b = VIS_BADGE[cap.data.visibility ?? ''] ?? { bg: '#f1f5f9', text: '#475569' }
                             return <button key={cap.id} type="button"
                               onClick={() => navigate(`/capability?highlight=${encodeURIComponent(cap.label)}`)}
