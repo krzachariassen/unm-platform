@@ -58,9 +58,9 @@ func (a *ImpactAnalyzer) Analyze(m *entity.UNMModel, cs *entity.Changeset) (Impa
 
 	report.Deltas = append(report.Deltas, diffFragmentation(m, projected))
 	report.Deltas = append(report.Deltas, diffCognitiveLoad(m, projected, a.cfg))
-	report.Deltas = append(report.Deltas, diffBottleneck(m, projected))
+	report.Deltas = append(report.Deltas, diffBottleneck(m, projected, a.cfg))
 	report.Deltas = append(report.Deltas, diffCoupling(m, projected))
-	report.Deltas = append(report.Deltas, diffValueChain(m, projected))
+	report.Deltas = append(report.Deltas, diffValueChain(m, projected, a.cfg))
 	report.Deltas = append(report.Deltas, diffValueStream(m, projected))
 
 	return report, nil
@@ -121,8 +121,8 @@ func diffCognitiveLoad(before, after *entity.UNMModel, cfg entity.AnalysisConfig
 	}
 }
 
-func diffBottleneck(before, after *entity.UNMModel) DimensionDelta {
-	ba := NewBottleneckAnalyzer(entity.DefaultConfig().Analysis.Bottleneck)
+func diffBottleneck(before, after *entity.UNMModel, cfg entity.AnalysisConfig) DimensionDelta {
+	ba := NewBottleneckAnalyzer(cfg.Bottleneck)
 	bReport := ba.Analyze(before)
 	aReport := ba.Analyze(after)
 
@@ -157,8 +157,8 @@ func diffCoupling(before, after *entity.UNMModel) DimensionDelta {
 	}
 }
 
-func diffValueChain(before, after *entity.UNMModel) DimensionDelta {
-	va := NewValueChainAnalyzer(entity.DefaultConfig().Analysis.ValueChain)
+func diffValueChain(before, after *entity.UNMModel, cfg entity.AnalysisConfig) DimensionDelta {
+	va := NewValueChainAnalyzer(cfg.ValueChain)
 	bReport := va.Analyze(before)
 	aReport := va.Analyze(after)
 
