@@ -141,29 +141,38 @@ export interface CapabilityViewResponse {
   leaf_capability_count: number
   high_span_services: Array<{ name: string; capability_count: number }>
   fragmented_capabilities: Array<{ id: string; label: string; team_count: number }>
+  parent_groups: Array<{
+    id: string
+    label: string
+    children: string[]
+  }>
   capabilities: Array<{
     id: string
     label: string
+    description: string
     visibility: string
     is_leaf: boolean
     is_fragmented: boolean
+    depended_on_by_count: number
     services: Array<{ id: string; label: string; cap_count: number }>
     teams: Array<{ id: string; label: string; type: string }>
     depends_on: Array<{ id: string; label: string }>
     children: Array<{ id: string; label: string }>
     anti_patterns?: AntiPattern[]
+    external_deps?: Array<{ name: string; description?: string }>
   }>
 }
 
 export interface OwnershipViewResponse {
   view_type: string
   lanes: Array<{
-    team: { id: string; label: string; data: { type: string; is_overloaded: boolean; anti_patterns?: AntiPattern[] } }
+    team: { id: string; label: string; data: { type: string; is_overloaded: boolean; anti_patterns?: AntiPattern[]; description?: string } }
     caps: Array<{
-      cap: { id: string; label: string; data: { visibility: string; is_leaf: boolean; anti_patterns?: AntiPattern[] } }
+      cap: { id: string; label: string; data: { visibility: string; is_leaf: boolean; anti_patterns?: AntiPattern[]; description?: string } }
       services: Array<{ id: string; label: string; team_id: string; team_label: string; cap_count: number }>
       cross_team: boolean
     }>
+    external_deps?: Array<{ id: string; label: string; description: string; service_count: number }>
   }>
   unowned_capabilities: Array<{ id: string; label: string; data: { visibility: string } }>
   service_rows: Array<{
@@ -176,6 +185,7 @@ export interface OwnershipViewResponse {
   overloaded_teams: Array<{ id: string; label: string }>
   no_cap_count: number
   multi_cap_count: number
+  external_dependency_count?: number
 }
 
 export interface TeamTopologyViewResponse {
@@ -183,14 +193,17 @@ export interface TeamTopologyViewResponse {
   teams: Array<{
     id: string
     label: string
+    description: string
     type: string
     is_overloaded: boolean
     capability_count: number
     service_count: number
-    interactions: Array<{ source_id: string; target_id: string; mode: string }>
+    interactions: Array<{ source_id: string; target_id: string; mode: string; via: string; description: string }>
     anti_patterns?: AntiPattern[]
+    services: string[]
+    capabilities: string[]
   }>
-  interactions: Array<{ source_id: string; target_id: string; mode: string }>
+  interactions: Array<{ source_id: string; target_id: string; mode: string; via: string; description: string }>
 }
 
 export interface CognitiveLoadViewResponse {
@@ -255,10 +268,28 @@ export interface RealizationViewResponse {
   no_cap_count: number
   multi_cap_count: number
   service_rows: Array<{
-    service: { id: string; label: string }
+    service: { id: string; label: string; description?: string }
     team: { id: string; label: string; data: { type: string } } | null
     capabilities: Array<{ id: string; label: string; data: { visibility: string } }>
+    external_deps?: string[]
   }>
+}
+
+export interface UNMMapExtDep {
+  id: string
+  name: string
+  description?: string
+  service_count: number
+  services: string[]
+  is_critical: boolean
+  is_warning: boolean
+}
+
+export interface UNMMapViewResponse {
+  view_type: string
+  nodes: ViewNode[]
+  edges: ViewEdge[]
+  external_deps?: UNMMapExtDep[]
 }
 
 export interface ChangeAction {
@@ -541,6 +572,36 @@ export const api = {
   async getCapabilityView(modelId: string): Promise<CapabilityViewResponse> {
     const r = await fetch(`/api/models/${encodeURIComponent(modelId)}/views/capability`)
     if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch capability view'))
+    return r.json()
+  },
+
+  async getOwnershipView(modelId: string): Promise<OwnershipViewResponse> {
+    const r = await fetch(`${API_BASE}/models/${encodeURIComponent(modelId)}/views/ownership`)
+    if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch ownership view'))
+    return r.json()
+  },
+
+  async getTeamTopologyView(modelId: string): Promise<TeamTopologyViewResponse> {
+    const r = await fetch(`${API_BASE}/models/${encodeURIComponent(modelId)}/views/team-topology`)
+    if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch team topology view'))
+    return r.json()
+  },
+
+  async getCognitiveLoadView(modelId: string): Promise<CognitiveLoadViewResponse> {
+    const r = await fetch(`${API_BASE}/models/${encodeURIComponent(modelId)}/views/cognitive-load`)
+    if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch cognitive load view'))
+    return r.json()
+  },
+
+  async getRealizationView(modelId: string): Promise<RealizationViewResponse> {
+    const r = await fetch(`${API_BASE}/models/${encodeURIComponent(modelId)}/views/realization`)
+    if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch realization view'))
+    return r.json()
+  },
+
+  async getUNMMapView(modelId: string): Promise<UNMMapViewResponse> {
+    const r = await fetch(`${API_BASE}/models/${encodeURIComponent(modelId)}/views/unm-map`)
+    if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch UNM map view'))
     return r.json()
   },
 }

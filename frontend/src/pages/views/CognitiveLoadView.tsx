@@ -1,14 +1,14 @@
-import { useEffect, useState, useMemo, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import {
   AlertTriangle, Gauge, Users, Box, GitBranch, Zap,
   ChevronDown, ChevronUp, Shield, Layers, ArrowRight,
 } from 'lucide-react'
 import { api } from '@/lib/api'
-import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { usePageInsights } from '@/hooks/usePageInsights'
-
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+import { useModelView } from '@/hooks/useModelView'
+import { LoadingState, ErrorState } from '@/components/ViewState'
+import { slug } from '@/lib/slug'
 import type { TeamLoad, CognitiveLoadViewResponse, InsightItem } from '@/lib/api'
 
 const TEAM_TYPE_BADGE: Record<string, { bg: string; text: string; gradient: string }> = {
@@ -267,27 +267,14 @@ function TeamCard({ tl, insight, isExpanded, onToggle }: {
 }
 
 export function CognitiveLoadView() {
-  const { modelId, isHydrating } = useRequireModel()
-  const [loads, setLoads] = useState<TeamLoad[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: viewData, loading, error } = useModelView<CognitiveLoadViewResponse>(api.getCognitiveLoadView.bind(api))
+  const loads = useMemo(() => viewData?.team_loads ?? [], [viewData])
   const [sortKey, setSortKey] = useState<SortKey>('level')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [filterType, setFilterType] = useState<string>('')
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null)
   const [showThresholds, setShowThresholds] = useState(false)
   const { insights } = usePageInsights('cognitive-load')
-
-  useEffect(() => {
-    if (isHydrating || !modelId) return
-    api.getView(modelId, 'cognitive-load')
-      .then(data => {
-        const resp = data as unknown as CognitiveLoadViewResponse
-        setLoads(resp.team_loads ?? [])
-      })
-      .catch(e => setError((e as Error).message))
-      .finally(() => setLoading(false))
-  }, [isHydrating, modelId])
 
   const counts = useMemo(() => ({
     total: loads.length,
@@ -315,20 +302,8 @@ export function CognitiveLoadView() {
     })
   }, [loads, filterType, sortKey, sortDir])
 
-  if (loading) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, height: '100%', minHeight: 300 }}>
-      <div className="animate-spin" style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #e2e8f0', borderTopColor: '#6366f1' }} />
-      <span style={{ fontSize: 15, color: '#94a3b8', fontWeight: 500 }}>Analyzing structural cognitive load...</span>
-    </div>
-  )
-
-  if (error) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, minHeight: 300 }}>
-      <AlertTriangle size={24} style={{ color: '#ef4444' }} />
-      <span style={{ fontSize: 15, color: '#ef4444', fontWeight: 600 }}>{error}</span>
-      <span style={{ fontSize: 13, color: '#94a3b8' }}>Check your model and try again.</span>
-    </div>
-  )
+  if (loading) return <LoadingState message="Analyzing structural cognitive load…" />
+  if (error) return <ErrorState message={error} />
 
   const pillBase: CSSProperties = { borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.15s' }
   const pillActiveSorted: CSSProperties = { ...pillBase, background: '#1d4ed8', color: '#fff', boxShadow: '0 2px 6px rgba(29,78,216,0.25)' }

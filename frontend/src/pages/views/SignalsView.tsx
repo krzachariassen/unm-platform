@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
+import { LoadingState, ErrorState } from '@/components/ViewState'
 import type { SignalsViewResponse, SignalsNeedRisk, SignalsCapItem, SignalsTeamItem, SignalsServiceItem } from '@/lib/api'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -683,19 +684,6 @@ function riskSubtitle(risk: string, findings: number) {
   return `${findings} finding${findings !== 1 ? 's' : ''} require${findings === 1 ? 's' : ''} attention`
 }
 
-const spinnerEl = (
-  <span
-    className="animate-spin flex-shrink-0"
-    style={{
-      width: 20,
-      height: 20,
-      border: '2px solid #e2e8f0',
-      borderTopColor: '#6366f1',
-      borderRadius: '50%',
-    }}
-  />
-)
-
 // ── Main view ───────────────────────────────────────────────────────────────────
 
 function buildUxSummary(ux: SignalsViewResponse['user_experience_layer']): string {
@@ -781,25 +769,8 @@ export function SignalsView() {
     }
   }, [data, highlightedSection])
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center gap-3 h-64">
-      {spinnerEl}
-      <span style={{ fontSize: 14, color: '#94a3b8', fontWeight: 500 }}>Loading signals…</span>
-    </div>
-  )
-  if (error) return (
-    <div
-      className="flex items-center justify-center gap-3 h-64 rounded-2xl mx-auto max-w-lg px-6"
-      style={{ ...cardShell, color: '#b91c1c', borderColor: '#fecaca' }}
-    >
-      <div className="rounded-xl p-2" style={{ background: '#fee2e2' }}>
-        <span title="Error loading signals" aria-label="Error loading signals" style={{ cursor: 'help' }}>
-          <AlertTriangle size={20} style={{ color: '#dc2626' }} />
-        </span>
-      </div>
-      <span className="text-sm font-medium">{error}</span>
-    </div>
-  )
+  if (loading) return <LoadingState message="Loading signals…" />
+  if (error) return <ErrorState message={error} />
   if (!data) return null
 
   const ux = data.user_experience_layer
