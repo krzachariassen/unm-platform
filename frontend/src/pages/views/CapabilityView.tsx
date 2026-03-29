@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api } from '@/lib/api'
-import { useRequireModel } from '@/lib/model-context'
+import { api, type CapabilityViewResponse } from '@/lib/api'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { usePageInsights } from '@/hooks/usePageInsights'
+import { useModelView } from '@/hooks/useModelView'
+import { LoadingState, ErrorState } from '@/components/ViewState'
+import { slug } from '@/lib/slug'
 import { QuickAction } from '@/components/changeset/QuickAction'
 import type { InsightItem } from '@/lib/api'
-
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
 const VIS_BANDS = [
   { key: 'user-facing',    label: 'User-facing',    accent: '#2563eb', border: '#bfdbfe', bg: '#eff6ff' },
@@ -43,34 +43,7 @@ const SECTION_LABEL = {
   letterSpacing: '0.05em',
 } as const
 
-interface CapabilityType {
-  id: string
-  label: string
-  description: string
-  visibility: string
-  is_leaf: boolean
-  is_fragmented: boolean
-  depended_on_by_count: number
-  services: Array<{ id: string; label: string; cap_count: number }>
-  teams: Array<{ id: string; label: string; type: string }>
-  depends_on: Array<{ id: string; label: string }>
-  children: Array<{ id: string; label: string }>
-  anti_patterns?: Array<{ code: string; message: string; severity: string }>
-  external_deps?: Array<{ name: string; description?: string }>
-}
-
-interface CapabilityViewResponse {
-  view_type: string
-  leaf_capability_count: number
-  high_span_services: Array<{ name: string; capability_count: number }>
-  fragmented_capabilities: Array<{ id: string; label: string; team_count: number }>
-  parent_groups: Array<{
-    id: string
-    label: string
-    children: string[]
-  }>
-  capabilities: CapabilityType[]
-}
+type CapabilityType = CapabilityViewResponse['capabilities'][number]
 
 function StatCard({
   value,
@@ -585,53 +558,25 @@ function Section({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function LoadingBlock() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 h-full min-h-[200px]">
-      <div
-        className="rounded-full animate-spin"
-        style={{
-          width: 36,
-          height: 36,
-          border: '2px solid #e2e8f0',
-          borderTopColor: '#6366f1',
-        }}
-      />
-      <span style={{ fontSize: 14, color: '#94a3b8' }}>Loading…</span>
-    </div>
-  )
-}
-
 export function CapabilityView() {
-  const { modelId, isHydrating } = useRequireModel()
   const { query } = useSearch()
-  const [viewData, setViewData] = useState<CapabilityViewResponse | null>(null)
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState<string | null>(null)
+  const { data: viewData, loading, error } = useModelView<CapabilityViewResponse>(api.getCapabilityView.bind(api))
   const [viewMode, setViewMode] = useState<'visibility' | 'domain' | 'team'>('visibility')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [selectedCap, setSelectedCap] = useState<CapabilityType | null>(null)
   const { insights } = usePageInsights('capabilities')
 
   useEffect(() => {
-    if (isHydrating || !modelId) return
-    api.getView(modelId, 'capability')
-      .then(data => {
-        const d = data as unknown as CapabilityViewResponse
-        setViewData(d)
-        setExpandedGroups(new Set(d.parent_groups.map(g => g.id)))
-      })
-      .catch(e => setError((e as Error).message))
-      .finally(() => setLoading(false))
-  }, [isHydrating, modelId])
+    if (viewData) setExpandedGroups(new Set(viewData.parent_groups.map(g => g.id)))
+  }, [viewData])
 
   const capById = useMemo(
     () => new Map(viewData?.capabilities.map(c => [c.id, c]) ?? []),
     [viewData]
   )
 
-  if (loading) return <LoadingBlock />
-  if (error)   return <div className="flex items-center justify-center h-full" style={{ color: '#ef4444' }}>{error}</div>
+  if (loading) return <LoadingState />
+  if (error)   return <ErrorState message={error} />
   if (!viewData) return null
 
   const matchesCap = (cap: CapabilityType) =>

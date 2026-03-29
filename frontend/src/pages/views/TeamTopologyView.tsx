@@ -1,42 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '@/lib/api'
-import { useRequireModel } from '@/lib/model-context'
+import { api, type TeamTopologyViewResponse } from '@/lib/api'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { usePageInsights } from '@/hooks/usePageInsights'
+import { useModelView } from '@/hooks/useModelView'
+import { LoadingState, ErrorState } from '@/components/ViewState'
+import { slug } from '@/lib/slug'
 import { Users, ArrowRight, Zap, Layers, X, Info, Lightbulb, Sparkles, ChevronRight } from 'lucide-react'
 import { QuickAction } from '@/components/changeset/QuickAction'
 
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-
-interface TeamTopologyInteraction {
-  source_id: string
-  target_id: string
-  mode: string
-  via: string
-  description: string
-}
-
-interface TeamTopologyTeam {
-  id: string
-  label: string
-  description: string
-  type: string
-  is_overloaded: boolean
-  capability_count: number
-  service_count: number
-  interactions: TeamTopologyInteraction[]
-  anti_patterns?: Array<{ code: string; message: string; severity: string }>
-  services: string[]
-  capabilities: string[]
-}
-
-interface TeamTopologyViewResponse {
-  view_type: string
-  teams: TeamTopologyTeam[]
-  interactions: TeamTopologyInteraction[]
-}
+type TeamTopologyInteraction = TeamTopologyViewResponse['interactions'][number]
+type TeamTopologyTeam = TeamTopologyViewResponse['teams'][number]
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
@@ -856,24 +831,13 @@ function DetailPanel({ team, teamById, allInteractions, insights, onClose }: {
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export function TeamTopologyView() {
-  const { modelId, isHydrating } = useRequireModel()
   const { query, teamTypeFilter } = useSearch()
-  const [viewData, setViewData] = useState<TeamTopologyViewResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: viewData, loading, error } = useModelView<TeamTopologyViewResponse>(api.getTeamTopologyView.bind(api))
   const [viewMode, setViewMode] = useState<'graph' | 'table'>('graph')
   const [filterOverloaded, setFilterOverloaded] = useState(false)
   const [localSearch, setLocalSearch] = useState('')
   const [localTypeFilter, setLocalTypeFilter] = useState<string | null>(null)
   const { insights } = usePageInsights('topology')
-
-  useEffect(() => {
-    if (isHydrating || !modelId) { return }
-    api.getView(modelId, 'team-topology')
-      .then(data => setViewData(data as unknown as TeamTopologyViewResponse))
-      .catch(e => setError((e as Error).message))
-      .finally(() => setLoading(false))
-  }, [isHydrating, modelId])
 
   const filteredTeams = useMemo(() => {
     if (!viewData) return []
@@ -893,15 +857,8 @@ export function TeamTopologyView() {
     return viewData.interactions.filter(ix => filteredIds.has(ix.source_id) && filteredIds.has(ix.target_id))
   }, [viewData, filteredIds])
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, minHeight: 200 }}>
-        <div style={{ width: 36, height: 36, border: '2px solid #e2e8f0', borderTopColor: '#6366f1', borderRadius: '50%' }} className="animate-spin" />
-        <span style={{ fontSize: 14, color: '#94a3b8' }}>Loading…</span>
-      </div>
-    )
-  }
-  if (error) return <div style={{ color: '#ef4444', padding: 20 }}>{error}</div>
+  if (loading) return <LoadingState />
+  if (error) return <ErrorState message={error} />
   if (!viewData) return null
 
   // Stat breakdowns
