@@ -97,10 +97,10 @@ func TestAIAdvisor_30Questions(t *testing.T) {
 		t.Skip("UNM_OPENAI_API_KEY not set — cannot run AI tests without API key")
 	}
 
-	// Load INCA model
-	incaPath := filepath.Join(testDir(), "..", "..", "..", "..", "examples", "inca.unm.yaml")
-	m, err := parser.ParseFile(incaPath)
-	require.NoError(t, err, "failed to parse INCA model")
+	// Load Nexus model
+	nexusPath := filepath.Join(testDir(), "..", "..", "..", "..", "examples", "nexus.unm.yaml")
+	m, err := parser.ParseFile(nexusPath)
+	require.NoError(t, err, "failed to parse Nexus model")
 	require.NotNil(t, m)
 
 	// Load questions from YAML

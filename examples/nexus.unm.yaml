@@ -1,0 +1,1157 @@
+# Nexus — UNM Model
+# A fictional product catalog & inventory platform used as a reference example.
+# Demonstrates a realistic large-scale distributed system with multiple teams,
+# capabilities, external dependencies, and data flows.
+# Services modeled: 33
+
+system:
+  name: "Nexus"
+  description: >
+    Nexus (Product Catalog & Inventory Platform) is a large-scale distributed platform
+    for managing catalog and inventory data for a marketplace. It handles the full
+    lifecycle of product catalog data: ingestion from seller feeds, validation and
+    publishing, indexing for high-performance reads, and serving to downstream consumers.
+    The platform consists of 33 microservices and workers that form the authoritative
+    source of truth for marketplace catalog entities (products, categories, variants,
+    listings). Nexus serves sellers submitting catalogs, shoppers browsing products, and
+    internal platform teams building features on top of catalog data. Ownership is
+    organized across eight Nexus sub-teams (Feed, Core, Publishing, Serving, Conversion,
+    Observability, Catalog Quality, Platform Experience) plus one external partner team.
+
+actors:
+  - name: "Seller / Vendor Partner"
+    description: >
+      Sellers and their integration partners who submit product catalog data to the
+      marketplace. They care about accurate representation of their catalog, timely
+      propagation of changes, and visibility into processing failures.
+
+  - name: "Shopper / Buyer"
+    description: >
+      End users of the marketplace app who browse product catalogs and make purchases.
+      They experience Nexus's output indirectly through product listings, availability,
+      and pricing accuracy.
+
+  - name: "Downstream Platform Team"
+    description: >
+      Internal engineering teams (pricing, availability, promotions, storefront) that
+      build features using Nexus catalog data. They consume catalog entities via RPC,
+      Kafka events, and the serving layer.
+
+  - name: "Nexus Platform Engineer"
+    description: >
+      On-call and platform engineers responsible for operating and maintaining Nexus
+      services. They need visibility into data quality, ability to debug production
+      state, and tools to perform operational tasks like backups and bulk corrections.
+
+needs:
+  - name: "Submit catalog changes and see them live for shoppers within SLA"
+    actor: "Seller / Vendor Partner"
+    outcome: >
+      A seller submits a feed containing catalog updates; those changes are ingested,
+      validated, published, and reflected in the shopper-facing catalog within the agreed
+      service level (typically minutes), without manual intervention.
+    supportedBy:
+      - target: "Feed Submission & Job Tracking"
+        description: "Provides the API entry point and job status tracking for submitted feeds"
+      - target: "Feed Ingestion & Processing"
+        description: "Processes submitted feed data through validation and entity writes"
+      - target: "Entity Publishing & Validation"
+        description: "Validates and publishes entities so they become visible in the serving layer"
+      - target: "Serving Data Synchronization"
+        description: "Propagates entity changes to the serving data store for read access"
+
+  - name: "Understand why a feed failed and correct the issue"
+    actor: "Seller / Vendor Partner"
+    outcome: >
+      When a feed fails validation or processing, the seller or their integration partner
+      receives actionable error information identifying which items failed and why, so
+      they can correct and resubmit.
+    supportedBy:
+      - target: "Feed Submission & Job Tracking"
+        description: "Exposes feed job status and error details via FeedAPIService"
+      - target: "Issue Tracking & Management"
+        description: "Stores and surfaces structured issues from feed validation failures"
+
+  - name: "Ensure product images are correctly associated and render properly"
+    actor: "Seller / Vendor Partner"
+    outcome: >
+      Images submitted with catalog entities are processed, validated, and stored so that
+      they render correctly in the marketplace app without broken links or wrong associations.
+    supportedBy:
+      - target: "Media Processing & Management"
+        description: "Handles image upload, validation, and association with catalog entities"
+      - target: "Object Storage"
+        description: "Provides durable storage for processed image assets"
+
+  - name: "View accurate, up-to-date catalogs when browsing"
+    actor: "Shopper / Buyer"
+    outcome: >
+      A shopper browsing the marketplace app sees product catalogs that accurately reflect
+      the seller's current offerings, including correct items, prices, and availability,
+      updated within the platform's freshness SLA.
+    supportedBy:
+      - target: "Real-time Product Serving"
+        description: "Delivers current catalog data to consumer-facing surfaces"
+      - target: "Indexed Product Query"
+        description: "Provides fast, indexed access to catalog categories and items"
+      - target: "Catalog Cache Generation"
+        description: "Maintains pre-computed catalog views for serving performance"
+
+  - name: "Get fast, complete product data for purchase decisions"
+    actor: "Shopper / Buyer"
+    outcome: >
+      Product pages load quickly with full item details (descriptions, photos, variants,
+      prices) so the shopper can make informed purchase decisions without delays.
+    supportedBy:
+      - target: "Real-time Product Serving"
+        description: "Serves complete item records from the serving layer"
+      - target: "Indexed Product Query"
+        description: "Provides indexed access with low read latency"
+      - target: "Serving Data Synchronization"
+        description: "Keeps serving data up-to-date from the authoritative entity store"
+
+  - name: "Reliably access current catalog data to build downstream features"
+    actor: "Downstream Platform Team"
+    outcome: >
+      A downstream team can call Nexus APIs to read catalog entities with high availability
+      and consistent data, enabling them to build pricing, availability, and storefront
+      features without worrying about stale or missing data.
+    supportedBy:
+      - target: "Entity CRUD & Lifecycle"
+        description: "Provides the authoritative read API for catalog entities"
+      - target: "Indexed Product Query"
+        description: "Supports high-volume indexed reads for downstream consumers"
+
+  - name: "Receive real-time notifications of catalog entity changes"
+    actor: "Downstream Platform Team"
+    outcome: >
+      Downstream systems can subscribe to catalog change events and react in near-real-time
+      when entities are created, updated, or deleted, keeping their own data synchronized
+      without polling.
+    supportedBy:
+      - target: "Entity Change Event Emission"
+        description: "Produces entity change events to Kafka topics consumed by downstream systems"
+
+  - name: "Recover catalog data from a specific point in time after data corruption"
+    actor: "Nexus Platform Engineer"
+    outcome: >
+      An on-call engineer can restore a catalog to a known-good state from a backup taken
+      at a specific point in time, minimizing data loss after a corruption incident.
+    supportedBy:
+      - target: "Backup & Point-in-Time Recovery"
+        description: "Provides full catalog backup and time-based restore via workflow engine"
+
+  - name: "Debug entity state and trace feed processing history in production"
+    actor: "Nexus Platform Engineer"
+    outcome: >
+      An engineer can inspect the current state of any catalog entity and trace how it
+      arrived at that state (which feed changed it, when, what validations ran) without
+      needing direct database access.
+    supportedBy:
+      - target: "Operational CLI Tooling"
+        description: "Provides entity inspection, feed debugging, and catalog audit subcommands"
+      - target: "Debug Interface"
+        description: "Exposes interactive tools for reading entity state and simulating publishing"
+      - target: "Administrative & Bulk Operations"
+        description: "Provides admin APIs for entity inspection and semantic validation"
+
+  - name: "Detect and remediate regressions in catalog data quality proactively"
+    actor: "Nexus Platform Engineer"
+    outcome: >
+      The platform continuously monitors catalog data for statistical anomalies or
+      regressions and alerts engineers before shoppers or sellers are impacted.
+    supportedBy:
+      - target: "Anomaly Detection & Statistical Analysis"
+        description: "Continuously monitors catalog stats and detects deviations from baseline"
+      - target: "Issue Tracking & Management"
+        description: "Records detected issues for triage and remediation tracking"
+
+  - name: "Perform safe bulk corrections on catalog data"
+    actor: "Nexus Platform Engineer"
+    outcome: >
+      An engineer can apply bulk changes to catalog entities via a controlled administrative
+      interface, with auditability and rollback options.
+    supportedBy:
+      - target: "Administrative & Bulk Operations"
+        description: "Provides controlled bulk entity management operations"
+      - target: "Data Scrubbing & Cleanup"
+        description: "Runs automated and manual cleanup workflows to correct data issues"
+
+capabilities:
+  - name: "Seller Feed Management"
+    description: "All capabilities for receiving, processing, and tracking data feeds from sellers and external systems"
+    visibility: "user-facing"
+    ownedBy: "nexus-ingestion-dev"
+    children:
+      - name: "Feed Submission & Job Tracking"
+        description: "Accepts feed submissions from sellers and integration partners; provides job status and error visibility"
+        visibility: "user-facing"
+        realizedBy:
+          - target: "nexus-feed-api"
+            role: "primary"
+            description: "Exposes FeedAPIService RPC with SubmitFeed and GetJob methods"
+        dependsOn:
+          - target: "Feed Ingestion & Processing"
+            description: "Feed submission triggers asynchronous processing by feed-worker"
+
+      - name: "Feed Ingestion & Processing"
+        description: "Processes submitted feed payloads through validation, transformation, and entity writes in workflow engine"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-feed-worker"
+            role: "primary"
+            description: "Workflow worker executing feed processing workflows"
+          - target: "nexus-feed-adhoc-worker"
+            role: "supporting"
+            description: "Handles ad-hoc and one-off feed processing workflows outside the scheduled pipeline"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Feed processing writes entity changes through nexus-core's EntityService"
+          - target: "Entity Publishing & Validation"
+            description: "Feed worker triggers publisher to validate and publish processed entities"
+          - target: "Issue Tracking & Management"
+            description: "Feed validation errors are persisted to issue-store"
+
+      - name: "Warehouse Data Ingestion"
+        description: "Ingests catalog data from the data warehouse via streaming message pipelines"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-warehouse-ingester"
+            role: "primary"
+            description: "Workflow worker + API server consuming streaming messages from warehouse pipelines"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Persists ingested warehouse entities through nexus-core's EntityService"
+
+      - name: "Social Media Content Ingestion"
+        description: "Ingests catalog images and content from social media platforms"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-social-ingester"
+            role: "primary"
+            description: "Workflow worker + API server for social content with PrePublish workflow; owned by partner-eng"
+        dependsOn:
+          - target: "Entity Publishing & Validation"
+            description: "Social-ingested content goes through publishing validation before becoming live"
+
+  - name: "Product Entity Management"
+    description: "Core capabilities for creating, reading, updating, deleting, and streaming catalog entities"
+    visibility: "foundational"
+    ownedBy: "nexus-core-dev"
+    children:
+      - name: "Entity CRUD & Lifecycle"
+        description: "Authoritative create, read, update, delete, and scan operations for all catalog entities"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-core"
+            role: "primary"
+            description: "Exposes EntityService RPC: ReadEntity, UpsertEntity, UpdateEntity, DeleteEntity, ScanCatalog"
+
+      - name: "Entity Change Event Emission"
+        description: "Emits Kafka events whenever catalog entities are created, updated, or deleted"
+        visibility: "infrastructure"
+        realizedBy:
+          - target: "nexus-core"
+            role: "primary"
+            description: "Publishes to nexus.core.entity_change Kafka topic on every entity mutation"
+
+      - name: "Async Entity Writing"
+        description: "Processes entity write operations from Kafka queues asynchronously"
+        visibility: "infrastructure"
+        realizedBy:
+          - target: "nexus-async-writer"
+            role: "primary"
+            description: "Kafka consumer that reads entity write messages and applies them to nexus-core"
+          - target: "nexus-async"
+            role: "supporting"
+            description: "Provides async operation coordination for entity writes"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Delegates actual entity writes to nexus-core's EntityService"
+
+  - name: "Content Publishing & Enrichment"
+    description: "Capabilities for validating, enriching, and publishing catalog entities to make them visible to shoppers"
+    visibility: "domain"
+    ownedBy: "nexus-publisher-dev"
+    children:
+      - name: "Entity Publishing & Validation"
+        description: "Validates catalog entities against business rules and publishes them to the serving layer"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-publisher"
+            role: "primary"
+            description: "PublisherService RPC exposing ProcessChangeEvent; runs validation pipeline"
+          - target: "nexus-publisher-worker"
+            role: "supporting"
+            description: "Workflow worker for async publishing workflows and retry logic"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads entities from nexus-core to validate and enrich before publishing"
+          - target: "Anomaly Detection & Statistical Analysis"
+            description: "Publisher worker queries realtime-stats before publishing decisions"
+
+      - name: "Catalog Cache Generation"
+        description: "Pre-computes and caches assembled catalog views for performance optimization of the serving path"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-cache-worker"
+            role: "primary"
+            description: "Workflow worker running GenerateCatalogCache workflow; writes assembled views to datastore"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads entity data from nexus-core to assemble catalog cache"
+
+      - name: "Media Processing & Management"
+        description: "Handles image ingestion, validation, transformation, and association with catalog entities"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-media"
+            role: "primary"
+            description: "Media service managing image lifecycle, validation, and object storage"
+        dependsOn:
+          - target: "Object Storage"
+            description: "Stores processed image files in nexus-blob / object storage"
+          - target: "Entity CRUD & Lifecycle"
+            description: "Associates processed images with catalog entities via nexus-core"
+
+      - name: "Data Transformation & Conversion"
+        description: "Transforms catalog data between model formats and converts between catalog and listing representations"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-transformer"
+            role: "primary"
+            description: "Workflow worker + API server transforming entities between formats; persists in relational DB"
+          - target: "nexus-conversion-worker"
+            role: "supporting"
+            description: "Workflow worker converting between catalog and listing model representations"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads and writes transformed entities through nexus-core"
+
+      - name: "Product Entity Enrichment"
+        description: "Computes and applies extension attribute values to catalog entities before publication"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-enricher"
+            role: "primary"
+            description: "Enricher functions computing product usage tags and IDs; change management gate workflow"
+        dependsOn:
+          - target: "Entity Publishing & Validation"
+            description: "Change management gate calls SimulatePublishEntity on nexus-publisher for comparison"
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads entity data from nexus-core during enrichment processing"
+          - target: "Registry & Configuration Management"
+            description: "Reads catalog and item definitions from nexus-registry for enrichment context"
+
+      - name: "Entity Construction"
+        description: "Builds assembled entity objects from flattened extension values for downstream consumption"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-entity-builder"
+            role: "primary"
+            description: "API service exposing /build endpoint; assembles entities from extension attribute values"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads raw entities and extension data from nexus-core"
+
+  - name: "Product Serving & Access"
+    description: "Capabilities for reading catalog data at high scale and low latency for consumer and downstream surfaces"
+    visibility: "user-facing"
+    ownedBy: "nexus-serving-dev"
+    children:
+      - name: "Real-time Product Serving"
+        description: "Serves current catalog data to consumer-facing surfaces at high throughput"
+        visibility: "user-facing"
+        realizedBy:
+          - target: "nexus-serving"
+            role: "primary"
+            description: "CatalogServing gRPC exposing GetItems, ScanCategory for shopper-facing reads"
+          - target: "nexus-serving-gateway"
+            role: "supporting"
+            description: "Gateway routing layer for serving endpoints"
+        dependsOn:
+          - target: "Serving Data Synchronization"
+            description: "Reads from catalog_item_v1 tables kept up-to-date by serving-ingestor"
+
+      - name: "Indexed Product Query"
+        description: "Provides fast, index-based access to catalog categories and items for search and browse"
+        visibility: "user-facing"
+        realizedBy:
+          - target: "nexus-query"
+            role: "primary"
+            description: "CatalogQueryService gRPC with ScanCategory; optimized for indexed reads"
+        dependsOn:
+          - target: "Product Indexing"
+            description: "Queries depend on the index built and maintained by indexer-worker"
+
+      - name: "Product Indexing"
+        description: "Builds and maintains search and catalog indexes to enable fast indexed reads"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-indexer"
+            role: "primary"
+            description: "Indexing API server orchestrating index builds"
+          - target: "nexus-indexer-worker"
+            role: "supporting"
+            description: "Workflow worker executing IndexPublishedItems and IndexCatalog workflows"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads entities from nexus-core to populate index entries"
+
+      - name: "Serving Data Synchronization"
+        description: "Continuously synchronizes entity changes from the authoritative store to the serving data layer"
+        visibility: "infrastructure"
+        realizedBy:
+          - target: "nexus-serving-ingestor"
+            role: "primary"
+            description: "Kafka consumer for nexus.core.entity_change; writes to catalog_item_v1, catalog_product_v1"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads full entity details from nexus-core when processing change notifications"
+          - target: "Entity Change Event Emission"
+            description: "Consumes entity change events from nexus.core.entity_change Kafka topic"
+
+  - name: "Data Quality & Platform Health"
+    description: "Capabilities for detecting regressions, tracking issues, scrubbing bad data, and maintaining catalog quality"
+    visibility: "foundational"
+    ownedBy: "nexus-observability-dev"
+    children:
+      - name: "Anomaly Detection & Statistical Analysis"
+        description: "Monitors catalog metrics for statistical deviations and detects regressions before they impact users"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-anomaly-detector"
+            role: "primary"
+            description: "Aggregates stats over time windows, detects anomalies, produces to nexus.anomalies Kafka topic"
+          - target: "nexus-realtime-stats"
+            role: "supporting"
+            description: "Tracks real-time per-catalog statistics and runs workflow-based consistency checks"
+        dependsOn:
+          - target: "Catalog Cache Generation"
+            description: "Uses catalog cache data as baseline for regression detection comparisons"
+
+      - name: "Issue Tracking & Management"
+        description: "Stores, surfaces, and manages structured issues from feed validation failures and data quality checks"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-issue-store"
+            role: "primary"
+            description: "IssueStore gRPC with SyncIssues, ListProducerIssues; tracks validation failures per producer"
+
+      - name: "Data Scrubbing & Cleanup"
+        description: "Performs automated cleanup, deduplication, and trimming of stale or corrupt catalog data"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-scrubber"
+            role: "primary"
+            description: "Workflow worker + API server running cleanup, deduplicate, and trimming workflows"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads entities for analysis and deletes stale records via nexus-core's EntityService"
+
+      - name: "Backup & Point-in-Time Recovery"
+        description: "Creates periodic backups of all catalog entities and supports restoring to a specific point in time"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-backup"
+            role: "primary"
+            description: "gRPC Backup API + workflow: BackupCatalog, RestoreCatalog, EnsureBackup"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Reads all entities via ScanCatalog for backup; writes back via UpsertEntity on restore"
+          - target: "Object Storage"
+            description: "Stores backup artifact files in nexus-blob / object storage"
+
+  - name: "Platform Configuration & Operations"
+    description: "Cross-cutting capabilities for configuration management, administration, and operational tooling"
+    visibility: "foundational"
+    ownedBy: "nexus-core-dev"
+    children:
+      - name: "Registry & Configuration Management"
+        description: "Manages dynamic configuration for Nexus services including schema registries and service config"
+        visibility: "foundational"
+        realizedBy:
+          - target: "nexus-registry"
+            role: "primary"
+            description: "ConfigService gRPC providing dynamic configuration to other Nexus services"
+
+      - name: "Administrative & Bulk Operations"
+        description: "Provides controlled administrative operations: semantic validation, bulk entity management"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-admin"
+            role: "primary"
+            description: "Admin gRPC service: Create, PerformSemanticValidation, and bulk entity operations"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Admin operations read and write entities through nexus-core"
+
+      - name: "Object Storage"
+        description: "Provides blob/file storage for catalog assets such as images and backup artifacts"
+        visibility: "infrastructure"
+        realizedBy:
+          - target: "nexus-blob"
+            role: "primary"
+            description: "Blob storage service backed by datastore and object storage"
+
+      - name: "Operational CLI Tooling"
+        description: "Command-line tool for operators to inspect, debug, and perform maintenance tasks on catalog data"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-tool"
+            role: "primary"
+            description: "nexus-tool CLI with subcommands: catalog, feed, product, media, backup, migration support"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "Entity inspection commands read from nexus-core"
+          - target: "Administrative & Bulk Operations"
+            description: "CLI wraps admin operations for operator convenience"
+
+      - name: "Debug Interface"
+        description: "Machine-readable debug interface exposing entity inspection and publishing simulation"
+        visibility: "domain"
+        realizedBy:
+          - target: "nexus-mcp"
+            role: "primary"
+            description: "MCP server with tools: readentity, getcatalogconfig, simulatepublishing"
+        dependsOn:
+          - target: "Entity CRUD & Lifecycle"
+            description: "readentity tool reads entity state from nexus-core"
+          - target: "Entity Publishing & Validation"
+            description: "simulatepublishing tool invokes publisher service"
+
+      - name: "Platform Health Monitoring"
+        description: "Minimal health status reporting for infrastructure readiness checks and service discovery"
+        visibility: "infrastructure"
+        realizedBy:
+          - target: "nexus-status"
+            role: "primary"
+            description: "Minimal gRPC health check service for infrastructure readiness probes"
+
+services:
+  - name: "nexus-core"
+    description: "Authoritative entity CRUD API; main datastore-backed database interaction layer for all catalog entities"
+    ownedBy: "nexus-core-dev"
+
+  - name: "nexus-feed-api"
+    description: "RPC server for feed submission and job status tracking; exposes FeedAPIService (SubmitFeed, GetJob)"
+    ownedBy: "nexus-ingestion-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads catalog configuration and entity state during feed job coordination"
+
+  - name: "nexus-publisher"
+    description: "Publishing and validation API server; runs entity validation pipelines and manages publishing lifecycle"
+    ownedBy: "nexus-publisher-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads and enriches entities from EntityService before publishing"
+
+  - name: "nexus-serving"
+    description: "Read-optimized serving API exposing CatalogServing gRPC (GetItems, ScanCategory) for consumer-facing apps"
+    ownedBy: "nexus-serving-dev"
+
+  - name: "nexus-query"
+    description: "Indexed catalog query API exposing CatalogQueryService gRPC (ScanCategory) for fast indexed browsing"
+    ownedBy: "nexus-quality-dev"
+
+  - name: "nexus-indexer"
+    description: "Catalog indexing API server that orchestrates the building of catalog search indexes"
+    ownedBy: "nexus-core-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads entities from EntityService to build index entries"
+
+  - name: "nexus-admin"
+    description: "Administrative operations API for semantic validation, bulk entity management, and operator tasks"
+    ownedBy: "nexus-core-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads and writes entities via EntityService for admin operations"
+
+  - name: "nexus-backup"
+    description: "Backup and restore service combining a gRPC API with workflow jobs: BackupCatalog, RestoreCatalog"
+    ownedBy: "nexus-observability-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "ScanCatalog to read all entities for backup; UpsertEntity to write them back on restore"
+      - target: "nexus-blob"
+        description: "Stores and retrieves backup artifact files"
+
+  - name: "nexus-feed-worker"
+    description: "Workflow worker executing feed processing workflows"
+    ownedBy: "nexus-ingestion-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "EntityService for reading and writing catalog entities during feed processing"
+      - target: "nexus-feed-api"
+        description: "FeedAPIService for job status updates and feed metadata"
+      - target: "nexus-publisher"
+        description: "PublisherService to trigger entity publishing after feed writes"
+      - target: "nexus-cache-worker"
+        description: "CacheWorkerService to invalidate and regenerate catalog caches after changes"
+      - target: "nexus-issue-store"
+        description: "IssueStoreService to persist validation failures from feed processing"
+
+  - name: "nexus-publisher-worker"
+    description: "Workflow worker for asynchronous publishing workflows and retry logic"
+    ownedBy: "nexus-publisher-dev"
+    dependsOn:
+      - target: "nexus-publisher"
+        description: "PublishingManagementService and PublishingStatusService for workflow orchestration"
+      - target: "nexus-realtime-stats"
+        description: "RealtimeStatsService to check catalog statistics before publishing decisions"
+      - target: "nexus-feed-api"
+        description: "FeedAPIService for feed metadata during publishing workflows"
+
+  - name: "nexus-indexer-worker"
+    description: "Workflow worker executing IndexPublishedItems and IndexCatalog workflows"
+    ownedBy: "nexus-core-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads entities from EntityService to build index entries"
+      - target: "nexus-indexer"
+        description: "Coordinates index build operations with the indexer API"
+
+  - name: "nexus-cache-worker"
+    description: "Workflow worker running GenerateCatalogCache workflow; assembles and caches complete catalog views"
+    ownedBy: "nexus-conversion-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads entity data via EntityService to assemble catalog caches"
+
+  - name: "nexus-registry"
+    description: "Configuration management service exposing ConfigService gRPC"
+    ownedBy: "nexus-core-dev"
+
+  - name: "nexus-entity-builder"
+    description: "Entity construction API that assembles entity objects from flattened extension attribute values"
+    ownedBy: "nexus-publisher-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads raw entities and extension data from EntityService"
+
+  - name: "nexus-issue-store"
+    description: "Issue management API exposing IssueStore gRPC (SyncIssues, ListProducerIssues)"
+    ownedBy: "nexus-observability-dev"
+
+  - name: "nexus-blob"
+    description: "On-premises blob storage service backed by datastore for catalog assets"
+    ownedBy: "nexus-core-dev"
+
+  - name: "nexus-async"
+    description: "Async operations coordination service providing EmulateConsumeDBEvent for decoupled entity processing"
+    ownedBy: "nexus-publisher-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Delegates entity operations to EntityService"
+
+  - name: "nexus-async-writer"
+    description: "Kafka consumer service that reads entity write messages and applies them asynchronously to the entity store"
+    ownedBy: "nexus-core-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Writes entities via EntityService upon consuming Kafka messages"
+
+  - name: "nexus-warehouse-ingester"
+    description: "Warehouse data ingestion service combining a workflow worker and API server; processes streaming messages"
+    ownedBy: "nexus-ingestion-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Writes ingested warehouse entities to EntityService"
+
+  - name: "nexus-social-ingester"
+    description: "Social media content ingestion service; workflow worker + API server running PrePublish workflow"
+    ownedBy: "partner-eng"
+    dependsOn:
+      - target: "nexus-publisher"
+        description: "Triggers PrePublish workflow via PublisherService for social-ingested content"
+
+  - name: "nexus-media"
+    description: "Media processing API managing image lifecycle: ingestion, validation, transformation, and object storage"
+    ownedBy: "nexus-ingestion-dev"
+    dependsOn:
+      - target: "nexus-blob"
+        description: "Stores processed image artifacts"
+      - target: "nexus-core"
+        description: "Associates processed images with catalog entities via EntityService"
+
+  - name: "nexus-realtime-stats"
+    description: "Real-time statistics service tracking per-catalog metrics and running workflow-based consistency checks"
+    ownedBy: "nexus-observability-dev"
+    dependsOn:
+      - target: "nexus-anomaly-detector"
+        description: "AnomalyDetectorService to correlate live stats with detected regressions"
+
+  - name: "nexus-anomaly-detector"
+    description: "Anomaly detection service aggregating catalog stats, detecting deviations, producing to nexus.anomalies topic"
+    ownedBy: "nexus-observability-dev"
+    dependsOn:
+      - target: "nexus-cache-worker"
+        description: "CacheWorkerService to access cached catalog baseline data for comparison"
+
+  - name: "nexus-transformer"
+    description: "Data transformation service running workflow jobs to convert entities between model formats; persists in relational DB"
+    ownedBy: "nexus-quality-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads and writes transformed entities via EntityService"
+
+  - name: "nexus-enricher"
+    description: "Product enrichment service hosting enricher functions that compute extension attribute values before publication"
+    ownedBy: "nexus-publisher-dev"
+    dependsOn:
+      - target: "nexus-publisher"
+        description: "SimulatePublishEntity RPC used by change management gate to simulate publishing for comparison"
+      - target: "nexus-core"
+        description: "EntityService for retrieving entity data during enrichment"
+      - target: "nexus-registry"
+        description: "CatalogManagementService for catalog and item definitions used as enrichment context"
+
+  - name: "nexus-scrubber"
+    description: "Data scrubbing service combining a workflow worker and API for cleanup, deduplication, and trimming"
+    ownedBy: "nexus-publisher-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads entities for deduplication analysis and deletes stale records via EntityService"
+
+  - name: "nexus-feed-adhoc-worker"
+    description: "Workflow worker for ad-hoc and one-off feed processing jobs outside the standard scheduled pipeline"
+    ownedBy: "nexus-ingestion-dev"
+
+  - name: "nexus-conversion-worker"
+    description: "Workflow worker executing model conversion workflows between catalog and listing data representations"
+    ownedBy: "nexus-conversion-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads source entities and writes converted entities via EntityService"
+
+  - name: "nexus-serving-gateway"
+    description: "Gateway routing layer for serving endpoints"
+    ownedBy: "nexus-serving-dev"
+    dependsOn:
+      - target: "nexus-serving"
+        description: "Routes requests to CatalogServing service"
+
+  - name: "nexus-serving-ingestor"
+    description: "Kafka consumer syncing entity change events to serving-layer datastore tables"
+    ownedBy: "nexus-serving-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Reads full entity details via EntityService when processing change notifications"
+
+  - name: "nexus-status"
+    description: "Minimal health status reporting service providing gRPC health check endpoints"
+    ownedBy: "nexus-observability-dev"
+
+  - name: "nexus-mcp"
+    description: "MCP (Model Context Protocol) server exposing debugging tools: readentity, getcatalogconfig, simulatepublishing"
+    ownedBy: "nexus-platform-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "readentity tool reads entity state via EntityService"
+      - target: "nexus-publisher"
+        description: "simulatepublishing tool invokes publisher validation"
+
+  - name: "nexus-tool"
+    description: "Multi-purpose operator CLI with subcommands: catalog, feed, product, media, backup, migration support"
+    ownedBy: "nexus-platform-dev"
+    dependsOn:
+      - target: "nexus-core"
+        description: "Entity inspection commands read from EntityService"
+      - target: "nexus-admin"
+        description: "Bulk and admin operations via Admin service"
+
+teams:
+  - name: "nexus-core-dev"
+    type: "platform"
+    size: 5
+    description: >
+      Owns the authoritative catalog entity store (nexus-core) and its immediate platform
+      support services. Acts as an internal platform providing Entity CRUD to all other
+      Nexus teams and to external teams via x-as-a-service. Also owns async entity writing
+      infrastructure.
+    owns:
+      - "Entity CRUD & Lifecycle"
+      - "Entity Change Event Emission"
+      - "Registry & Configuration Management"
+      - "Administrative & Bulk Operations"
+      - "Object Storage"
+      - "Async Entity Writing"
+      - "Product Indexing"
+
+  - name: "nexus-ingestion-dev"
+    type: "stream-aligned"
+    size: 5
+    description: >
+      Owns the seller feed ingestion pipeline end-to-end: feed API, feed processing
+      workers, media handling, and warehouse data ingestion. Aligned to the seller feed
+      submission and data ingestion flow.
+    owns:
+      - "Feed Submission & Job Tracking"
+      - "Feed Ingestion & Processing"
+      - "Media Processing & Management"
+      - "Warehouse Data Ingestion"
+
+  - name: "nexus-publisher-dev"
+    type: "stream-aligned"
+    size: 5
+    description: >
+      Owns entity publishing, validation, and downstream enrichment services including
+      entity construction, async writes, and data scrubbing. Aligned to the entity
+      publishing and distribution flow.
+    owns:
+      - "Entity Publishing & Validation"
+      - "Product Entity Enrichment"
+      - "Entity Construction"
+      - "Data Scrubbing & Cleanup"
+
+  - name: "nexus-serving-dev"
+    type: "stream-aligned"
+    size: 5
+    description: >
+      Owns the shopper-facing serving layer: the CatalogServing API, the serving gateway,
+      and the serving-ingestor that keeps serving data synchronized. Aligned to the
+      consumer read path.
+    owns:
+      - "Real-time Product Serving"
+      - "Serving Data Synchronization"
+
+  - name: "nexus-platform-dev"
+    type: "stream-aligned"
+    size: 5
+    description: >
+      Owns operational tooling and developer-facing catalog interfaces.
+      Primary focus: operational migration workflows, catalog tooling,
+      and developer experience interfaces (MCP, CLI).
+    owns:
+      - "Operational CLI Tooling"
+      - "Debug Interface"
+
+  - name: "nexus-observability-dev"
+    type: "complicated-subsystem"
+    size: 5
+    description: >
+      Owns statistical anomaly detection, real-time monitoring, issue tracking,
+      backup/restore, and platform health status. Specializes in the deep statistics
+      and reliability capabilities that underpin catalog quality guarantees.
+    owns:
+      - "Anomaly Detection & Statistical Analysis"
+      - "Issue Tracking & Management"
+      - "Backup & Point-in-Time Recovery"
+      - "Platform Health Monitoring"
+
+  - name: "nexus-conversion-dev"
+    type: "stream-aligned"
+    size: 5
+    description: >
+      Owns catalog cache generation and model conversion workflows; aligned to the
+      catalog-to-listing data pipeline and serving cache population.
+    owns:
+      - "Catalog Cache Generation"
+      - "Data Transformation & Conversion"
+
+  - name: "nexus-quality-dev"
+    type: "complicated-subsystem"
+    size: 5
+    description: >
+      Nexus sub-team that owns quality frameworks, enrichers, validators, indexed query,
+      catalog indexing, and data transformation pipeline. Provides specialized indexing
+      and transformation capabilities to the Nexus platform.
+    owns:
+      - "Indexed Product Query"
+      - "Data Transformation & Conversion"
+
+  - name: "partner-eng"
+    type: "stream-aligned"
+    size: 5
+    description: >
+      External partner team that owns the social media content ingestion service
+      (nexus-social-ingester). Deploys and operates a service within the Nexus
+      platform boundary but is not part of the Nexus org.
+    owns:
+      - "Social Media Content Ingestion"
+
+platforms:
+  - name: "Marketplace Infrastructure Platform"
+    description: >
+      Shared infrastructure services providing workflow orchestration (Temporal), event streaming
+      (Kafka), schemaless storage (DynamoDB/Datastore), blob storage (Object Storage),
+      and feature flags. All Nexus services consume these as external platform primitives.
+    teams:
+      - "nexus-core-dev"
+    provides:
+      - "Async Entity Writing"
+      - "Entity Change Event Emission"
+
+interactions:
+  - from: "nexus-ingestion-dev"
+    to: "nexus-core-dev"
+    mode: "x-as-a-service"
+    via: "Entity CRUD & Lifecycle"
+    description: "Feed workers and feed-api read/write catalog entities through nexus-core's EntityService"
+
+  - from: "nexus-publisher-dev"
+    to: "nexus-core-dev"
+    mode: "x-as-a-service"
+    via: "Entity CRUD & Lifecycle"
+    description: "Publisher and entity-builder read entities from nexus-core before publishing and construction"
+
+  - from: "nexus-serving-dev"
+    to: "nexus-core-dev"
+    mode: "x-as-a-service"
+    via: "Entity CRUD & Lifecycle"
+    description: "Serving-ingestor reads full entity details from nexus-core when processing change notifications"
+
+  - from: "nexus-core-dev"
+    to: "nexus-core-dev"
+    mode: "x-as-a-service"
+    via: "Async Entity Writing"
+    description: "nexus-async-writer (owned by nexus-core-dev) writes entities via EntityService on Kafka consume"
+
+  - from: "nexus-ingestion-dev"
+    to: "nexus-ingestion-dev"
+    mode: "collaboration"
+    via: "Warehouse Data Ingestion"
+    description: "nexus-warehouse-ingester is part of the ingestion team's portfolio, writing warehouse entities to nexus-core"
+
+  - from: "nexus-observability-dev"
+    to: "nexus-core-dev"
+    mode: "x-as-a-service"
+    via: "Entity CRUD & Lifecycle"
+    description: "nexus-backup reads all entities via ScanCatalog and writes them back on restore"
+
+  - from: "nexus-quality-dev"
+    to: "nexus-core-dev"
+    mode: "x-as-a-service"
+    via: "Entity CRUD & Lifecycle"
+    description: "nexus-transformer and nexus-indexer read and write entities via nexus-core's EntityService"
+
+  - from: "nexus-quality-dev"
+    to: "nexus-core-dev"
+    mode: "x-as-a-service"
+    via: "Product Indexing"
+    description: "nexus-query (nexus-quality-dev) depends on the index built by nexus-indexer-worker (nexus-core-dev)"
+
+  - from: "partner-eng"
+    to: "nexus-publisher-dev"
+    mode: "x-as-a-service"
+    via: "Entity Publishing & Validation"
+    description: "nexus-social-ingester (owned by partner-eng) triggers PrePublish workflow via nexus-publisher"
+
+  - from: "nexus-ingestion-dev"
+    to: "nexus-publisher-dev"
+    mode: "x-as-a-service"
+    via: "Entity Publishing & Validation"
+    description: "nexus-feed-worker triggers entity publishing via PublisherService after writing feed entities"
+
+  - from: "nexus-observability-dev"
+    to: "nexus-conversion-dev"
+    mode: "x-as-a-service"
+    via: "Catalog Cache Generation"
+    description: "nexus-anomaly-detector calls CacheWorkerService to access cached catalog baseline data"
+
+  - from: "nexus-publisher-dev"
+    to: "nexus-observability-dev"
+    mode: "x-as-a-service"
+    via: "Anomaly Detection & Statistical Analysis"
+    description: "nexus-publisher-worker queries nexus-realtime-stats before making publishing decisions"
+
+  - from: "nexus-ingestion-dev"
+    to: "nexus-conversion-dev"
+    mode: "x-as-a-service"
+    via: "Catalog Cache Generation"
+    description: "nexus-feed-worker calls CacheWorkerService to invalidate and regenerate caches after feed changes"
+
+data_assets:
+  - name: "nexus_entity_v2"
+    type: "database"
+    description: "Primary datastore collection storing all catalog entity records — the authoritative source of truth for Nexus"
+    usedBy:
+      - target: "nexus-core"
+        access: "read-write"
+
+  - name: "nexus_extension_v2"
+    type: "database"
+    description: "Datastore collection storing flexible schema extension attributes for catalog entities"
+    usedBy:
+      - target: "nexus-core"
+        access: "read-write"
+
+  - name: "nexus_external_id_v2"
+    type: "database"
+    description: "Datastore collection mapping external source identifiers to Nexus entity UUIDs"
+    usedBy:
+      - target: "nexus-core"
+        access: "read-write"
+
+  - name: "nexus_backref_v1"
+    type: "database"
+    description: "Datastore collection storing back-reference relationships between catalog entities"
+    usedBy:
+      - target: "nexus-core"
+        access: "read-write"
+
+  - name: "nexus_entity_metadata_v1"
+    type: "database"
+    description: "Datastore collection storing entity metadata (touched_at, provided_at) for change tracking"
+    usedBy:
+      - target: "nexus-core"
+        access: "read-write"
+
+  - name: "catalog_item_v1"
+    type: "database"
+    description: "Serving-layer datastore collection with denormalized item records optimized for high-throughput reads"
+    usedBy:
+      - target: "nexus-serving-ingestor"
+        access: "read-write"
+      - target: "nexus-serving"
+        access: "read"
+      - target: "nexus-query"
+        access: "read"
+
+  - name: "catalog_product_v1"
+    type: "database"
+    description: "Serving-layer datastore collection with denormalized product records for the serving path"
+    usedBy:
+      - target: "nexus-serving-ingestor"
+        access: "read-write"
+      - target: "nexus-serving"
+        access: "read"
+
+  - name: "catalog_item_mapping_v1"
+    type: "database"
+    description: "Datastore collection mapping listing item UUIDs to catalog item and product entries in the serving layer"
+    usedBy:
+      - target: "nexus-serving-ingestor"
+        access: "read-write"
+
+  - name: "nexus.core.entity_change"
+    type: "event-stream"
+    description: "Kafka topic emitting entity change events whenever catalog entities are created, updated, or deleted"
+    producedBy: "nexus-core"
+    consumedBy:
+      - "nexus-serving-ingestor"
+
+  - name: "nexus.core.entity_change_nodedup"
+    type: "event-stream"
+    description: "Deduplication-free Kafka topic of entity change events; consumed by nexus-enricher to find entities needing enrichment"
+    producedBy: "nexus-core"
+    consumedBy:
+      - "nexus-enricher"
+
+  - name: "external.store.catalog_update_v2"
+    type: "event-stream"
+    description: "External Kafka topic notifying Nexus of catalog entity updates from partner store systems"
+    producedBy: "external-store"
+    consumedBy:
+      - "nexus-serving-ingestor"
+
+  - name: "nexus.anomalies"
+    type: "event-stream"
+    description: "Kafka topic carrying anomaly events detected by anomaly-detector for alerting consumers"
+    producedBy: "nexus-anomaly-detector"
+    consumedBy:
+      - "nexus-realtime-stats"
+
+  - name: "nexus.regression.stats"
+    type: "event-stream"
+    description: "Kafka topic carrying per-catalog statistical measurements for regression baseline tracking"
+    producedBy: "nexus-anomaly-detector"
+    consumedBy:
+      - "nexus-realtime-stats"
+
+external_dependencies:
+  - name: "identity-gateway"
+    description: "User identity and profile platform"
+    usedBy:
+      - target: "nexus-feed-worker"
+        description: "User profile data for feed processing attribution"
+
+  - name: "store-gateway"
+    description: "Store data platform providing seller and store information"
+    usedBy:
+      - target: "nexus-feed-worker"
+        description: "Store data and reliability checks during feed ingestion"
+
+  - name: "external-store"
+    description: "External store platform; also produces catalog update Kafka events"
+    usedBy:
+      - target: "nexus-feed-worker"
+        description: "Store data retrieval during feed entity processing"
+      - target: "nexus-serving-ingestor"
+        description: "Consumes external.store.catalog_update_v2 topic for catalog sync triggers"
+
+  - name: "pricing-service"
+    description: "Marketplace pricing service"
+    usedBy:
+      - target: "nexus-feed-worker"
+        description: "Price validation during feed ingestion"
+
+  - name: "auth-service"
+    description: "OAuth and identity service for authentication"
+    usedBy:
+      - target: "nexus-feed-worker"
+        description: "Identity verification for feed submission authentication"
+
+  - name: "kms"
+    description: "Key management service providing encryption keys"
+    usedBy:
+      - target: "nexus-feed-worker"
+        description: "Encryption and decryption of sensitive feed payload data"
+
+  - name: "temporal"
+    description: "Temporal workflow orchestration platform"
+    usedBy:
+      - target: "nexus-feed-worker"
+        description: "Feed processing workflow execution"
+      - target: "nexus-publisher-worker"
+        description: "Publishing workflow execution"
+      - target: "nexus-indexer-worker"
+        description: "Indexing workflow execution"
+      - target: "nexus-cache-worker"
+        description: "Catalog cache generation workflow"
+      - target: "nexus-backup"
+        description: "Backup and restore workflow execution"
+      - target: "nexus-scrubber"
+        description: "Scrubbing and cleanup workflow execution"
+      - target: "nexus-transformer"
+        description: "Data transformation workflow execution"
+      - target: "nexus-warehouse-ingester"
+        description: "Warehouse ingestion workflow execution"
+      - target: "nexus-social-ingester"
+        description: "Social content ingestion workflow execution"
+      - target: "nexus-feed-adhoc-worker"
+        description: "Ad-hoc feed workflow execution"
+      - target: "nexus-conversion-worker"
+        description: "Model conversion workflow execution"
+      - target: "nexus-realtime-stats"
+        description: "Stats consistency check workflow execution"
+
+  - name: "object-storage"
+    description: "Distributed blob and object storage system"
+    usedBy:
+      - target: "nexus-blob"
+        description: "Backend storage for nexus-blob service"
+      - target: "nexus-media"
+        description: "Stores processed image files"
+
+  - name: "feature-flags"
+    description: "Feature flag and dynamic configuration platform"
+    usedBy:
+      - target: "nexus-core"
+        description: "Feature gates for entity operations"
+      - target: "nexus-feed-worker"
+        description: "Feature gates for feed processing logic"
+      - target: "nexus-publisher"
+        description: "Feature gates for publishing pipeline"
+
+  - name: "datastore"
+    description: "Schemaless document storage backed by relational database"
+    usedBy:
+      - target: "nexus-core"
+        description: "Primary storage for all entity collections"
+      - target: "nexus-serving-ingestor"
+        description: "Storage for serving-layer collections"
+      - target: "nexus-blob"
+        description: "Storage backend for blob service"
