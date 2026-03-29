@@ -1233,3 +1233,223 @@ data "user-profiles" {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// 9.1.2 — Flat capabilities with parent in DSL
+// ---------------------------------------------------------------------------
+
+func TestParse_CapabilityFlatParent(t *testing.T) {
+	src := `
+capability "Child Cap" {
+  parent "Parent Cap"
+  visibility internal
+}
+capability "Parent Cap" {
+  visibility domain
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Capabilities) != 2 {
+		t.Fatalf("expected 2 capabilities, got %d", len(f.Capabilities))
+	}
+	child := f.Capabilities[0]
+	if child.Name != "Child Cap" {
+		t.Errorf("expected name %q, got %q", "Child Cap", child.Name)
+	}
+	if child.Parent != "Parent Cap" {
+		t.Errorf("expected parent %q, got %q", "Parent Cap", child.Parent)
+	}
+	if child.Visibility != "internal" {
+		t.Errorf("expected visibility %q, got %q", "internal", child.Visibility)
+	}
+}
+
+func TestParse_CapabilityFlatParent_MultiLevel(t *testing.T) {
+	src := `
+capability "Grandchild" {
+  parent "Child"
+}
+capability "Child" {
+  parent "Root"
+}
+capability "Root" {
+  visibility domain
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Capabilities) != 3 {
+		t.Fatalf("expected 3 capabilities, got %d", len(f.Capabilities))
+	}
+	// verify parent references are stored
+	grandchild := f.Capabilities[0]
+	if grandchild.Parent != "Child" {
+		t.Errorf("expected grandchild parent %q, got %q", "Child", grandchild.Parent)
+	}
+	child := f.Capabilities[1]
+	if child.Parent != "Root" {
+		t.Errorf("expected child parent %q, got %q", "Root", child.Parent)
+	}
+}
+
+func TestParse_CapabilityMixedFlatAndNested(t *testing.T) {
+	src := `
+capability "Root" {
+  visibility domain
+  capability "Nested Child" {
+    visibility foundational
+  }
+}
+capability "Flat Child" {
+  parent "Root"
+  visibility user-facing
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// 2 top-level capabilities: Root (with nested child) and Flat Child
+	if len(f.Capabilities) != 2 {
+		t.Fatalf("expected 2 top-level capabilities, got %d", len(f.Capabilities))
+	}
+	root := f.Capabilities[0]
+	if len(root.Children) != 1 {
+		t.Errorf("expected 1 nested child, got %d", len(root.Children))
+	}
+	flatChild := f.Capabilities[1]
+	if flatChild.Parent != "Root" {
+		t.Errorf("expected flat child parent %q, got %q", "Root", flatChild.Parent)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 9.3.5 — realizes on service blocks in DSL
+// ---------------------------------------------------------------------------
+
+func TestParse_ServiceRealizes(t *testing.T) {
+	src := `
+service "my-service" {
+  ownedBy "team-a"
+  realizes "Cap A"
+  realizes "Cap B" role "supporting"
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Services) != 1 {
+		t.Fatalf("expected 1 service, got %d", len(f.Services))
+	}
+	s := f.Services[0]
+	if len(s.Realizes) != 2 {
+		t.Fatalf("expected 2 realizes, got %d", len(s.Realizes))
+	}
+	if s.Realizes[0].Target != "Cap A" {
+		t.Errorf("expected realizes[0] target %q, got %q", "Cap A", s.Realizes[0].Target)
+	}
+	if s.Realizes[0].Role != "" {
+		t.Errorf("expected realizes[0] role to be empty, got %q", s.Realizes[0].Role)
+	}
+	if s.Realizes[1].Target != "Cap B" {
+		t.Errorf("expected realizes[1] target %q, got %q", "Cap B", s.Realizes[1].Target)
+	}
+	if s.Realizes[1].Role != "supporting" {
+		t.Errorf("expected realizes[1] role %q, got %q", "supporting", s.Realizes[1].Role)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 9.4.3 — externalDeps on service blocks in DSL
+// ---------------------------------------------------------------------------
+
+func TestParse_ServiceExternalDeps(t *testing.T) {
+	src := `
+service "my-service" {
+  ownedBy "team-a"
+  externalDeps "temporal"
+  externalDeps "postgres"
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Services) != 1 {
+		t.Fatalf("expected 1 service, got %d", len(f.Services))
+	}
+	s := f.Services[0]
+	if len(s.ExternalDeps) != 2 {
+		t.Fatalf("expected 2 externalDeps, got %d", len(s.ExternalDeps))
+	}
+	if s.ExternalDeps[0] != "temporal" {
+		t.Errorf("expected externalDeps[0] %q, got %q", "temporal", s.ExternalDeps[0])
+	}
+	if s.ExternalDeps[1] != "postgres" {
+		t.Errorf("expected externalDeps[1] %q, got %q", "postgres", s.ExternalDeps[1])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 9.5.3 — interacts on team blocks in DSL
+// ---------------------------------------------------------------------------
+
+func TestParse_TeamInteracts(t *testing.T) {
+	src := `
+team "team-a" {
+  type stream-aligned
+  interacts "team-b" mode x-as-a-service via "API"
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Teams) != 1 {
+		t.Fatalf("expected 1 team, got %d", len(f.Teams))
+	}
+	team := f.Teams[0]
+	if len(team.Interacts) != 1 {
+		t.Fatalf("expected 1 interacts, got %d", len(team.Interacts))
+	}
+	inter := team.Interacts[0]
+	if inter.With != "team-b" {
+		t.Errorf("expected with %q, got %q", "team-b", inter.With)
+	}
+	if inter.Mode != "x-as-a-service" {
+		t.Errorf("expected mode %q, got %q", "x-as-a-service", inter.Mode)
+	}
+	if inter.Via != "API" {
+		t.Errorf("expected via %q, got %q", "API", inter.Via)
+	}
+}
+
+func TestParse_TeamInteracts_MultipleInteractions(t *testing.T) {
+	src := `
+team "team-a" {
+  type stream-aligned
+  interacts "team-b" mode x-as-a-service via "API"
+  interacts "team-c" mode collaboration
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	team := f.Teams[0]
+	if len(team.Interacts) != 2 {
+		t.Fatalf("expected 2 interacts, got %d", len(team.Interacts))
+	}
+	if team.Interacts[1].With != "team-c" {
+		t.Errorf("expected second interaction with %q, got %q", "team-c", team.Interacts[1].With)
+	}
+	if team.Interacts[1].Via != "" {
+		t.Errorf("expected empty via, got %q", team.Interacts[1].Via)
+	}
+}
+

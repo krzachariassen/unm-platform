@@ -763,6 +763,434 @@ func TestTransform_Transitions(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// 9.1.2 — Flat capabilities with parent + two-pass resolution
+// ---------------------------------------------------------------------------
+
+func TestTransform_FlatCapabilityParent(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Child Cap", Parent: "Parent Cap", Visibility: "domain"},
+			{Name: "Parent Cap", Visibility: "domain"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	parent, ok := model.Capabilities["Parent Cap"]
+	if !ok {
+		t.Fatal("expected 'Parent Cap' in capabilities")
+	}
+	if len(parent.Children) != 1 {
+		t.Fatalf("expected 1 child on Parent Cap, got %d", len(parent.Children))
+	}
+	if parent.Children[0].Name != "Child Cap" {
+		t.Errorf("expected child name %q, got %q", "Child Cap", parent.Children[0].Name)
+	}
+	_, ok = model.Capabilities["Child Cap"]
+	if !ok {
+		t.Fatal("expected 'Child Cap' in capabilities")
+	}
+	parentName, hasParent := model.CapabilityParents["Child Cap"]
+	if !hasParent {
+		t.Fatal("expected Child Cap to have a parent")
+	}
+	if parentName != "Parent Cap" {
+		t.Errorf("expected parent %q, got %q", "Parent Cap", parentName)
+	}
+}
+
+func TestTransform_FlatCapabilityParent_MultiLevel(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Grandchild", Parent: "Child", Visibility: "domain"},
+			{Name: "Child", Parent: "Root", Visibility: "domain"},
+			{Name: "Root", Visibility: "domain"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(model.Capabilities) != 3 {
+		t.Fatalf("expected 3 capabilities, got %d", len(model.Capabilities))
+	}
+	root := model.Capabilities["Root"]
+	if len(root.Children) != 1 {
+		t.Errorf("expected 1 child on Root, got %d", len(root.Children))
+	}
+	child := model.Capabilities["Child"]
+	if len(child.Children) != 1 {
+		t.Errorf("expected 1 child on Child, got %d", len(child.Children))
+	}
+}
+
+func TestTransform_FlatCapabilityParent_MissingParent_Error(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Child Cap", Parent: "Nonexistent Parent", Visibility: "domain"},
+		},
+	}
+	_, err := Transform(f)
+	if err == nil {
+		t.Fatal("expected error for missing parent capability")
+	}
+	if !strings.Contains(err.Error(), "parent") {
+		t.Errorf("expected error to mention 'parent', got: %v", err)
+	}
+}
+
+func TestTransform_FlatCapabilityParent_Circular_Error(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Cap A", Parent: "Cap B", Visibility: "domain"},
+			{Name: "Cap B", Parent: "Cap A", Visibility: "domain"},
+		},
+	}
+	_, err := Transform(f)
+	if err == nil {
+		t.Fatal("expected error for circular parent reference")
+	}
+	if !strings.Contains(err.Error(), "circular") {
+		t.Errorf("expected error to mention 'circular', got: %v", err)
+	}
+}
+
+func TestTransform_MixedFlatAndNested(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{
+				Name:       "Root",
+				Visibility: "domain",
+				Children: []*CapabilityNode{
+					{Name: "Nested Child", Visibility: "foundational"},
+				},
+			},
+			{Name: "Flat Child", Parent: "Root", Visibility: "user-facing"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(model.Capabilities) != 3 {
+		t.Fatalf("expected 3 capabilities, got %d", len(model.Capabilities))
+	}
+	root := model.Capabilities["Root"]
+	// Root should have both nested child and flat child
+	if len(root.Children) != 2 {
+		t.Fatalf("expected 2 children on Root (nested + flat), got %d", len(root.Children))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 9.2.2 — Visibility inheritance in DSL transformer
+// ---------------------------------------------------------------------------
+
+func TestTransform_VisibilityInheritance_ChildInheritsParent(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Child Cap", Parent: "Parent Cap"}, // no explicit visibility
+			{Name: "Parent Cap", Visibility: "domain"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	child := model.Capabilities["Child Cap"]
+	if child.Visibility != "domain" {
+		t.Errorf("expected child to inherit parent visibility 'domain', got %q", child.Visibility)
+	}
+}
+
+func TestTransform_VisibilityInheritance_ChildOverrides(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Child Cap", Parent: "Parent Cap", Visibility: "foundational"},
+			{Name: "Parent Cap", Visibility: "domain"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	child := model.Capabilities["Child Cap"]
+	if child.Visibility != "foundational" {
+		t.Errorf("expected child to keep explicit visibility 'foundational', got %q", child.Visibility)
+	}
+}
+
+func TestTransform_VisibilityInheritance_MultiLevel(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Grandchild", Parent: "Child"}, // no visibility
+			{Name: "Child", Parent: "Root"},        // no visibility
+			{Name: "Root", Visibility: "user-facing"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	grandchild := model.Capabilities["Grandchild"]
+	if grandchild.Visibility != "user-facing" {
+		t.Errorf("expected grandchild to inherit 'user-facing', got %q", grandchild.Visibility)
+	}
+	child := model.Capabilities["Child"]
+	if child.Visibility != "user-facing" {
+		t.Errorf("expected child to inherit 'user-facing', got %q", child.Visibility)
+	}
+}
+
+func TestTransform_VisibilityInheritance_NestedChildInherits(t *testing.T) {
+	// Nested (not flat) children should also inherit
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{
+				Name:       "Parent",
+				Visibility: "domain",
+				Children: []*CapabilityNode{
+					{Name: "Nested Child"}, // no visibility
+				},
+			},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	child := model.Capabilities["Nested Child"]
+	if child.Visibility != "domain" {
+		t.Errorf("expected nested child to inherit 'domain', got %q", child.Visibility)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 9.3.5 — realizes on service blocks
+// ---------------------------------------------------------------------------
+
+func TestTransform_ServiceRealizes_WiresCapability(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Cap A", Visibility: "domain"},
+		},
+		Services: []*ServiceNode{
+			{
+				Name:    "my-service",
+				OwnedBy: "team-a",
+				Realizes: []ServiceRealizesNode{
+					{Target: "Cap A"},
+				},
+			},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	cap, ok := model.Capabilities["Cap A"]
+	if !ok {
+		t.Fatal("expected 'Cap A' in capabilities")
+	}
+	if len(cap.RealizedBy) != 1 {
+		t.Fatalf("expected 1 realizedBy on Cap A, got %d", len(cap.RealizedBy))
+	}
+	if cap.RealizedBy[0].TargetID.String() != "my-service" {
+		t.Errorf("expected realizedBy target %q, got %q", "my-service", cap.RealizedBy[0].TargetID.String())
+	}
+}
+
+func TestTransform_ServiceRealizes_WithRole(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Cap B", Visibility: "domain"},
+		},
+		Services: []*ServiceNode{
+			{
+				Name:    "svc-b",
+				OwnedBy: "team-a",
+				Realizes: []ServiceRealizesNode{
+					{Target: "Cap B", Role: "supporting"},
+				},
+			},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	cap := model.Capabilities["Cap B"]
+	if cap.RealizedBy[0].Role.String() != "supporting" {
+		t.Errorf("expected role %q, got %q", "supporting", cap.RealizedBy[0].Role.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 9.4.3 — externalDeps on service blocks
+// ---------------------------------------------------------------------------
+
+func TestTransform_ServiceExternalDeps_PopulatesUsedBy(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		ExternalDependencies: []*ExternalDependencyNode{
+			{Name: "temporal", Description: "Workflow engine"},
+			{Name: "postgres", Description: "Database"},
+		},
+		Services: []*ServiceNode{
+			{
+				Name:         "my-service",
+				OwnedBy:      "team-a",
+				ExternalDeps: []string{"temporal", "postgres"},
+			},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	temporal, ok := model.ExternalDependencies["temporal"]
+	if !ok {
+		t.Fatal("expected 'temporal' in external dependencies")
+	}
+	if len(temporal.UsedBy) != 1 {
+		t.Fatalf("expected 1 usedBy on temporal, got %d", len(temporal.UsedBy))
+	}
+	if temporal.UsedBy[0].ServiceName != "my-service" {
+		t.Errorf("expected usedBy service %q, got %q", "my-service", temporal.UsedBy[0].ServiceName)
+	}
+	postgres := model.ExternalDependencies["postgres"]
+	if len(postgres.UsedBy) != 1 || postgres.UsedBy[0].ServiceName != "my-service" {
+		t.Errorf("expected postgres.UsedBy[my-service], got %v", postgres.UsedBy)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 9.5.3 — interacts on team blocks
+// ---------------------------------------------------------------------------
+
+func TestTransform_TeamInteracts_CreatesInteraction(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Teams: []*TeamNode{
+			{
+				Name: "team-a",
+				Type: "stream-aligned",
+				Interacts: []TeamInteractionNode{
+					{With: "team-b", Mode: "x-as-a-service", Via: "API", Description: "Fraud API"},
+				},
+			},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(model.Interactions) != 1 {
+		t.Fatalf("expected 1 interaction, got %d", len(model.Interactions))
+	}
+	inter := model.Interactions[0]
+	if inter.FromTeamName != "team-a" {
+		t.Errorf("expected from %q, got %q", "team-a", inter.FromTeamName)
+	}
+	if inter.ToTeamName != "team-b" {
+		t.Errorf("expected to %q, got %q", "team-b", inter.ToTeamName)
+	}
+	if inter.Mode.String() != "x-as-a-service" {
+		t.Errorf("expected mode %q, got %q", "x-as-a-service", inter.Mode.String())
+	}
+	if inter.Via != "API" {
+		t.Errorf("expected via %q, got %q", "API", inter.Via)
+	}
+	if inter.Description != "Fraud API" {
+		t.Errorf("expected description %q, got %q", "Fraud API", inter.Description)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Full round-trip: 9.x DSL features parsed and transformed
+// ---------------------------------------------------------------------------
+
+func TestTransform_Phase9_FullRoundTrip(t *testing.T) {
+	src := `
+system "Test" {}
+
+capability "Root Cap" {
+  visibility domain
+}
+capability "Child Cap" {
+  parent "Root Cap"
+}
+
+external_dependency "temporal" {}
+
+service "my-service" {
+  ownedBy "team-a"
+  realizes "Root Cap" role supporting
+  externalDeps "temporal"
+}
+
+team "team-a" {
+  type stream-aligned
+  interacts "team-b" mode x-as-a-service via "API"
+}
+`
+	ast, err := Parse(src)
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	model, err := Transform(ast)
+	if err != nil {
+		t.Fatalf("transform error: %v", err)
+	}
+
+	// Check capabilities hierarchy
+	root, ok := model.Capabilities["Root Cap"]
+	if !ok {
+		t.Fatal("expected 'Root Cap' in capabilities")
+	}
+	if len(root.Children) != 1 || root.Children[0].Name != "Child Cap" {
+		t.Errorf("expected Root Cap to have Child Cap as child, got %v", root.Children)
+	}
+
+	// Check visibility inheritance
+	child := model.Capabilities["Child Cap"]
+	if child.Visibility != "domain" {
+		t.Errorf("expected Child Cap to inherit 'domain' visibility, got %q", child.Visibility)
+	}
+
+	// Check realizes wiring
+	if len(root.RealizedBy) != 1 {
+		t.Fatalf("expected 1 realizedBy on Root Cap, got %d", len(root.RealizedBy))
+	}
+	if root.RealizedBy[0].TargetID.String() != "my-service" {
+		t.Errorf("expected realizedBy target %q, got %q", "my-service", root.RealizedBy[0].TargetID.String())
+	}
+
+	// Check externalDeps wiring
+	temporal := model.ExternalDependencies["temporal"]
+	if len(temporal.UsedBy) != 1 || temporal.UsedBy[0].ServiceName != "my-service" {
+		t.Errorf("expected temporal.UsedBy[my-service], got %v", temporal.UsedBy)
+	}
+
+	// Check team interaction
+	if len(model.Interactions) != 1 {
+		t.Fatalf("expected 1 interaction from team interacts, got %d", len(model.Interactions))
+	}
+}
+
 func TestTransform_Transitions_FullRoundTrip(t *testing.T) {
 	src := `
 system "Test" {}

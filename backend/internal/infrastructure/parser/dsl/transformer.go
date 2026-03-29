@@ -56,6 +56,19 @@ func Transform(f *File) (*entity.UNMModel, error) {
 	}
 	transformTransitions(model, f.Transitions)
 
+	// Post-processing: wire realizes (9.3.5) and externalDeps (9.4.3) after all
+	// capabilities/services/external deps are in the model.
+	if err := wireServiceRealizes(model, f.Services); err != nil {
+		return nil, err
+	}
+	if err := wireServiceExternalDeps(model, f.Services); err != nil {
+		return nil, err
+	}
+	// Post-processing: wire team interacts (9.5.3)
+	if err := wireTeamInteracts(model, f.Teams); err != nil {
+		return nil, err
+	}
+
 	return model, nil
 }
 
@@ -97,6 +110,15 @@ func transformNeeds(model *entity.UNMModel, nodes []*NeedNode) error {
 }
 
 func transformCapabilities(model *entity.UNMModel, nodes []*CapabilityNode) error {
+	// Build a map of name → CapabilityNode for flat parent lookup.
+	nodeByName := make(map[string]*CapabilityNode, len(nodes))
+	for _, n := range nodes {
+		nodeByName[n.Name] = n
+	}
+
+	// Pass 1: Build all capability entities and add them to the model.
+	// Nested children are built recursively via buildEntityCapability.
+	// Flat-parent capabilities are added as independent top-level caps at this stage.
 	for _, n := range nodes {
 		cap, err := buildEntityCapability(n)
 		if err != nil {
@@ -106,7 +128,68 @@ func transformCapabilities(model *entity.UNMModel, nodes []*CapabilityNode) erro
 			return fmt.Errorf("transform: %w", err)
 		}
 	}
+
+	// Pass 2: Resolve flat parent references.
+	// Wire each flat-parent cap into its parent's Children slice.
+	for _, n := range nodes {
+		if n.Parent == "" {
+			continue
+		}
+		// Detect circular references by following the AST Parent chain.
+		if err := checkCircularInAST(nodeByName, n.Name); err != nil {
+			return fmt.Errorf("transform: capability %q: %w", n.Name, err)
+		}
+		parentCap, ok := model.Capabilities[n.Parent]
+		if !ok {
+			return fmt.Errorf("transform: capability %q: parent %q not found", n.Name, n.Parent)
+		}
+		childCap, ok := model.Capabilities[n.Name]
+		if !ok {
+			return fmt.Errorf("transform: capability %q: not found after first pass", n.Name)
+		}
+		parentCap.AddChild(childCap)
+		model.CapabilityParents[n.Name] = n.Parent
+	}
+
+	// Pass 3: Propagate visibility from parent to children (depth-first).
+	// Start only from roots (no entry in CapabilityParents).
+	for _, cap := range model.Capabilities {
+		if _, hasParent := model.CapabilityParents[cap.Name]; !hasParent {
+			propagateVisibility(cap, cap.Visibility)
+		}
+	}
+
 	return nil
+}
+
+// checkCircularInAST detects circular parent references by following the Parent chain
+// in the AST node map. Returns an error if a cycle is found.
+func checkCircularInAST(nodeByName map[string]*CapabilityNode, startName string) error {
+	visited := make(map[string]bool)
+	current := startName
+	for current != "" {
+		if visited[current] {
+			return fmt.Errorf("circular parent reference detected involving %q", current)
+		}
+		visited[current] = true
+		node, ok := nodeByName[current]
+		if !ok {
+			break
+		}
+		current = node.Parent
+	}
+	return nil
+}
+
+// propagateVisibility does a depth-first traversal setting visibility on children
+// that have no explicit visibility set.
+func propagateVisibility(cap *entity.Capability, parentVisibility string) {
+	for _, child := range cap.Children {
+		if child.Visibility == "" && parentVisibility != "" {
+			child.Visibility = parentVisibility
+		}
+		propagateVisibility(child, child.Visibility)
+	}
 }
 
 func buildEntityCapability(n *CapabilityNode) (*entity.Capability, error) {
@@ -163,6 +246,47 @@ func transformServices(model *entity.UNMModel, nodes []*ServiceNode) error {
 	return nil
 }
 
+// wireServiceRealizes wires service.Realizes → capability.RealizedBy (9.3.5).
+// Must be called after both services and capabilities are in the model.
+func wireServiceRealizes(model *entity.UNMModel, nodes []*ServiceNode) error {
+	for _, n := range nodes {
+		for _, r := range n.Realizes {
+			cap, ok := model.Capabilities[r.Target]
+			if !ok {
+				// Capability not found — silently skip (it may be in an imported file).
+				// If stricter behaviour is desired, return an error here.
+				continue
+			}
+			targetID, err := valueobject.NewEntityID(n.Name)
+			if err != nil {
+				return fmt.Errorf("transform: service %q realizes target ID: %w", n.Name, err)
+			}
+			role, err := valueobject.NewRelationshipRole(r.Role)
+			if err != nil {
+				return fmt.Errorf("transform: service %q realizes role: %w", n.Name, err)
+			}
+			cap.AddRealizedBy(entity.NewRelationship(targetID, "", role))
+		}
+	}
+	return nil
+}
+
+// wireServiceExternalDeps wires service.ExternalDeps → externalDep.UsedBy (9.4.3).
+// Must be called after both services and external dependencies are in the model.
+func wireServiceExternalDeps(model *entity.UNMModel, nodes []*ServiceNode) error {
+	for _, n := range nodes {
+		for _, depName := range n.ExternalDeps {
+			ext, ok := model.ExternalDependencies[depName]
+			if !ok {
+				// External dependency not found — silently skip.
+				continue
+			}
+			ext.AddUsedBy(n.Name, "")
+		}
+	}
+	return nil
+}
+
 func transformTeams(model *entity.UNMModel, nodes []*TeamNode) error {
 	for _, n := range nodes {
 		teamType, err := valueobject.NewTeamType(n.Type)
@@ -186,6 +310,26 @@ func transformTeams(model *entity.UNMModel, nodes []*TeamNode) error {
 		}
 		if err := model.AddTeam(team); err != nil {
 			return fmt.Errorf("transform: %w", err)
+		}
+	}
+	return nil
+}
+
+// wireTeamInteracts converts TeamNode.Interacts into Interaction entities (9.5.3).
+// Must be called after teams are in the model.
+func wireTeamInteracts(model *entity.UNMModel, nodes []*TeamNode) error {
+	for i, n := range nodes {
+		for j, inter := range n.Interacts {
+			mode, err := valueobject.NewInteractionMode(inter.Mode)
+			if err != nil {
+				return fmt.Errorf("transform: team %q interacts[%d] mode: %w", n.Name, j, err)
+			}
+			id := fmt.Sprintf("%s->%s-%d-%d", n.Name, inter.With, i, j)
+			interaction, err := entity.NewInteraction(id, n.Name, inter.With, mode, inter.Via, inter.Description)
+			if err != nil {
+				return fmt.Errorf("transform: team %q interacts[%d]: %w", n.Name, j, err)
+			}
+			model.AddInteraction(interaction)
 		}
 	}
 	return nil
