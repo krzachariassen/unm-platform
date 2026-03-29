@@ -10,11 +10,11 @@ _Last updated: 2026-03-29_
 
 ## Recently Completed
 
+- [x] **Phase 6.10 (items 6.10.1–6.10.16)** — External deps in all views, quality hardening: insights HTTP 200, impact config injection, localStorage persistence, typed api.ts (2026-03-29)
 - [x] **Phase 6.12** — Architecture refactoring: extract use cases, HandlerDeps, view registry, dead code removal, frontend dedup + typed API (2026-03-29)
 - [x] **Phase 5 DSL** — Feature parity with YAML parser: outcome, size, via, typed usedBy structs, colon shorthand, external/data aliases (2026-03-29)
 - [x] Sync .cursor/rules/ with .claude/ agent framework (2026-03-17)
 - [x] Fix service load dimension — backend per-person ratio (2026-03-17)
-- [x] Add team interactions and service dependsOn to inca-louie.unm.yaml (2026-03-17)
 
 ---
 
@@ -25,52 +25,52 @@ _Last updated: 2026-03-29_
 External dependencies (e.g., Cadence, Kafka) are invisible single points of
 failure. The bottleneck analyzer ignores external dependency fan-in entirely.
 
-- [ ] **6.10.1** — Extend bottleneck analyzer: external dependency fan-in detection.
+- [x] **6.10.1** — Extend bottleneck analyzer: external dependency fan-in detection.
       Count services per external dep, flag critical (>=5) and warning (>=3).
       _File: `analyzer/bottleneck.go`_ (#backend)
-- [ ] **6.10.2** — Add external dependency signals to signals view API.
+- [x] **6.10.2** — Add external dependency signals to signals view API.
       New `critical_external_deps` field in organization layer.
       _File: `handler/signals.go`_ (#backend)
-- [ ] **6.10.3** — Add external deps to Capability View backend. Aggregate
+- [x] **6.10.3** — Add external deps to Capability View backend. Aggregate
       external deps across each capability's services.
       _File: `handler/view_enriched.go`_ (#backend)
-- [ ] **6.10.4** — Add external dependency nodes to UNM Map backend response.
+- [x] **6.10.4** — Add external dependency nodes to UNM Map backend response.
       _File: `handler/view_enriched.go`_ (#backend)
-- [ ] **6.10.5** — Render external deps in SignalsView — "External Dependency
+- [x] **6.10.5** — Render external deps in SignalsView — "External Dependency
       Concentration" section with color-coded badges.
       _File: `SignalsView.tsx`_ (#frontend)
-- [ ] **6.10.6** — Render external deps in CapabilityView detail panel.
+- [x] **6.10.6** — Render external deps in CapabilityView detail panel.
       _File: `CapabilityView.tsx`_ (#frontend)
-- [ ] **6.10.7** — Render external dependency nodes in UNMMapView.
+- [x] **6.10.7** — Render external dependency nodes in UNMMapView.
       _File: `UNMMapView.tsx`_ (#frontend)
 
 ### Part B: Quality Hardening — CRITICAL
 
-- [ ] **6.10.8** — Model state persistence across page refresh. Persist
+- [x] **6.10.8** — Model state persistence across page refresh. Persist
       modelId + parseResult to localStorage, restore on mount, verify with
       backend. _File: `model-context.tsx`_ (#frontend)
-- [ ] **6.10.9** — Insights endpoint returns HTTP 200 on internal errors.
+- [x] **6.10.9** — Insights endpoint returns HTTP 200 on internal errors.
       Distinguish "no findings" from "AI failed" in the response.
       _Files: `insights.go`, `usePageInsights.ts`_ (#fullstack)
-- [ ] **6.10.10** — Impact analyzer uses hardcoded default config instead of
+- [x] **6.10.10** — Impact analyzer uses hardcoded default config instead of
       server config for cognitive load thresholds. Inject AnalysisConfig.
       _Files: `impact.go`, `main.go`_ (#backend)
 
 ### Part B: Quality Hardening — MAJOR
 
-- [ ] **6.10.11** — AI Advisor page not in sidebar. Add nav item.
+- [x] **6.10.11** — AI Advisor page not in sidebar. Add nav item.
       _File: `Sidebar.tsx`_ (#frontend)
-- [ ] **6.10.12** — Delete ~300 lines of dead legacy view builder functions.
+- [x] **6.10.12** — Delete ~300 lines of dead legacy view builder functions.
       _File: `handler/view.go`_ (#backend)
-- [ ] **6.10.13** — Dashboard silently hides signals on API failure. Show
+- [x] **6.10.13** — Dashboard silently hides signals on API failure. Show
       fallback message. _File: `DashboardPage.tsx`_ (#frontend)
-- [ ] **6.10.14** — Frontend api.ts type definitions incomplete. Views use
+- [x] **6.10.14** — Frontend api.ts type definitions incomplete. Views use
       `as unknown as` casts. Add typed view fetch helpers.
       _File: `api.ts`, all view pages_ (#frontend)
-- [ ] **6.10.15** — AI client ignores config-resolved API key, reads env var
+- [x] **6.10.15** — AI client ignores config-resolved API key, reads env var
       independently. Pass resolved key via constructor.
       _Files: `openai_client.go`, `main.go`_ (#backend)
-- [ ] **6.10.16** — No panic recovery middleware. Add recovery that catches
+- [x] **6.10.16** — No panic recovery middleware. Add recovery that catches
       panics, logs stack trace, returns 500.
       _File: `middleware.go`_ (#backend)
 
