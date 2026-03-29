@@ -47,6 +47,7 @@ type ActorNode struct {
 type NeedNode struct {
 	Name        string
 	Description string
+	Outcome     string
 	Actor       string
 	SupportedBy []RelationshipNode
 }
@@ -81,6 +82,7 @@ type TeamNode struct {
 	Name        string
 	Type        string
 	Description string
+	Size        int
 	Owns        []string
 }
 
@@ -95,8 +97,15 @@ type PlatformNode struct {
 type InteractionNode struct {
 	From        string
 	To          string
+	Via         string
 	Mode        string
 	Description string
+}
+
+// DataAssetUsageNode represents a service using a data asset, with optional access role.
+type DataAssetUsageNode struct {
+	Target string
+	Access string // "read", "read-write", "write", or ""
 }
 
 // DataAssetNode represents a data_asset block in the DSL.
@@ -104,14 +113,22 @@ type DataAssetNode struct {
 	Name        string
 	Type        string
 	Description string
-	UsedBy      []string
+	UsedBy      []DataAssetUsageNode
+	ProducedBy  string
+	ConsumedBy  []string
+}
+
+// ExternalDepUsageNode represents a service using an external dependency, with optional description.
+type ExternalDepUsageNode struct {
+	Target      string
+	Description string
 }
 
 // ExternalDependencyNode represents an external_dependency block in the DSL.
 type ExternalDependencyNode struct {
 	Name        string
 	Description string
-	UsedBy      []string
+	UsedBy      []ExternalDepUsageNode
 }
 
 // SignalNode represents a signal block in the DSL.

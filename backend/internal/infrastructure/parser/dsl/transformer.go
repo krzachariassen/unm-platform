@@ -74,7 +74,11 @@ func transformActors(model *entity.UNMModel, nodes []*ActorNode) error {
 
 func transformNeeds(model *entity.UNMModel, nodes []*NeedNode) error {
 	for _, n := range nodes {
-		need, err := entity.NewNeed(n.Name, n.Name, n.Actor, n.Description)
+		outcome := n.Outcome
+		if outcome == "" {
+			outcome = n.Description
+		}
+		need, err := entity.NewNeed(n.Name, n.Name, n.Actor, outcome)
 		if err != nil {
 			return fmt.Errorf("transform: need %q: %w", n.Name, err)
 		}
@@ -169,6 +173,10 @@ func transformTeams(model *entity.UNMModel, nodes []*TeamNode) error {
 		if err != nil {
 			return fmt.Errorf("transform: team %q: %w", n.Name, err)
 		}
+		if n.Size > 0 {
+			team.Size = n.Size
+			team.SizeExplicit = true
+		}
 		for _, owns := range n.Owns {
 			targetID, err := valueobject.NewEntityID(owns)
 			if err != nil {
@@ -206,7 +214,7 @@ func transformInteractions(model *entity.UNMModel, nodes []*InteractionNode) err
 			return fmt.Errorf("transform: interaction[%d] mode: %w", i, err)
 		}
 		id := fmt.Sprintf("%s->%s", n.From, n.To)
-		interaction, err := entity.NewInteraction(id, n.From, n.To, mode, "", n.Description)
+		interaction, err := entity.NewInteraction(id, n.From, n.To, mode, n.Via, n.Description)
 		if err != nil {
 			return fmt.Errorf("transform: interaction[%d]: %w", i, err)
 		}
@@ -221,8 +229,12 @@ func transformDataAssets(model *entity.UNMModel, nodes []*DataAssetNode) error {
 		if err != nil {
 			return fmt.Errorf("transform: data_asset %q: %w", n.Name, err)
 		}
-		for _, svcName := range n.UsedBy {
-			da.AddUsedBy(svcName, "")
+		for _, usage := range n.UsedBy {
+			da.AddUsedBy(usage.Target, usage.Access)
+		}
+		da.ProducedBy = n.ProducedBy
+		for _, consumer := range n.ConsumedBy {
+			da.ConsumedBy = append(da.ConsumedBy, consumer)
 		}
 		if err := model.AddDataAsset(da); err != nil {
 			return fmt.Errorf("transform: %w", err)
@@ -237,8 +249,8 @@ func transformExternalDependencies(model *entity.UNMModel, nodes []*ExternalDepe
 		if err != nil {
 			return fmt.Errorf("transform: external_dependency %q: %w", n.Name, err)
 		}
-		for _, svcName := range n.UsedBy {
-			ext.AddUsedBy(svcName, "")
+		for _, usage := range n.UsedBy {
+			ext.AddUsedBy(usage.Target, usage.Description)
 		}
 		if err := model.AddExternalDependency(ext); err != nil {
 			return fmt.Errorf("transform: %w", err)

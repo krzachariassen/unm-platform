@@ -267,7 +267,7 @@ func TestTransform_DataAsset(t *testing.T) {
 				Name:        "payments-db",
 				Type:        "database",
 				Description: "Payment records",
-				UsedBy:      []string{"payment-service"},
+				UsedBy:      []DataAssetUsageNode{{Target: "payment-service"}},
 			},
 		},
 	}
@@ -297,7 +297,7 @@ func TestTransform_ExternalDependency(t *testing.T) {
 			{
 				Name:        "stripe",
 				Description: "Payment gateway",
-				UsedBy:      []string{"gateway-service"},
+				UsedBy:      []ExternalDepUsageNode{{Target: "gateway-service"}},
 			},
 		},
 	}
@@ -405,6 +405,92 @@ func TestTransform_InvalidDataAssetType(t *testing.T) {
 	_, err := Transform(f)
 	if err == nil {
 		t.Fatal("expected error for invalid data asset type")
+	}
+}
+
+// P0: Need outcome flows through transformer
+func TestTransform_NeedOutcome(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Needs: []*NeedNode{
+			{Name: "Fast checkout", Actor: "Shopper", Description: "desc", Outcome: "checkout in 3 clicks"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	need, ok := model.Needs["Fast checkout"]
+	if !ok {
+		t.Fatal("expected need 'Fast checkout'")
+	}
+	if need.Outcome != "checkout in 3 clicks" {
+		t.Errorf("expected outcome %q, got %q", "checkout in 3 clicks", need.Outcome)
+	}
+}
+
+// P0: Need outcome falls back to description when not set
+func TestTransform_NeedOutcomeFallback(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Needs: []*NeedNode{
+			{Name: "Fast checkout", Actor: "Shopper", Description: "fallback desc"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	need, ok := model.Needs["Fast checkout"]
+	if !ok {
+		t.Fatal("expected need 'Fast checkout'")
+	}
+	if need.Outcome != "fallback desc" {
+		t.Errorf("expected outcome fallback to description %q, got %q", "fallback desc", need.Outcome)
+	}
+}
+
+// P0: Team size and SizeExplicit flow through transformer
+func TestTransform_TeamSize(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Teams: []*TeamNode{
+			{Name: "Platform", Type: "platform", Size: 6},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	team, ok := model.Teams["Platform"]
+	if !ok {
+		t.Fatal("expected team 'Platform'")
+	}
+	if team.Size != 6 {
+		t.Errorf("expected size 6, got %d", team.Size)
+	}
+	if !team.SizeExplicit {
+		t.Error("expected SizeExplicit = true")
+	}
+}
+
+// P0: Interaction via flows through transformer
+func TestTransform_InteractionVia(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Interactions: []*InteractionNode{
+			{From: "service-a", To: "service-b", Via: "api-gateway", Mode: "x-as-a-service"},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(model.Interactions) != 1 {
+		t.Fatalf("expected 1 interaction, got %d", len(model.Interactions))
+	}
+	if model.Interactions[0].Via != "api-gateway" {
+		t.Errorf("expected via %q, got %q", "api-gateway", model.Interactions[0].Via)
 	}
 }
 

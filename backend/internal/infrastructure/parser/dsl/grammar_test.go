@@ -367,7 +367,7 @@ external_dependency "stripe" {
 	if ext.Description != "Payment gateway" {
 		t.Errorf("expected description %q, got %q", "Payment gateway", ext.Description)
 	}
-	if len(ext.UsedBy) != 1 || ext.UsedBy[0] != "gateway-service" {
+	if len(ext.UsedBy) != 1 || ext.UsedBy[0].Target != "gateway-service" {
 		t.Errorf("expected usedBy [gateway-service], got %v", ext.UsedBy)
 	}
 }
@@ -1014,6 +1014,222 @@ func TestParse_TransitionBlock_UnknownField_Error(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unexpected field") {
 		t.Errorf("expected 'unexpected field' in error, got: %v", err)
+	}
+}
+
+// P0: Need outcome field
+func TestParse_NeedOutcome(t *testing.T) {
+	src := `
+need "Fast checkout" {
+  description "Checkout is fast"
+  outcome "User completes checkout in under 3 clicks"
+  actor "Shopper"
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Needs) != 1 {
+		t.Fatalf("expected 1 need, got %d", len(f.Needs))
+	}
+	n := f.Needs[0]
+	if n.Outcome != "User completes checkout in under 3 clicks" {
+		t.Errorf("expected outcome %q, got %q", "User completes checkout in under 3 clicks", n.Outcome)
+	}
+	if n.Description != "Checkout is fast" {
+		t.Errorf("expected description %q, got %q", "Checkout is fast", n.Description)
+	}
+}
+
+// P0: Team size field
+func TestParse_TeamSize(t *testing.T) {
+	src := `
+team "Platform" {
+  type platform
+  size 6
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Teams) != 1 {
+		t.Fatalf("expected 1 team, got %d", len(f.Teams))
+	}
+	if f.Teams[0].Size != 6 {
+		t.Errorf("expected size 6, got %d", f.Teams[0].Size)
+	}
+}
+
+// P0: Interaction via field
+func TestParse_InteractionVia(t *testing.T) {
+	src := `
+interaction "service-a" -> "service-b" {
+  via "api-gateway"
+  mode x-as-a-service
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Interactions) != 1 {
+		t.Fatalf("expected 1 interaction, got %d", len(f.Interactions))
+	}
+	if f.Interactions[0].Via != "api-gateway" {
+		t.Errorf("expected via %q, got %q", "api-gateway", f.Interactions[0].Via)
+	}
+}
+
+// P1: Colon shorthand for relationship descriptions
+func TestParse_RelationshipColonShorthand(t *testing.T) {
+	src := `
+capability "Payment" {
+  realizedBy "payment-service" : "primary implementation"
+  dependsOn "fraud-service" : "risk checks"
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Capabilities) != 1 {
+		t.Fatalf("expected 1 capability, got %d", len(f.Capabilities))
+	}
+	cap := f.Capabilities[0]
+	if len(cap.RealizedBy) != 1 {
+		t.Fatalf("expected 1 realizedBy, got %d", len(cap.RealizedBy))
+	}
+	if cap.RealizedBy[0].Description != "primary implementation" {
+		t.Errorf("expected realizedBy description %q, got %q", "primary implementation", cap.RealizedBy[0].Description)
+	}
+	if cap.DependsOn[0].Description != "risk checks" {
+		t.Errorf("expected dependsOn description %q, got %q", "risk checks", cap.DependsOn[0].Description)
+	}
+}
+
+// P1: DataAsset usedBy with access role
+func TestParse_DataAssetUsedByWithAccess(t *testing.T) {
+	src := `
+data_asset "payments-db" {
+  type database
+  usedBy "payment-service" access "read-write"
+  usedBy "reporting-service" access "read"
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.DataAssets) != 1 {
+		t.Fatalf("expected 1 data_asset, got %d", len(f.DataAssets))
+	}
+	da := f.DataAssets[0]
+	if len(da.UsedBy) != 2 {
+		t.Fatalf("expected 2 usedBy, got %d", len(da.UsedBy))
+	}
+	if da.UsedBy[0].Target != "payment-service" {
+		t.Errorf("expected target %q, got %q", "payment-service", da.UsedBy[0].Target)
+	}
+	if da.UsedBy[0].Access != "read-write" {
+		t.Errorf("expected access %q, got %q", "read-write", da.UsedBy[0].Access)
+	}
+	if da.UsedBy[1].Access != "read" {
+		t.Errorf("expected access %q, got %q", "read", da.UsedBy[1].Access)
+	}
+}
+
+// P1: DataAsset producedBy and consumedBy
+func TestParse_DataAssetProducedConsumed(t *testing.T) {
+	src := `
+data_asset "events" {
+  type event-stream
+  producedBy "event-service"
+  consumedBy "analytics-service"
+  consumedBy "billing-service"
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.DataAssets) != 1 {
+		t.Fatalf("expected 1 data_asset, got %d", len(f.DataAssets))
+	}
+	da := f.DataAssets[0]
+	if da.ProducedBy != "event-service" {
+		t.Errorf("expected producedBy %q, got %q", "event-service", da.ProducedBy)
+	}
+	if len(da.ConsumedBy) != 2 {
+		t.Fatalf("expected 2 consumedBy, got %d", len(da.ConsumedBy))
+	}
+	if da.ConsumedBy[0] != "analytics-service" {
+		t.Errorf("expected consumedBy[0] %q, got %q", "analytics-service", da.ConsumedBy[0])
+	}
+}
+
+// P1: ExternalDependency usedBy with colon description
+func TestParse_ExternalDepUsedByWithDescription(t *testing.T) {
+	src := `
+external_dependency "stripe" {
+  description "Payment gateway"
+  usedBy "checkout-service" : "processes payments"
+  usedBy "billing-service"
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.ExternalDependencies) != 1 {
+		t.Fatalf("expected 1 external_dependency, got %d", len(f.ExternalDependencies))
+	}
+	ext := f.ExternalDependencies[0]
+	if len(ext.UsedBy) != 2 {
+		t.Fatalf("expected 2 usedBy, got %d", len(ext.UsedBy))
+	}
+	if ext.UsedBy[0].Target != "checkout-service" {
+		t.Errorf("expected target %q, got %q", "checkout-service", ext.UsedBy[0].Target)
+	}
+	if ext.UsedBy[0].Description != "processes payments" {
+		t.Errorf("expected description %q, got %q", "processes payments", ext.UsedBy[0].Description)
+	}
+	if ext.UsedBy[1].Target != "billing-service" {
+		t.Errorf("expected target %q, got %q", "billing-service", ext.UsedBy[1].Target)
+	}
+	if ext.UsedBy[1].Description != "" {
+		t.Errorf("expected empty description, got %q", ext.UsedBy[1].Description)
+	}
+}
+
+// P2: `external` alias for external_dependency
+func TestParse_ExternalAlias(t *testing.T) {
+	src := `
+external "twilio" {
+  description "SMS provider"
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.ExternalDependencies) != 1 {
+		t.Fatalf("expected 1 external_dependency via alias, got %d", len(f.ExternalDependencies))
+	}
+	if f.ExternalDependencies[0].Name != "twilio" {
+		t.Errorf("expected name %q, got %q", "twilio", f.ExternalDependencies[0].Name)
+	}
+}
+
+// P2: `data` alias for data_asset
+func TestParse_DataAlias(t *testing.T) {
+	src := `
+data "user-profiles" {
+  type database
+  description "User profile store"
+}`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.DataAssets) != 1 {
+		t.Fatalf("expected 1 data_asset via alias, got %d", len(f.DataAssets))
+	}
+	if f.DataAssets[0].Name != "user-profiles" {
+		t.Errorf("expected name %q, got %q", "user-profiles", f.DataAssets[0].Name)
 	}
 }
 

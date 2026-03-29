@@ -100,14 +100,14 @@ func (p *parser) parseFile() (*File, error) {
 				return nil, err
 			}
 			f.Interactions = append(f.Interactions, node)
-		case "data_asset":
+		case "data_asset", "data":
 			p.readToken()
 			node, err := p.parseDataAsset()
 			if err != nil {
 				return nil, err
 			}
 			f.DataAssets = append(f.DataAssets, node)
-		case "external_dependency":
+		case "external_dependency", "external":
 			p.readToken()
 			node, err := p.parseExternalDependency()
 			if err != nil {
@@ -242,6 +242,13 @@ func (p *parser) parseNeed() (*NeedNode, error) {
 				return nil, p.errorf("need description: %s", err.Error())
 			}
 			node.Description = v
+		case "outcome":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("need outcome: %s", err.Error())
+			}
+			node.Outcome = v
 		case "actor":
 			p.readToken()
 			v, err := p.readString()
@@ -404,6 +411,13 @@ func (p *parser) parseTeam() (*TeamNode, error) {
 				return nil, p.errorf("team type: %s", err.Error())
 			}
 			node.Type = v
+		case "size":
+			p.readToken()
+			v, err := p.readInt()
+			if err != nil {
+				return nil, p.errorf("team size: %s", err.Error())
+			}
+			node.Size = v
 		case "owns":
 			p.readToken()
 			v, err := p.readString()
@@ -498,6 +512,13 @@ func (p *parser) parseInteraction() (*InteractionNode, error) {
 				return nil, p.errorf("interaction mode: %s", err.Error())
 			}
 			node.Mode = v
+		case "via":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("interaction via: %s", err.Error())
+			}
+			node.Via = v
 		default:
 			p.readToken()
 			return nil, p.errorf("interaction: unexpected field %q", tok)
@@ -540,11 +561,34 @@ func (p *parser) parseDataAsset() (*DataAssetNode, error) {
 			node.Type = v
 		case "usedBy":
 			p.readToken()
-			v, err := p.readString()
+			target, err := p.readString()
 			if err != nil {
 				return nil, p.errorf("data_asset usedBy: %s", err.Error())
 			}
-			node.UsedBy = append(node.UsedBy, v)
+			usage := DataAssetUsageNode{Target: target}
+			if p.peekToken() == "access" {
+				p.readToken()
+				access, err := p.readString()
+				if err != nil {
+					return nil, p.errorf("data_asset usedBy access: %s", err.Error())
+				}
+				usage.Access = access
+			}
+			node.UsedBy = append(node.UsedBy, usage)
+		case "producedBy":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("data_asset producedBy: %s", err.Error())
+			}
+			node.ProducedBy = v
+		case "consumedBy":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("data_asset consumedBy: %s", err.Error())
+			}
+			node.ConsumedBy = append(node.ConsumedBy, v)
 		default:
 			p.readToken()
 			return nil, p.errorf("data_asset: unexpected field %q", tok)
@@ -580,11 +624,20 @@ func (p *parser) parseExternalDependency() (*ExternalDependencyNode, error) {
 			node.Description = v
 		case "usedBy":
 			p.readToken()
-			v, err := p.readString()
+			target, err := p.readString()
 			if err != nil {
 				return nil, p.errorf("external_dependency usedBy: %s", err.Error())
 			}
-			node.UsedBy = append(node.UsedBy, v)
+			usage := ExternalDepUsageNode{Target: target}
+			if p.peekToken() == ":" {
+				p.readToken() // consume ":"
+				desc, err := p.readString()
+				if err != nil {
+					return nil, p.errorf("external_dependency usedBy description: %s", err.Error())
+				}
+				usage.Description = desc
+			}
+			node.UsedBy = append(node.UsedBy, usage)
 		default:
 			p.readToken()
 			return nil, p.errorf("external_dependency: unexpected field %q", tok)
@@ -786,6 +839,20 @@ func (p *parser) readConfidence() (float64, error) {
 	return val, nil
 }
 
+// readInt reads the next bare token and parses it as an int.
+func (p *parser) readInt() (int, error) {
+	tok := p.readToken()
+	if tok == "" {
+		return 0, fmt.Errorf("unexpected end of input, expected integer value")
+	}
+	var val int
+	_, err := fmt.Sscanf(tok, "%d", &val)
+	if err != nil {
+		return 0, fmt.Errorf("invalid integer value %q: %s", tok, err.Error())
+	}
+	return val, nil
+}
+
 // ---------------------------------------------------------------------------
 // Transition (5.7)
 // ---------------------------------------------------------------------------
@@ -964,7 +1031,7 @@ func (p *parser) readRestOfLine() string {
 // Relationship
 // ---------------------------------------------------------------------------
 
-// parseRelationship reads: <target> [ { description "..." role <role> } ]
+// parseRelationship reads: <target> [ : "description" | { description "..." role <role> } ]
 func (p *parser) parseRelationship() (RelationshipNode, error) {
 	target, err := p.readString()
 	if err != nil {
@@ -972,7 +1039,18 @@ func (p *parser) parseRelationship() (RelationshipNode, error) {
 	}
 	rel := RelationshipNode{Target: target}
 
-	// Peek to see if there's an inline modifier block
+	// Colon shorthand: target : "description"
+	if p.peekToken() == ":" {
+		p.readToken() // consume ":"
+		desc, err := p.readString()
+		if err != nil {
+			return RelationshipNode{}, p.errorf("relationship description: %s", err.Error())
+		}
+		rel.Description = desc
+		return rel, nil
+	}
+
+	// Block form: target { description "..." role <role> }
 	if p.peekToken() == "{" {
 		p.readToken() // consume "{"
 		for {
@@ -1105,7 +1183,7 @@ func (p *parser) readToken() string {
 	}
 
 	// Single-char tokens
-	if ch == '{' || ch == '}' || ch == '[' || ch == ']' || ch == ',' {
+	if ch == '{' || ch == '}' || ch == '[' || ch == ']' || ch == ',' || ch == ':' {
 		p.pos++
 		return string(ch)
 	}
