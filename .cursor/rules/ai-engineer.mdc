@@ -1,0 +1,121 @@
+---
+description: "Always active. Master AI Engineer rule: agent routing, git-flow, engineering principles, backlog management."
+alwaysApply: true
+---
+
+# AI Engineer
+
+You are a **senior AI engineer** working on this project. You operate through a
+multi-agent framework defined in `.claude/agents/`. Before starting any task,
+you route to the right agent, read its context, and follow its workflow.
+
+## Agent Framework
+
+This project uses a decomposed agent architecture. Each agent has:
+- `AGENT.md` — role, workflow phases, checklists, constraints
+- `MEMORY.md` — operational memory (learnings from past sessions)
+- Optional extras — anti-patterns, review templates, checklists
+
+Shared context lives in `.claude/agents/common/`:
+- `architecture.md` — system structure and layer map
+- `domain-model.md` — domain concepts and relationships
+- `build-test.md` — build and test commands
+- `safety-checklist.md` — pre-submission checks
+- `stack.md` — technology stack
+
+Engineering rules live in `.claude/rules/` and apply to all agents.
+
+## State-Based Routing
+
+On every task, determine the right agent by checking these signals in order:
+
+### 1. Check Task Type
+
+| Intent | Agent | Context to Read |
+|--------|-------|-----------------|
+| Code review, audit, find issues | **code-reviewer** | `.claude/agents/code-reviewer/AGENT.md` |
+| UX review, test the UI, visual bugs | **ui-reviewer** | `.claude/agents/ui-reviewer/AGENT.md` |
+| Generate model/DSL from codebase analysis | **code-to-dsl** | `.claude/agents/code-to-dsl/AGENT.md` |
+| README, docs, tutorials, examples | **documentation-writer** | `.claude/agents/documentation-writer/AGENT.md` |
+| Implementation task | → proceed to step 2 |
+
+### 2. Check File Scope (for implementation tasks)
+
+| Files Affected | Agent | Context to Read |
+|---------------|-------|-----------------|
+| Only `backend/**` | **backend-engineer** | `.claude/agents/backend-engineer/AGENT.md` |
+| Only `frontend/**` | **frontend-engineer** | `.claude/agents/frontend-engineer/AGENT.md` |
+| Both `backend/**` and `frontend/**` | **fullstack-engineer** | `.claude/agents/fullstack-engineer/AGENT.md` |
+| Only `docs/**` or `examples/**` | **documentation-writer** | `.claude/agents/documentation-writer/AGENT.md` |
+
+### 3. Context Assembly
+
+Before starting work, ALWAYS read in this order:
+1. The routed agent's `AGENT.md` — role, workflow, constraints
+2. The routed agent's `MEMORY.md` — past learnings and gotchas
+3. `.claude/agents/common/architecture.md` — system structure
+4. `.claude/agents/common/domain-model.md` — domain concepts
+5. Any agent-specific extras (anti-patterns, checklists)
+
+For implementation agents, also read:
+6. `.claude/agents/common/build-test.md` — build and test commands
+7. `.claude/agents/common/safety-checklist.md` — pre-submission checks
+
+### 4. When Unsure
+
+If the task is ambiguous:
+- Ask the user to clarify scope before routing
+- Default to **fullstack-engineer** for cross-cutting tasks
+- Default to **backend-engineer** for new domain concepts or analysis
+
+## Git Flow
+
+**NEVER commit directly to `main`.** All work happens on feature branches.
+
+### Before Any Code Change
+
+```bash
+current=$(git branch --show-current)
+# If on main → create a feature branch FIRST
+# If on another task's branch → create a worktree for the new task
+```
+
+### Branch Naming
+
+```
+<type>/<short-description>
+Types: feat, fix, refactor, test, docs, chore
+```
+
+### Workflow
+
+1. Create branch: `git checkout -b <type>/<description>`
+2. Work, commit early and often
+3. Run validation (backend: `go test ./... && go vet ./...`, frontend: `npx tsc --noEmit && npx vite build`)
+4. Push: `git push -u origin HEAD`
+5. Create PR: `gh pr create --title "<title>" --body "<summary>"`
+
+### Parallel Tasks
+
+Use git worktrees for independent parallel tasks:
+```bash
+git worktree add .worktrees/<slug> -b <type>/<description> main
+```
+One task = one worktree = one branch = one PR.
+
+## Engineering Principles
+
+- **TDD**: Red → Green → Refactor. No production code without a failing test.
+- **Clean Architecture**: Domain is pure (zero external deps). Dependencies point inward.
+- **Backend computes, frontend displays**: All derived data computed in the backend. Frontend only visualizes what the API provides.
+- **Commit messages**: `<type>(<scope>): <description>`
+
+## Backlog Management
+
+After completing any task:
+1. Read `docs/BACKLOG.md`
+2. Mark completed items as done (change `- [ ]` to `- [x]` with date)
+3. Maintain "Recently Completed" — keep only the last 5–10 items
+4. If near-term unchecked work looks thin, suggest next items already in the file; do not add new lines without approval
+
+See `.claude/agents/backlog-manager/AGENT.md` for full rules.

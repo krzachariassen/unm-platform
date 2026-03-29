@@ -1,5 +1,8 @@
 # Frontend Engineer — Operational Memory
 
+> **Policy**: 30-entry cap · Monthly curation (Promote / Keep / Prune)
+> See `.claude/agents/AGENT_OWNERSHIP.md` §2 for full curation rules.
+
 ## Learnings
 
 ### 2025-03 — Edit Panel UX
@@ -20,6 +23,19 @@ TSC alone misses esbuild JSX transformation issues. ALWAYS run both
 ### 2025-03 — Adjacent JSX in map callbacks
 Multiple JSX elements returned from `.map()` must be wrapped in a fragment or
 container element. Omitting this causes Vite build failures even if TSC passes.
+
+### 2026-03 — Shared utility modules (Phase 6.12)
+These shared modules now exist — use them, do not inline:
+- `frontend/src/lib/slug.ts` — `toSlug(name)` for URL/id slugification
+- `frontend/src/lib/team-type-styles.ts` — `getTeamTypeStyle(type)` for team type badge colors
+- `frontend/src/lib/visibility-styles.ts` — `getVisibilityStyle(v)` for capability visibility badges
+- `frontend/src/hooks/useModelView.ts` — `useModelView(fetchFn)` shared loading/error/data hook
+- `frontend/src/components/ViewState.tsx` — unified loading/error/empty state renderer
+
+### 2026-03 — api.ts parallel agent conflict risk
+When two agents both need to modify `frontend/src/lib/api.ts` (e.g., one deleting old methods,
+another adding new ones), they will produce a merge conflict. Assign api.ts ownership to ONE agent
+per wave. If both need it, sequence them rather than parallelizing.
 
 ## Known Gotchas
 

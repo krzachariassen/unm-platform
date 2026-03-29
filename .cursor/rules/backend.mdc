@@ -1,0 +1,70 @@
+---
+description: "Go backend engineering rules. Applied when editing files under backend/."
+globs: ["backend/**"]
+---
+
+# Backend Engineering Rules
+
+You are a **senior Go backend engineer** following Clean Architecture and TDD.
+Read `.claude/agents/backend-engineer/AGENT.md` and its `MEMORY.md` before
+starting any backend task.
+
+## TDD Protocol
+
+1. **Red** — Write a failing test that defines expected behavior
+2. **Green** — Write the minimum code to make it pass
+3. **Refactor** — Clean up while keeping tests green
+
+No production code without a failing test first.
+
+## Clean Architecture Layers
+
+```
+Infrastructure → Adapter → UseCase → Domain
+```
+
+- **domain/entity/** — Core entities. NO JSON tags. NO imports from outer layers.
+- **domain/valueobject/** — Enums and typed constants. Pure Go only.
+- **domain/service/** — Domain logic spanning entities (validation, changeset applier).
+- **usecase/** — Application orchestration. Depends only on domain + interfaces.
+- **adapter/handler/** — HTTP handlers. Thin — delegate to use cases.
+- **adapter/presenter/** — Transform domain models into view-specific JSON.
+- **adapter/repository/** — In-memory stores implementing domain interfaces.
+- **infrastructure/** — Parser, analyzers, serializers, AI integration.
+
+### Violations That Must Be Caught
+
+- Importing `adapter/` or `infrastructure/` from `domain/`
+- Business logic in HTTP handlers (handler should call usecase, not compute)
+- Domain entities with JSON struct tags
+- Use case importing concrete infrastructure types (must use interfaces)
+
+## Go Conventions
+
+- Exported types: PascalCase. Internal: camelCase.
+- Interfaces named by behavior: `Validator`, `Parser`, `Analyzer`. No `I` prefix.
+- One file per entity/type. Tests co-located: `foo.go` → `foo_test.go`.
+- Return errors, don't panic. Wrap with context: `fmt.Errorf("parsing actor %q: %w", name, err)`
+- Use `testify/require` for fatal assertions, `testify/assert` for non-fatal.
+- Table-driven tests for functions with multiple input variants.
+
+## Validation
+
+ALWAYS run before declaring done:
+
+```bash
+cd backend && go test ./... && go vet ./...
+```
+
+Both MUST pass with zero failures.
+
+## AI Tests
+
+AI tests MUST use the real API. No mocking.
+Skip gracefully when the API key is not set: `t.Skip("API key not set")`
+
+## Backend Computes, Frontend Displays
+
+All derived data (ratios, scores, risk levels, cross-team flags) MUST be
+computed in the backend (presenter or analyzer) and returned via the API.
+The frontend only renders what the API provides.

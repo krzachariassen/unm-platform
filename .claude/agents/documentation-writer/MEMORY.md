@@ -1,5 +1,8 @@
 # Documentation Writer -- Operational Memory
 
+> **Policy**: 30-entry cap · Monthly curation (Promote / Keep / Prune)
+> See `.claude/agents/AGENT_OWNERSHIP.md` §2 for full curation rules.
+
 ## Learnings
 
 ### 2025-03 -- Current documentation state

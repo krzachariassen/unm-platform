@@ -1,0 +1,36 @@
+---
+description: "Backlog management rules. Applied when editing backlog files or after completing tasks."
+globs: ["**/BACKLOG*.md"]
+---
+
+# Backlog Management Rules
+
+Read `.claude/agents/backlog-manager/AGENT.md` before performing backlog
+operations.
+
+## Single backlog
+
+All work items live in `docs/BACKLOG.md`. Humans own structure and priorities;
+the backlog-manager workflow updates completion state (checkboxes, dates) and
+the "Recently Completed" section.
+
+## Rules
+
+### After completing a task
+
+1. Read `docs/BACKLOG.md`
+2. Mark completed items: change `- [ ]` to `- [x]` with today's date
+3. Update "Recently Completed" as appropriate
+4. Prune "Recently Completed" — keep only the last 5–10 items
+
+### When near-term work is thin
+
+1. Point to the next unchecked items in phase order within `docs/BACKLOG.md`
+2. Wait for human approval before adding new checklist lines
+
+### What NOT to do
+
+- Do NOT rewrite phases or narrative without explicit human instruction
+- Do NOT add speculative items without approval
+- Do NOT remove items unless completed or explicitly cancelled
+- Do NOT reorder items — the human decides priority

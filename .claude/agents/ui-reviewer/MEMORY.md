@@ -1,5 +1,8 @@
 # UI Reviewer — Operational Memory
 
+> **Policy**: 30-entry cap · Monthly curation (Promote / Keep / Prune)
+> See `.claude/agents/AGENT_OWNERSHIP.md` §2 for full curation rules.
+
 ## Reviews Completed
 
 ### 2025-03 — Full Platform Review (post-edit-panel)

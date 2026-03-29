@@ -21,6 +21,7 @@ produce multiple work units across different agents.
 | **code-reviewer** | review, audit, check quality, find issues in code | read-only |
 | **ui-reviewer** | UX review, test the UI, check pages, visual bugs | read-only |
 | **code-to-dsl** | generate UNM model from codebase, analyze repo | `examples/` |
+| **backlog-manager** | update backlog, mark items done, suggest next steps | `docs/BACKLOG.md` |
 
 ### Classification Rules
 
@@ -155,17 +156,40 @@ For each agent being invoked, read these files:
 - `.claude/agents/common/build-test.md`
 - `.claude/agents/common/stack.md`
 - `.claude/agents/common/safety-checklist.md`
+- `.claude/agents/common/security.md`
 - Relevant rules from `.claude/rules/`
 - The agent's anti-patterns file (if it exists)
 
 ## Step 5: Execute and Validate
 
 1. Execute work units in the determined order
-2. After each agent completes, run its validation:
-   - Backend: `cd backend && go test ./... && go vet ./...`
-   - Frontend: `cd frontend && npx tsc --noEmit && npx vite build`
-3. After all agents complete, run cross-cutting validation
-4. Each branch: commit, push, create PR
+2. After each agent completes, run the **validation pipeline**:
+
+   **MANDATORY**: Invoke `/validate` via the **Skill tool** after any code-writing agent completes.
+   Do NOT skip this step. Do NOT substitute manual bash commands or spot-checks.
+
+   The orchestrator (you) must invoke validation as a tool call — not as bash commands
+   run by a teammate. This is what makes validation deterministic and non-skippable.
+
+   ```
+   Skill { skill: "validate" }              # Full pipeline (backend + frontend)
+   Skill { skill: "validate", args: "backend" }   # Backend-only changes
+   Skill { skill: "validate", args: "frontend" }  # Frontend-only changes
+   ```
+
+3. **Self-Correction Loop** — if `/validate` reports any FAILED gate:
+   a. Read the failure details from the validation report
+   b. Identify the root cause (compile error, test failure, type error, etc.)
+   c. Fix the specific issue — do not rewrite unrelated code
+   d. Re-run `/validate` for the FAILED gate(s) only
+   e. If the retry ALSO fails: **STOP**. Do not retry again.
+      Report the full failure to the user with the validation output.
+      The user decides whether to fix manually or provide guidance.
+
+   **One retry maximum.** Repeated failures indicate a real problem that
+   the agent cannot solve without human input.
+
+4. After all agents complete and all gates pass, commit, push, create PR
 
 ## Step 6: Cleanup
 
@@ -181,9 +205,23 @@ Report to the user:
 - Which PRs were opened (with URLs)
 - Which worktrees were cleaned up
 
-## Step 7: Update Memory
+## Step 7: Update Memory & Backlog
 
-After task completion, update MEMORY.md of each agent that participated.
+After task completion:
+
+1. Update MEMORY.md of each agent that participated (respect the 30-entry
+   cap per agent — see memory curation policy in CLAUDE.md).
+2. Log the **completion record** by appending to `.claude/agent-log.md`:
+   ```
+   | YYYY-MM-DD | <agent> | <task summary, 1 line> | <PASS/FAIL> | <gates: 7/7> | <files touched> |
+   ```
+3. Run the **backlog completion hook**:
+   - Read `docs/BACKLOG.md`
+   - Mark any completed items as done: `- [x] Item (YYYY-MM-DD)`
+   - Update "Recently Completed" and prune to the last 5–10 items
+   - If near-term unchecked work looks thin, suggest next items from the same file (do not add lines without approval)
+
+See `.claude/agents/backlog-manager/AGENT.md` for full backlog management rules.
 
 ## Agent Team + Worktree Spawn Template
 
