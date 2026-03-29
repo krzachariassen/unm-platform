@@ -63,12 +63,13 @@ func TestHealthCheck(t *testing.T) {
 func TestCORSHeaders(t *testing.T) {
 	srv := newTestRouter(t)
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
+	req.Header.Set("Origin", "http://localhost:5173") // matches DefaultConfig CORSOrigins
 	w := httptest.NewRecorder()
 	srv.ServeHTTP(w, req)
 
 	origin := w.Header().Get("Access-Control-Allow-Origin")
-	if origin == "" {
-		t.Error("expected Access-Control-Allow-Origin header to be set")
+	if origin != "http://localhost:5173" {
+		t.Errorf("expected Access-Control-Allow-Origin to reflect request origin, got %q", origin)
 	}
 	if w.Code != http.StatusNoContent {
 		t.Errorf("expected 204 for OPTIONS preflight, got %d", w.Code)
