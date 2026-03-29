@@ -102,13 +102,13 @@ export function DashboardPage() {
     setSignalsLoading(true)
     api.getSignals(modelId)
       .then(data => setSignals(data))
-      .catch(() => setSignals(null))
+      .catch((err) => { console.error('signals fetch:', err); setSignals(null) })
       .finally(() => setSignalsLoading(false))
 
     setTeamLoadsLoading(true)
     api.getView(modelId, 'cognitive-load')
       .then(data => setTeamLoads((data as unknown as CognitiveLoadViewResponse).team_loads ?? []))
-      .catch(() => setTeamLoads([]))
+      .catch((err) => { console.error('cognitive-load fetch:', err); setTeamLoads([]) })
       .finally(() => setTeamLoadsLoading(false))
   }, [isHydrating, modelId])
 
