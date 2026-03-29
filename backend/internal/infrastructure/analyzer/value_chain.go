@@ -27,15 +27,30 @@ type ValueChainReport struct {
 	UnbackedNeedCount  int                `json:"unbacked_need_count"`
 }
 
+// CognitiveLoadProvider is an interface for obtaining a CognitiveLoadReport.
+// Defined here (where it is used) so infrastructure does not depend inward.
+type CognitiveLoadProvider interface {
+	Analyze(m *entity.UNMModel) CognitiveLoadReport
+}
+
 // ValueChainAnalyzer traverses Need → Capability → Service → Team
 // to compute delivery risk for each need.
 type ValueChainAnalyzer struct {
-	cfg entity.ValueChainConfig
+	cfg         entity.ValueChainConfig
+	cogLoadProv CognitiveLoadProvider // nil = use DefaultConfig internally
 }
 
-// NewValueChainAnalyzer constructs a ValueChainAnalyzer.
+// NewValueChainAnalyzer constructs a ValueChainAnalyzer using DefaultConfig for
+// cognitive load analysis internally (backward-compatible constructor).
 func NewValueChainAnalyzer(cfg entity.ValueChainConfig) *ValueChainAnalyzer {
-	return &ValueChainAnalyzer{cfg: cfg}
+	return &ValueChainAnalyzer{cfg: cfg, cogLoadProv: nil}
+}
+
+// NewValueChainAnalyzerWithCogLoad constructs a ValueChainAnalyzer with an
+// injected CognitiveLoadProvider. This allows callers to share the same
+// configured CognitiveLoadAnalyzer instance (DIP-compliant).
+func NewValueChainAnalyzerWithCogLoad(cfg entity.ValueChainConfig, clProv CognitiveLoadProvider) *ValueChainAnalyzer {
+	return &ValueChainAnalyzer{cfg: cfg, cogLoadProv: clProv}
 }
 
 // Analyze traverses the full UNM value chain for each Need and computes
@@ -46,8 +61,14 @@ func (a *ValueChainAnalyzer) Analyze(m *entity.UNMModel) ValueChainReport {
 	}
 
 	// Run cognitive load analysis to detect overloaded teams.
-	defaultCfg := entity.DefaultConfig().Analysis
-	cogReport := NewCognitiveLoadAnalyzer(defaultCfg.CognitiveLoad, defaultCfg.InteractionWeights).Analyze(m)
+	// Use the injected provider if available; fall back to DefaultConfig otherwise.
+	var cogReport CognitiveLoadReport
+	if a.cogLoadProv != nil {
+		cogReport = a.cogLoadProv.Analyze(m)
+	} else {
+		defaultCfg := entity.DefaultConfig().Analysis
+		cogReport = NewCognitiveLoadAnalyzer(defaultCfg.CognitiveLoad, defaultCfg.InteractionWeights).Analyze(m)
+	}
 	highLoadTeams := make(map[string]bool)
 	for _, tl := range cogReport.TeamLoads {
 		if tl.OverallLevel == LoadHigh {

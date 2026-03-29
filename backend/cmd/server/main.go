@@ -63,7 +63,10 @@ func main() {
 		analyzer.NewInteractionDiversityAnalyzer(cfg.Analysis.Signals),
 		analyzer.NewUnlinkedCapabilityAnalyzer(),
 		analyzer.NewSignalSuggestionGenerator(cfg.Analysis.Signals),
-		analyzer.NewValueChainAnalyzer(cfg.Analysis.ValueChain),
+		analyzer.NewValueChainAnalyzerWithCogLoad(
+			cfg.Analysis.ValueChain,
+			analyzer.NewCognitiveLoadAnalyzer(cfg.Analysis.CognitiveLoad, cfg.Analysis.InteractionWeights),
+		),
 		analyzer.NewValueStreamAnalyzer(),
 		csStore,
 		analyzer.NewImpactAnalyzer(cfg.Analysis),

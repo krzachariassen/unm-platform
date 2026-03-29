@@ -5,35 +5,34 @@ import (
 	"sort"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
 )
 
 // ── Anti-pattern detection ────────────────────────────────────────────────────
 
-// AntiPattern represents a detected anti-pattern on a node.
+// AntiPattern represents a detected anti-pattern on a node (JSON response type).
 type AntiPattern struct {
 	Code     string `json:"code"`
 	Message  string `json:"message"`
 	Severity string `json:"severity"`
 }
 
-func detectTeamAntiPatterns(t *entity.Team, overloadThreshold int) []AntiPattern {
-	var aps []AntiPattern
-	if t.IsOverloaded(overloadThreshold) {
-		aps = append(aps, AntiPattern{Code: "overloaded", Message: "Team cognitive load exceeds threshold", Severity: "warning"})
+// mapAntiPatterns converts domain service AntiPatterns to handler JSON response AntiPatterns.
+func mapAntiPatterns(aps []service.AntiPattern) []AntiPattern {
+	out := make([]AntiPattern, len(aps))
+	for i, ap := range aps {
+		out[i] = AntiPattern{Code: ap.Code, Message: ap.Message, Severity: ap.Severity}
 	}
-	return aps
+	return out
+}
+
+func detectTeamAntiPatterns(t *entity.Team, overloadThreshold int) []AntiPattern {
+	return mapAntiPatterns(service.DetectTeamAntiPatterns(t, overloadThreshold))
 }
 
 func detectCapabilityAntiPatterns(c *entity.Capability, isFragmented bool, hasServices bool) []AntiPattern {
-	var aps []AntiPattern
-	if isFragmented {
-		aps = append(aps, AntiPattern{Code: "fragmented", Message: "Capability delivered by multiple teams", Severity: "warning"})
-	}
-	if c.IsLeaf() && !hasServices {
-		aps = append(aps, AntiPattern{Code: "no_services", Message: "Capability has no realizing services", Severity: "warning"})
-	}
-	return aps
+	return mapAntiPatterns(service.DetectCapabilityAntiPatterns(c, isFragmented, hasServices))
 }
 
 func detectNeedAntiPatterns(n *entity.Need) []AntiPattern {
