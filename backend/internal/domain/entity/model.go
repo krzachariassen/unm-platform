@@ -42,6 +42,7 @@ type UNMModel struct {
 	ExternalDependencies map[string]*ExternalDependency
 	InferredMappings     []*InferredMapping
 	Transitions          []*Transition
+	Warnings             []string // deprecation and reference warnings from parsing
 }
 
 // NewUNMModel constructs a UNMModel with all maps and slices initialized.
