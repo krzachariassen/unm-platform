@@ -95,7 +95,7 @@ func (h *Handler) handleAsk(w http.ResponseWriter, r *http.Request) {
 
 	req.Question = strings.TrimSpace(req.Question)
 	if req.Question == "" {
-		writeError(w, http.StatusBadRequest, "question must not be empty")
+		writeError(w, http.StatusBadRequest, "question is required")
 		return
 	}
 

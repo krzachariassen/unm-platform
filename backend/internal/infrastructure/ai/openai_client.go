@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
@@ -61,6 +62,11 @@ type OpenAIClient struct {
 	httpClient *http.Client
 }
 
+// defaultHTTPTimeout is the safety-net timeout applied to all OpenAI HTTP clients (6.10.23).
+// Handlers set a shorter per-request context timeout; this backstop prevents hung connections
+// if the context is not properly propagated.
+const defaultHTTPTimeout = 120 * time.Second
+
 // NewOpenAIClient creates a client using the UNM_OPENAI_API_KEY environment variable.
 func NewOpenAIClient() (*OpenAIClient, error) {
 	key := os.Getenv("UNM_OPENAI_API_KEY")
@@ -71,7 +77,7 @@ func NewOpenAIClient() (*OpenAIClient, error) {
 		apiKey:     key,
 		model:      defaultModel,
 		baseURL:    defaultBaseURL,
-		httpClient: &http.Client{Timeout: 0},
+		httpClient: &http.Client{Timeout: defaultHTTPTimeout},
 	}, nil
 }
 
@@ -81,7 +87,7 @@ func NewOpenAIClientWithKey(apiKey, model string) *OpenAIClient {
 		apiKey:     apiKey,
 		model:      model,
 		baseURL:    defaultBaseURL,
-		httpClient: &http.Client{Timeout: 0},
+		httpClient: &http.Client{Timeout: defaultHTTPTimeout},
 	}
 }
 
@@ -94,7 +100,7 @@ func NewOpenAIClientFromConfig(cfg entity.AIConfig) (*OpenAIClient, error) {
 		baseURL:    cfg.BaseURL,
 		model:      cfg.Model,
 		apiKey:     cfg.APIKey,
-		httpClient: &http.Client{Timeout: 0},
+		httpClient: &http.Client{Timeout: defaultHTTPTimeout},
 	}, nil
 }
 
