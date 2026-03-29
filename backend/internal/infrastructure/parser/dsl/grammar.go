@@ -303,6 +303,13 @@ func (p *parser) parseCapability() (*CapabilityNode, error) {
 				return nil, p.errorf("capability visibility: %s", err.Error())
 			}
 			node.Visibility = v
+		case "parent":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("capability parent: %s", err.Error())
+			}
+			node.Parent = v
 		case "realizedBy":
 			p.readToken()
 			rel, err := p.parseRelationship()
@@ -371,6 +378,29 @@ func (p *parser) parseService() (*ServiceNode, error) {
 				return nil, p.errorf("service dependsOn: %s", err.Error())
 			}
 			node.DependsOn = append(node.DependsOn, rel)
+		case "realizes":
+			p.readToken()
+			target, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("service realizes: %s", err.Error())
+			}
+			r := ServiceRealizesNode{Target: target}
+			if p.peekToken() == "role" {
+				p.readToken() // consume "role"
+				role, err := p.readString()
+				if err != nil {
+					return nil, p.errorf("service realizes role: %s", err.Error())
+				}
+				r.Role = role
+			}
+			node.Realizes = append(node.Realizes, r)
+		case "externalDeps":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("service externalDeps: %s", err.Error())
+			}
+			node.ExternalDeps = append(node.ExternalDeps, v)
 		default:
 			p.readToken()
 			return nil, p.errorf("service: unexpected field %q", tok)
@@ -425,6 +455,13 @@ func (p *parser) parseTeam() (*TeamNode, error) {
 				return nil, p.errorf("team owns: %s", err.Error())
 			}
 			node.Owns = append(node.Owns, v)
+		case "interacts":
+			p.readToken()
+			inter, err := p.parseTeamInteraction()
+			if err != nil {
+				return nil, p.errorf("team interacts: %s", err.Error())
+			}
+			node.Interacts = append(node.Interacts, inter)
 		default:
 			p.readToken()
 			return nil, p.errorf("team: unexpected field %q", tok)
@@ -474,6 +511,47 @@ func (p *parser) parsePlatform() (*PlatformNode, error) {
 		return nil, p.errorf("platform %q: %s", name, err.Error())
 	}
 	return node, nil
+}
+
+// parseTeamInteraction parses an inline interaction inside a team block:
+//
+//	interacts "team-b" mode x-as-a-service via "API" description "..."
+func (p *parser) parseTeamInteraction() (TeamInteractionNode, error) {
+	with, err := p.readString()
+	if err != nil {
+		return TeamInteractionNode{}, fmt.Errorf("interacts target: %s", err.Error())
+	}
+	inter := TeamInteractionNode{With: with}
+	// Optional inline modifiers: mode <val> via <val> description <val>
+	for {
+		tok := p.peekToken()
+		switch tok {
+		case "mode":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return TeamInteractionNode{}, fmt.Errorf("interacts mode: %s", err.Error())
+			}
+			inter.Mode = v
+		case "via":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return TeamInteractionNode{}, fmt.Errorf("interacts via: %s", err.Error())
+			}
+			inter.Via = v
+		case "description":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return TeamInteractionNode{}, fmt.Errorf("interacts description: %s", err.Error())
+			}
+			inter.Description = v
+		default:
+			// End of inline modifiers
+			return inter, nil
+		}
+	}
 }
 
 func (p *parser) parseInteraction() (*InteractionNode, error) {
