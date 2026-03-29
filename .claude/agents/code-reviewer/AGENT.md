@@ -85,8 +85,7 @@ Frontend:
 
 - Does every new page use `<ModelRequired>` wrapper?
 - Does every data fetch handle loading + error + empty states?
-- Does TypeScript strict mode pass? (`npx tsc --noEmit`)
-- Does the Vite build pass? (`npx vite build`)
+- Does `cd frontend && npm run build` pass? (runs `tsc -b` + `vite build`)
 - Any `opacity: 0` on interactive elements instead of `opacity-50`? **WARNING**
 - Any floating panels without click-outside-to-dismiss? **WARNING**
 - Any warning icons without accompanying text? **WARNING**

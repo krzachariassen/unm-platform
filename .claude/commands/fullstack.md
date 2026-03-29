@@ -33,9 +33,8 @@ $ARGUMENTS
 
 1. Work is on a feature branch (NOT main)
 2. Backend tests pass: `cd backend && go test ./...`
-3. Frontend types clean: `cd frontend && npx tsc --noEmit`
-4. Frontend builds: `cd frontend && npx vite build`
-5. API contract consistent (Go JSON tags match TypeScript types)
-6. End-to-end flow verified
-7. Changes committed and pushed: `git push -u origin HEAD`
-8. MEMORY.md updated if new learnings discovered
+3. Frontend build passes: `cd frontend && npm run build`
+4. API contract consistent (Go JSON tags match TypeScript types)
+5. End-to-end flow verified
+6. Changes committed and pushed: `git push -u origin HEAD`
+7. MEMORY.md updated if new learnings discovered

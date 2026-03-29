@@ -39,7 +39,7 @@ Include in every spawn prompt:
 ## Integration
 
 After parallel teammates finish, the lead MUST:
-1. Run `go test ./...` / `npx tsc --noEmit && npx vite build`
+1. Run `go test ./...` / `cd frontend && npm run build`
 2. Run `go vet ./...`
 3. Fix integration issues (import cycles, interface mismatches)
 4. Verify phase deliverable works end-to-end

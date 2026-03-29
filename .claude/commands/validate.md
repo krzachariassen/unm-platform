@@ -31,21 +31,18 @@ cd backend && go test ./... 2>&1
 echo "EXIT_CODE: $?"
 ```
 
-### Gate 4: Frontend Type Check
+### Gate 4: Frontend Build (includes TypeScript check)
+
+The frontend `npm run build` script runs `tsc -b && vite build`. This is the
+ONLY command to use — it matches exactly what the Dockerfile and CI run.
+Do NOT use `tsc --noEmit` as it has different behavior than `tsc -b`.
 
 ```bash
-cd frontend && npx tsc --noEmit 2>&1
+cd frontend && npm run build 2>&1
 echo "EXIT_CODE: $?"
 ```
 
-### Gate 5: Frontend Build
-
-```bash
-cd frontend && npx vite build 2>&1
-echo "EXIT_CODE: $?"
-```
-
-### Gate 6: Security Scan
+### Gate 5: Security Scan
 
 Scan for hardcoded secrets, API keys, and PII patterns in staged or recently
 modified files. Check for:
@@ -65,7 +62,7 @@ echo "EXIT_CODE: $?"
 Report any matches as FAIL with the file:line and matched pattern.
 If no matches, report PASS.
 
-### Gate 7: Diff Coverage (Advisory)
+### Gate 6: Diff Coverage (Advisory)
 
 If changes have been made (unstaged or staged files exist):
 
@@ -93,10 +90,9 @@ After running ALL gates, produce this exact report format:
 ║ Gate 1: Backend Build        [PASS|FAIL]          ║
 ║ Gate 2: Backend Vet          [PASS|FAIL]          ║
 ║ Gate 3: Backend Tests        [PASS|FAIL]          ║
-║ Gate 4: Frontend TypeCheck   [PASS|FAIL]          ║
-║ Gate 5: Frontend Build       [PASS|FAIL]          ║
-║ Gate 6: Security Scan        [PASS|FAIL]          ║
-║ Gate 7: Diff Coverage        [PASS|WARN|N/A]      ║
+║ Gate 4: Frontend Build       [PASS|FAIL]          ║
+║ Gate 5: Security Scan        [PASS|FAIL]          ║
+║ Gate 6: Diff Coverage        [PASS|WARN|N/A]      ║
 ╠══════════════════════════════════════════════════╣
 ║ Result: [ALL GATES PASSED | X GATE(S) FAILED]    ║
 ╚══════════════════════════════════════════════════╝
@@ -124,8 +120,8 @@ If any gate FAILS and you are running as part of the orchestrator workflow:
 
 ```
 /validate              # Run all gates
-/validate backend      # Run gates 1-3 + 6 only
-/validate frontend     # Run gates 4-5 + 6 only
+/validate backend      # Run gates 1-3 + 5 only
+/validate frontend     # Run gates 4-5 only
 ```
 
 $ARGUMENTS

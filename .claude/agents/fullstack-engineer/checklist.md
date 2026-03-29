@@ -2,7 +2,7 @@
 
 Use this for vertical slices that touch **both** `backend/` and `frontend/`. For narrative detail, see `.claude/agents/fullstack-engineer/AGENT.md` and `examples/`.
 
-> **Note:** Full validation matches the **validation pipeline** in `.claude/commands/validate.md` (backend build/vet/test + frontend `tsc` + `vite build`).
+> **Note:** Full validation matches the **validation pipeline** in `.claude/commands/validate.md` (backend build/vet/test + frontend `npm run build`).
 
 ## API Contract
 
@@ -26,10 +26,10 @@ Use this for vertical slices that touch **both** `backend/` and `frontend/`. For
 - [ ] Page or component implements loading, error, and empty states
 - [ ] New page: route added in `App.tsx` and nav link in `Sidebar.tsx` if applicable
 - [ ] Page that needs a loaded model wrapped with `<ModelRequired>` (or project equivalent)
-- [ ] `cd frontend && npx tsc --noEmit && npx vite build` passes
+- [ ] `cd frontend && npm run build` passes
 
 ## Integration
 
-- [ ] Both suites green: `go test ./...`, `go vet ./...`, `tsc --noEmit`, `vite build`
+- [ ] Both suites green: `go test ./...`, `go vet ./...`, `cd frontend && npm run build`
 - [ ] JSON keys in actual responses match TypeScript property names (snake_case)
 - [ ] No duplicate business logic in React that belongs in presenter/use case

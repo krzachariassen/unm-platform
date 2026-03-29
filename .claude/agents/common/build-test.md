@@ -23,13 +23,11 @@ AI tests skip gracefully when UNM_OPENAI_API_KEY is not set.
 
 ```bash
 cd frontend && npm install               # Install deps
-cd frontend && npx tsc --noEmit          # Type check (MUST pass)
-cd frontend && npx vite build            # Production build (MUST pass)
+cd frontend && npm run build             # Production build: tsc -b && vite build (MUST pass; matches CI)
 cd frontend && npm run dev               # Dev server (port 5173)
 ```
 
 ## Important
 
-- Always run BOTH `npx tsc --noEmit` AND `npx vite build` for frontend.
-  TSC alone misses esbuild JSX transformation issues.
+- Use `npm run build` for frontend validation — same script as Dockerfile/CI (`tsc -b && vite build`).
 - Backend AI tests skip gracefully when UNM_OPENAI_API_KEY is not set.

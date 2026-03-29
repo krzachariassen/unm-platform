@@ -33,6 +33,4 @@
 
 ## Build Validation
 
-- `npx tsc --noEmit` MUST pass (type safety)
-- `npx vite build` MUST pass (JSX transformation)
-- Both checks are mandatory — TSC alone misses build errors
+- `cd frontend && npm run build` MUST pass (runs `tsc -b` + `vite build`, matching CI)

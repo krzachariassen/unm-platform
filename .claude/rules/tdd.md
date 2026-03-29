@@ -9,7 +9,7 @@
 ## Rules
 
 - No production code without a failing test first
-- Run `go test ./...` (backend) or `npx tsc --noEmit && npx vite build` (frontend) after every change
+- Run `go test ./...` (backend) or `cd frontend && npm run build` (frontend) after every change
 - Tests co-located with code: `foo.go` → `foo_test.go`
 - Use table-driven tests for Go when testing multiple cases
 - Use testify assertions (`assert`, `require`) for clarity

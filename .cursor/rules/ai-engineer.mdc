@@ -91,7 +91,7 @@ Types: feat, fix, refactor, test, docs, chore
 
 1. Create branch: `git checkout -b <type>/<description>`
 2. Work, commit early and often
-3. Run validation (backend: `go test ./... && go vet ./...`, frontend: `npx tsc --noEmit && npx vite build`)
+3. Run validation (backend: `go test ./... && go vet ./...`, frontend: `cd frontend && npm run build`)
 4. Push: `git push -u origin HEAD`
 5. Create PR: `gh pr create --title "<title>" --body "<summary>"`
 
