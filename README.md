@@ -89,10 +89,8 @@ frontend/                   # React frontend
 
 docs/                       # Project documentation
 ├── BACKLOG.md              # Phased product backlog
-├── ENGINEERING_PRINCIPLES.md
 ├── UNM_DSL_SPECIFICATION.md  # Complete DSL syntax and meta-model
 ├── YAML_GUIDE.md           # Practical guide to writing .unm.yaml models
-├── CODE_TO_DSL_AGENT.md    # Codebase-to-UNM model generation process
 └── CONFIGURATION.md        # Config system reference
 
 examples/                   # Example UNM models
@@ -158,14 +156,6 @@ See [Configuration Reference](docs/CONFIGURATION.md) for all options.
 | Realization View | `/realization` | Capability-to-service traceability |
 | Edit Model | `/edit` | Smart changeset editor with validation |
 | What-If Explorer | `/what-if` | Scenario modeling with impact preview |
-
-## Engineering Principles
-
-- **TDD**: Red → Green → Refactor. No production code without a failing test.
-- **Clean Architecture**: Domain is pure Go with zero external deps. Dependencies point inward.
-- **SOLID**: Single responsibility, open/closed, dependency inversion.
-
-See [Engineering Principles](docs/ENGINEERING_PRINCIPLES.md) for full details.
 
 ## AI Agent Framework
 

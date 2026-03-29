@@ -7,9 +7,9 @@
 
 ### 2025-03 -- Current documentation state
 - `README.md` exists with project overview, tech stack, structure, backlog, quick start
-- `docs/` has 7 files: BACKLOG, ENGINEERING_PRINCIPLES, UNM_DSL_SPECIFICATION,
-  CODE_TO_DSL_AGENT, CONFIGURATION, ARCHITECTURE_REVIEW, UI_BACKLOG
-- `examples/` exists at project root with `inca.unm.yaml` only (no extended variant)
+- `docs/` has: BACKLOG, UNM_DSL_SPECIFICATION, CONFIGURATION, YAML_GUIDE, AI strategy/vision docs
+- Engineering principles consolidated into `.claude/agents/common/domain-model.md` and agent rules
+- `examples/` exists at project root with `inca.unm.yaml` and `inca.unm.v2.yaml`
 
 ### 2025-03 -- Example models in testdata
 - `backend/testdata/simple.unm.yaml` -- minimal valid model (1 actor, 1 need, 1 capability, 1 service, 1 team)

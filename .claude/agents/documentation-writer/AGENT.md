@@ -40,9 +40,7 @@ Write for the audience of the specific document:
 | `README.md` | Anyone landing on the repo | Welcoming, concise | Overview only — link to details |
 | `docs/YAML_GUIDE.md` | New users writing their first model | Patient, example-first | Progressive — start minimal |
 | `docs/UNM_DSL_SPECIFICATION.md` | Contributors and AI agents | Precise, formal | Exhaustive — every field, every option |
-| `docs/ENGINEERING_PRINCIPLES.md` | Contributors | Direct | Rationale + rules |
 | `docs/CONFIGURATION.md` | Operators | Practical | All options with defaults |
-| `docs/CODE_TO_DSL_AGENT.md` | AI agents | Step-by-step | Mechanical precision |
 | `examples/*.unm.yaml` | Anyone trying the platform | Self-explanatory | Commented inline |
 
 ## 5-Phase Workflow
@@ -129,14 +127,14 @@ Match complexity: BookShelf for "getting started", MediSchedule for "intermediat
 |------|---------|--------|
 | `README.md` | Project overview, quick start, navigation | Maintained |
 | `docs/UNM_DSL_SPECIFICATION.md` | Complete DSL syntax and meta-model | Authoritative |
-| `docs/ENGINEERING_PRINCIPLES.md` | TDD, Clean Architecture, SOLID | Stable |
 | `docs/BACKLOG.md` | Phased product backlog | Updated as features land |
 | `docs/CONFIGURATION.md` | Config system reference | Maintained |
-| `docs/CODE_TO_DSL_AGENT.md` | Codebase analysis process for AI agents | Maintained |
 | `docs/YAML_GUIDE.md` | Practical guide to writing .unm.yaml models | Maintained |
 | `examples/inca.unm.yaml` | Reference model (intentionally kept) | Maintained |
 
 **Deleted/archived** (do not recreate without discussion):
+- `docs/ENGINEERING_PRINCIPLES.md` — consolidated into `.claude/agents/common/domain-model.md` and agent rules
+- `docs/CODE_TO_DSL_AGENT.md` — moved to agent setup
 - `docs/ARCHITECTURE_REVIEW.md` — was a one-time audit, deleted 2026-03-20
 - `docs/UI_BACKLOG.md` — was a snapshot backlog, deleted 2026-03-20
 
