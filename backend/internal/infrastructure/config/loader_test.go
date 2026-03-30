@@ -68,13 +68,48 @@ func TestLoadConfig_TestEnvDisablesAI(t *testing.T) {
 
 func TestLoadConfig_EnvVarOverridesFile(t *testing.T) {
 	setConfigDir(t)
-	t.Setenv("UNM_SERVER_PORT", "9999")
+	t.Setenv("UNM_SERVER__PORT", "9999") // double-underscore = level separator
 
 	cfg, err := LoadConfig("local")
 	require.NoError(t, err)
 
 	assert.Equal(t, 9999, cfg.Server.Port)
 }
+
+// ---------------------------------------------------------------------------
+// envKeyTransform unit tests
+// ---------------------------------------------------------------------------
+
+func TestEnvKeyTransform_SimpleKey(t *testing.T) {
+	assert.Equal(t, "server.port", envKeyTransform("UNM_SERVER__PORT"))
+}
+
+func TestEnvKeyTransform_UnderscoreInKeyName(t *testing.T) {
+	assert.Equal(t, "ai.allowed_ips", envKeyTransform("UNM_AI__ALLOWED_IPS"))
+}
+
+func TestEnvKeyTransform_NestedWithUnderscore(t *testing.T) {
+	assert.Equal(t, "analysis.bottleneck.fan_in_warning", envKeyTransform("UNM_ANALYSIS__BOTTLENECK__FAN_IN_WARNING"))
+}
+
+func TestEnvKeyTransform_SingleSegment(t *testing.T) {
+	assert.Equal(t, "ai.enabled", envKeyTransform("UNM_AI__ENABLED"))
+}
+
+// ---------------------------------------------------------------------------
+// Integration: env var sets AllowedIPs via double-underscore convention
+// ---------------------------------------------------------------------------
+
+func TestLoadConfig_EnvVar_AllowedIPs(t *testing.T) {
+	setConfigDir(t)
+	t.Setenv("UNM_AI__ALLOWED_IPS", "1.2.3.4,10.0.0.0/8")
+
+	cfg, err := LoadConfig("local")
+	require.NoError(t, err)
+
+	assert.Equal(t, []string{"1.2.3.4", "10.0.0.0/8"}, cfg.AI.AllowedIPs)
+}
+
 
 func TestLoadConfig_MissingBaseFails(t *testing.T) {
 	t.Setenv("UNM_CONFIG_DIR", "/nonexistent/path")
