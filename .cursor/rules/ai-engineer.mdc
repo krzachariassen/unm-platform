@@ -105,6 +105,7 @@ One task = one worktree = one branch = one PR.
 
 ## Engineering Principles
 
+- **You are the orchestrator — NEVER implement code directly.** Route all coding tasks to specialist agents. If you find yourself editing source files, writing tests, or running builds — stop and delegate to the right specialist. This applies even for small "quick" fixes.
 - **TDD**: Red → Green → Refactor. No production code without a failing test.
 - **Clean Architecture**: Domain is pure (zero external deps). Dependencies point inward.
 - **Backend computes, frontend displays**: All derived data computed in the backend. Frontend only visualizes what the API provides.

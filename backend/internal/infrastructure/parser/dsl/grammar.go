@@ -1185,7 +1185,7 @@ func (p *parser) parseStringList() ([]string, error) {
 // Low-level token operations
 // ---------------------------------------------------------------------------
 
-// skipWhitespaceAndComments advances pos past whitespace and // comments.
+// skipWhitespaceAndComments advances pos past whitespace, // comments, and # comments.
 func (p *parser) skipWhitespaceAndComments() {
 	for p.pos < len(p.src) {
 		ch := p.src[p.pos]
@@ -1194,8 +1194,8 @@ func (p *parser) skipWhitespaceAndComments() {
 			p.pos++
 		} else if ch == ' ' || ch == '\t' || ch == '\r' {
 			p.pos++
-		} else if p.pos+1 < len(p.src) && p.src[p.pos] == '/' && p.src[p.pos+1] == '/' {
-			// Skip to end of line
+		} else if (p.pos+1 < len(p.src) && p.src[p.pos] == '/' && p.src[p.pos+1] == '/') || p.src[p.pos] == '#' {
+			// Skip to end of line (// or # comments)
 			for p.pos < len(p.src) && p.src[p.pos] != '\n' {
 				p.pos++
 			}
