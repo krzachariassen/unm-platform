@@ -1,6 +1,7 @@
 package serializer
 
 import (
+	"fmt"
 	"sort"
 
 	"gopkg.in/yaml.v3"
@@ -33,27 +34,36 @@ type yamlNeed struct {
 }
 
 type yamlCapability struct {
-	Name        string           `yaml:"name"`
-	Description string           `yaml:"description,omitempty"`
-	Visibility  string           `yaml:"visibility,omitempty"`
-	RealizedBy  []any            `yaml:"realizedBy,omitempty"`
-	DependsOn   []any            `yaml:"dependsOn,omitempty"`
-	Children    []yamlCapability `yaml:"children,omitempty"`
-}
-
-type yamlService struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description,omitempty"`
-	OwnedBy     string `yaml:"ownedBy"`
+	Visibility  string `yaml:"visibility,omitempty"`
+	Parent      string `yaml:"parent,omitempty"`
 	DependsOn   []any  `yaml:"dependsOn,omitempty"`
 }
 
+type yamlService struct {
+	Name         string   `yaml:"name"`
+	Description  string   `yaml:"description,omitempty"`
+	OwnedBy      string   `yaml:"ownedBy"`
+	DependsOn    []any    `yaml:"dependsOn,omitempty"`
+	Realizes     []any    `yaml:"realizes,omitempty"`
+	ExternalDeps []string `yaml:"externalDeps,omitempty"`
+}
+
+type yamlTeamInteract struct {
+	With        string `yaml:"with"`
+	Mode        string `yaml:"mode"`
+	Via         string `yaml:"via,omitempty"`
+	Description string `yaml:"description,omitempty"`
+}
+
 type yamlTeam struct {
-	Name        string   `yaml:"name"`
-	Type        string   `yaml:"type"`
-	Description string   `yaml:"description,omitempty"`
-	Size        int      `yaml:"size,omitempty"`
-	Owns        []string `yaml:"owns,omitempty"`
+	Name        string             `yaml:"name"`
+	Type        string             `yaml:"type"`
+	Description string             `yaml:"description,omitempty"`
+	Size        int                `yaml:"size,omitempty"`
+	Owns        []string           `yaml:"owns,omitempty"`
+	Interacts   []yamlTeamInteract `yaml:"interacts,omitempty"`
 }
 
 type yamlPlatform struct {
@@ -62,21 +72,18 @@ type yamlPlatform struct {
 	Teams       []string `yaml:"teams,omitempty"`
 }
 
-type yamlInteraction struct {
-	From        string `yaml:"from"`
-	To          string `yaml:"to"`
-	Mode        string `yaml:"mode"`
-	Via         string `yaml:"via,omitempty"`
-	Description string `yaml:"description,omitempty"`
+type yamlDataAssetUsedByRef struct {
+	Target string `yaml:"target"`
+	Access string `yaml:"access,omitempty"`
 }
 
 type yamlDataAsset struct {
-	Name        string   `yaml:"name"`
-	Type        string   `yaml:"type,omitempty"`
-	Description string   `yaml:"description,omitempty"`
-	ProducedBy  string   `yaml:"producedBy,omitempty"`
-	ConsumedBy  []string `yaml:"consumedBy,omitempty"`
-	UsedBy      []string `yaml:"usedBy,omitempty"`
+	Name        string                   `yaml:"name"`
+	Type        string                   `yaml:"type,omitempty"`
+	Description string                   `yaml:"description,omitempty"`
+	ProducedBy  string                   `yaml:"producedBy,omitempty"`
+	ConsumedBy  []string                 `yaml:"consumedBy,omitempty"`
+	UsedBy      []yamlDataAssetUsedByRef `yaml:"usedBy,omitempty"`
 }
 
 type yamlExternalDependency struct {
@@ -86,16 +93,15 @@ type yamlExternalDependency struct {
 }
 
 type yamlDocument struct {
-	System               yamlSystem               `yaml:"system"`
-	Actors               []yamlActor              `yaml:"actors,omitempty"`
-	Needs                []yamlNeed               `yaml:"needs,omitempty"`
-	Capabilities         []yamlCapability          `yaml:"capabilities,omitempty"`
-	Services             []yamlService             `yaml:"services,omitempty"`
-	Teams                []yamlTeam                `yaml:"teams,omitempty"`
-	Platforms            []yamlPlatform            `yaml:"platforms,omitempty"`
-	Interactions         []yamlInteraction         `yaml:"interactions,omitempty"`
-	DataAssets           []yamlDataAsset           `yaml:"data_assets,omitempty"`
-	ExternalDependencies []yamlExternalDependency  `yaml:"external_dependencies,omitempty"`
+	System               yamlSystem              `yaml:"system"`
+	Actors               []yamlActor             `yaml:"actors,omitempty"`
+	Needs                []yamlNeed              `yaml:"needs,omitempty"`
+	Capabilities         []yamlCapability        `yaml:"capabilities,omitempty"`
+	Services             []yamlService           `yaml:"services,omitempty"`
+	Teams                []yamlTeam              `yaml:"teams,omitempty"`
+	Platforms            []yamlPlatform          `yaml:"platforms,omitempty"`
+	DataAssets           []yamlDataAsset         `yaml:"data_assets,omitempty"`
+	ExternalDependencies []yamlExternalDependency `yaml:"external_dependencies,omitempty"`
 }
 
 // MarshalYAML converts a UNMModel to valid YAML that round-trips through the parser.
@@ -113,7 +119,6 @@ func MarshalYAML(m *entity.UNMModel) ([]byte, error) {
 	doc.Services = serializeServices(m)
 	doc.Teams = serializeTeams(m)
 	doc.Platforms = serializePlatforms(m)
-	doc.Interactions = serializeInteractions(m)
 	doc.DataAssets = serializeDataAssets(m)
 	doc.ExternalDependencies = serializeExternalDependencies(m)
 
@@ -145,34 +150,65 @@ func serializeNeeds(m *entity.UNMModel) []yamlNeed {
 }
 
 func serializeCapabilities(m *entity.UNMModel) []yamlCapability {
+	// Build parent map: child name → parent name
+	parentMap := map[string]string{}
+	for _, cap := range m.Capabilities {
+		for _, child := range cap.Children {
+			parentMap[child.Name] = cap.Name
+		}
+	}
+
+	// Collect all capabilities (roots + their children recursively)
+	var collect func(c *entity.Capability, out *[]yamlCapability)
+	collect = func(c *entity.Capability, out *[]yamlCapability) {
+		yc := yamlCapability{
+			Name:        c.Name,
+			Description: c.Description,
+			Visibility:  c.Visibility,
+			Parent:      parentMap[c.Name],
+		}
+		yc.DependsOn = serializeRelationships(c.DependsOn)
+		*out = append(*out, yc)
+		for _, child := range c.Children {
+			collect(child, out)
+		}
+	}
+
 	roots := m.GetRootCapabilities()
-	caps := make([]yamlCapability, 0, len(roots))
+	var caps []yamlCapability
 	for _, rc := range roots {
-		caps = append(caps, serializeCapability(rc))
+		collect(rc, &caps)
 	}
 	sort.Slice(caps, func(i, j int) bool { return caps[i].Name < caps[j].Name })
 	return caps
 }
 
-func serializeCapability(c *entity.Capability) yamlCapability {
-	yc := yamlCapability{
-		Name:        c.Name,
-		Description: c.Description,
-		Visibility:  c.Visibility,
-	}
-	yc.RealizedBy = serializeRelationships(c.RealizedBy)
-	yc.DependsOn = serializeRelationships(c.DependsOn)
-	if len(c.Children) > 0 {
-		yc.Children = make([]yamlCapability, 0, len(c.Children))
-		for _, child := range c.Children {
-			yc.Children = append(yc.Children, serializeCapability(child))
-		}
-		sort.Slice(yc.Children, func(i, j int) bool { return yc.Children[i].Name < yc.Children[j].Name })
-	}
-	return yc
-}
-
 func serializeServices(m *entity.UNMModel) []yamlService {
+	// Build reverse realizes map: service name → list of cap names it realizes
+	realizesBySvc := map[string][]any{}
+	for _, cap := range m.Capabilities {
+		for _, rel := range cap.RealizedBy {
+			svcName := rel.TargetID.String()
+			if rel.Description == "" && rel.Role == "" {
+				realizesBySvc[svcName] = append(realizesBySvc[svcName], cap.Name)
+			} else {
+				realizesBySvc[svcName] = append(realizesBySvc[svcName], yamlRelationship{
+					Target:      cap.Name,
+					Description: rel.Description,
+					Role:        string(rel.Role),
+				})
+			}
+		}
+	}
+
+	// Build externalDeps map: service name → list of ext dep names
+	extDepsBySvc := map[string][]string{}
+	for _, ed := range m.ExternalDependencies {
+		for _, u := range ed.UsedBy {
+			extDepsBySvc[u.ServiceName] = append(extDepsBySvc[u.ServiceName], ed.Name)
+		}
+	}
+
 	services := make([]yamlService, 0, len(m.Services))
 	for _, s := range m.Services {
 		ys := yamlService{
@@ -181,6 +217,17 @@ func serializeServices(m *entity.UNMModel) []yamlService {
 			OwnedBy:     s.OwnerTeamName,
 		}
 		ys.DependsOn = serializeRelationships(s.DependsOn)
+		if realizes := realizesBySvc[s.Name]; len(realizes) > 0 {
+			sort.Slice(realizes, func(i, j int) bool {
+				ti, tj := fmt.Sprintf("%v", realizes[i]), fmt.Sprintf("%v", realizes[j])
+				return ti < tj
+			})
+			ys.Realizes = realizes
+		}
+		if extDeps := extDepsBySvc[s.Name]; len(extDeps) > 0 {
+			sort.Strings(extDeps)
+			ys.ExternalDeps = extDeps
+		}
 		services = append(services, ys)
 	}
 	sort.Slice(services, func(i, j int) bool { return services[i].Name < services[j].Name })
@@ -188,6 +235,17 @@ func serializeServices(m *entity.UNMModel) []yamlService {
 }
 
 func serializeTeams(m *entity.UNMModel) []yamlTeam {
+	// Build interactions by from-team
+	interactsByTeam := map[string][]yamlTeamInteract{}
+	for _, ix := range m.Interactions {
+		interactsByTeam[ix.FromTeamName] = append(interactsByTeam[ix.FromTeamName], yamlTeamInteract{
+			With:        ix.ToTeamName,
+			Mode:        string(ix.Mode),
+			Via:         ix.Via,
+			Description: ix.Description,
+		})
+	}
+
 	teams := make([]yamlTeam, 0, len(m.Teams))
 	for _, t := range m.Teams {
 		yt := yamlTeam{
@@ -202,6 +260,10 @@ func serializeTeams(m *entity.UNMModel) []yamlTeam {
 			yt.Owns = append(yt.Owns, rel.TargetID.String())
 		}
 		sort.Strings(yt.Owns)
+		if interacts := interactsByTeam[t.Name]; len(interacts) > 0 {
+			sort.Slice(interacts, func(i, j int) bool { return interacts[i].With < interacts[j].With })
+			yt.Interacts = interacts
+		}
 		teams = append(teams, yt)
 	}
 	sort.Slice(teams, func(i, j int) bool { return teams[i].Name < teams[j].Name })
@@ -224,26 +286,6 @@ func serializePlatforms(m *entity.UNMModel) []yamlPlatform {
 	return platforms
 }
 
-func serializeInteractions(m *entity.UNMModel) []yamlInteraction {
-	interactions := make([]yamlInteraction, 0, len(m.Interactions))
-	for _, ix := range m.Interactions {
-		interactions = append(interactions, yamlInteraction{
-			From:        ix.FromTeamName,
-			To:          ix.ToTeamName,
-			Mode:        string(ix.Mode),
-			Via:         ix.Via,
-			Description: ix.Description,
-		})
-	}
-	sort.Slice(interactions, func(i, j int) bool {
-		if interactions[i].From != interactions[j].From {
-			return interactions[i].From < interactions[j].From
-		}
-		return interactions[i].To < interactions[j].To
-	})
-	return interactions
-}
-
 func serializeDataAssets(m *entity.UNMModel) []yamlDataAsset {
 	assets := make([]yamlDataAsset, 0, len(m.DataAssets))
 	for _, da := range m.DataAssets {
@@ -258,7 +300,7 @@ func serializeDataAssets(m *entity.UNMModel) []yamlDataAsset {
 			copy(ya.ConsumedBy, da.ConsumedBy)
 		}
 		for _, u := range da.UsedBy {
-			ya.UsedBy = append(ya.UsedBy, u.ServiceName)
+			ya.UsedBy = append(ya.UsedBy, yamlDataAssetUsedByRef{Target: u.ServiceName, Access: u.Access})
 		}
 		assets = append(assets, ya)
 	}
@@ -272,9 +314,7 @@ func serializeExternalDependencies(m *entity.UNMModel) []yamlExternalDependency 
 		yd := yamlExternalDependency{
 			Name:        ed.Name,
 			Description: ed.Description,
-		}
-		for _, u := range ed.UsedBy {
-			yd.UsedBy = append(yd.UsedBy, u.ServiceName)
+			// v2: usedBy is emitted on services as externalDeps, not here
 		}
 		deps = append(deps, yd)
 	}
