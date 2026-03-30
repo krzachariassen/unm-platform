@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -105,6 +106,14 @@ func runParseCommand(args []string, w io.Writer) int {
 
 	printValidationResult(w, &result)
 
+	if len(model.Warnings) > 0 {
+		fmt.Fprintf(w, "Warnings (%d):\n", len(model.Warnings))
+		for _, warn := range model.Warnings {
+			fmt.Fprintf(w, "  \u26a0  %s\n", warn)
+		}
+		fmt.Fprintln(w)
+	}
+
 	if !result.IsValid() {
 		return 2
 	}
@@ -113,12 +122,20 @@ func runParseCommand(args []string, w io.Writer) int {
 
 // runValidateCommand validates the given file, printing only the validation result to w.
 // Returns: 0 = valid (even with warnings), 1 = parse error, 2 = validation errors.
+// With --strict flag, also returns 2 if model.Warnings is non-empty.
 func runValidateCommand(args []string, w io.Writer) int {
-	if len(args) < 1 {
+	fs := flag.NewFlagSet("validate", flag.ContinueOnError)
+	fs.SetOutput(w)
+	strict := fs.Bool("strict", false, "treat unresolved reference warnings as errors")
+	if err := fs.Parse(args); err != nil {
+		return 1
+	}
+	remaining := fs.Args()
+	if len(remaining) < 1 {
 		fmt.Fprintln(w, "Error: validate requires a file argument")
 		return 1
 	}
-	path := args[0]
+	path := remaining[0]
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -128,7 +145,7 @@ func runValidateCommand(args []string, w io.Writer) int {
 	defer f.Close()
 
 	uc := usecase.NewParseAndValidate(parser.NewParserForPath(path), service.NewValidationEngine())
-	_, result, err := uc.Execute(f)
+	model, result, err := uc.Execute(f)
 	if err != nil {
 		fmt.Fprintf(w, "Parse error: %v\n", err)
 		return 1
@@ -139,6 +156,22 @@ func runValidateCommand(args []string, w io.Writer) int {
 	if !result.IsValid() {
 		return 2
 	}
+
+	// --strict only promotes unresolved reference warnings, not deprecation notices.
+	var refWarnings []string
+	for _, warn := range model.Warnings {
+		if strings.Contains(warn, "unresolved reference") {
+			refWarnings = append(refWarnings, warn)
+		}
+	}
+	if *strict && len(refWarnings) > 0 {
+		fmt.Fprintf(w, "Strict mode: %d unresolved reference warning(s) treated as errors:\n", len(refWarnings))
+		for _, warn := range refWarnings {
+			fmt.Fprintf(w, "  \u26a0  %s\n", warn)
+		}
+		return 2
+	}
+
 	return 0
 }
 

@@ -1,0 +1,31 @@
+system:
+  name: "Clean System"
+  description: "A minimal system with no warnings"
+
+actors:
+  - name: "User"
+    description: "A basic user"
+
+needs:
+  - name: "User Need"
+    actor: "User"
+    outcome: "Need is satisfied"
+    supportedBy:
+      - "Core Capability"
+
+capabilities:
+  - name: "Core Capability"
+    description: "The core capability"
+
+services:
+  - name: "core-service"
+    description: "The core service"
+    realizes:
+      - "Core Capability"
+
+teams:
+  - name: "Core Team"
+    type: "stream-aligned"
+    size: 5
+    owns:
+      - "Core Capability"
