@@ -120,39 +120,39 @@ func TestYAMLParser_RelationshipForms(t *testing.T) {
 }
 
 func TestYAMLParser_ExampleModel(t *testing.T) {
-	model, err := parser.ParseFile("../../../../examples/inca.unm.yaml")
+	model, err := parser.ParseFile("../../../../examples/nexus.unm.yaml")
 	require.NoError(t, err)
 	require.NotNil(t, model)
 
 	// System name
-	assert.Equal(t, "INCA", model.System.Name)
+	assert.Equal(t, "Nexus", model.System.Name)
 	assert.NotEmpty(t, model.System.Description)
 
 	// 4 actors
 	assert.Len(t, model.Actors, 4)
-	assert.Contains(t, model.Actors, "Merchant / Restaurant Partner")
-	assert.Contains(t, model.Actors, "Eater / Consumer")
+	assert.Contains(t, model.Actors, "Seller / Vendor Partner")
+	assert.Contains(t, model.Actors, "Shopper / Buyer")
 	assert.Contains(t, model.Actors, "Downstream Platform Team")
-	assert.Contains(t, model.Actors, "INCA Platform Engineer")
+	assert.Contains(t, model.Actors, "Nexus Platform Engineer")
 
 	// 11 needs
 	assert.Len(t, model.Needs, 11)
 
 	// 33 capabilities (flat map)
 	assert.Len(t, model.Capabilities, 33)
-	assert.Contains(t, model.Capabilities, "Feed & Ingestion Management")
-	assert.Contains(t, model.Capabilities, "Catalog Entity Management")
-	assert.Contains(t, model.Capabilities, "Catalog Serving & Access")
+	assert.Contains(t, model.Capabilities, "Seller Feed Management")
+	assert.Contains(t, model.Capabilities, "Product Entity Management")
+	assert.Contains(t, model.Capabilities, "Product Serving & Access")
 
 	// 33 services
 	assert.Len(t, model.Services, 33)
 
 	// 9 teams
 	assert.Len(t, model.Teams, 9)
-	assert.Contains(t, model.Teams, "inca-core-dev")
-	assert.Contains(t, model.Teams, "inca-ingestion-dev")
-	assert.Contains(t, model.Teams, "inca-serving")
-	assert.Contains(t, model.Teams, "dotcom-eng")
+	assert.Contains(t, model.Teams, "nexus-core-dev")
+	assert.Contains(t, model.Teams, "nexus-ingestion-dev")
+	assert.Contains(t, model.Teams, "nexus-serving-dev")
+	assert.Contains(t, model.Teams, "partner-eng")
 
 	// Interactions present (13 in YAML)
 	assert.Len(t, model.Interactions, 13)

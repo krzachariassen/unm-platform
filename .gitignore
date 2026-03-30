@@ -37,3 +37,4 @@ Thumbs.db
 .worktrees/
 
 # Internal data — never commit
+examples/inca*.yaml

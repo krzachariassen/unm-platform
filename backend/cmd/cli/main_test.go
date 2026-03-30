@@ -165,7 +165,7 @@ func TestRunAnalyzeCommand_Complexity(t *testing.T) {
 
 func TestRunAnalyzeCommand_BottleneckExampleModel(t *testing.T) {
 	var buf strings.Builder
-	code := runAnalyzeCommand([]string{"bottleneck", "../../../examples/inca.unm.yaml"}, &buf, entity.DefaultConfig())
+	code := runAnalyzeCommand([]string{"bottleneck", "../../../examples/nexus.unm.yaml"}, &buf, entity.DefaultConfig())
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d\noutput:\n%s", code, buf.String())
 	}
