@@ -53,19 +53,11 @@ func (a *CouplingAnalyzer) Analyze(m *entity.UNMModel) CouplingReport {
 }
 
 // collectServices returns a deduplicated, sorted list of all service names
-// that touch the given data asset (from UsedBy, ProducedBy, and ConsumedBy).
+// that reference the given data asset via UsedBy.
 func collectServices(da *entity.DataAsset) []string {
 	seen := make(map[string]struct{})
 
-	for _, u := range da.UsedBy {
-		if u.ServiceName != "" {
-			seen[u.ServiceName] = struct{}{}
-		}
-	}
-	if da.ProducedBy != "" {
-		seen[da.ProducedBy] = struct{}{}
-	}
-	for _, name := range da.ConsumedBy {
+	for _, name := range da.UsedBy {
 		if name != "" {
 			seen[name] = struct{}{}
 		}

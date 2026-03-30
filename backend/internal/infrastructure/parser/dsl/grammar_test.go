@@ -1105,13 +1105,13 @@ capability "Payment" {
 	}
 }
 
-// P1: DataAsset usedBy with access role
-func TestParse_DataAssetUsedByWithAccess(t *testing.T) {
+// P1: DataAsset usedBy
+func TestParse_DataAssetUsedBy(t *testing.T) {
 	src := `
 data_asset "payments-db" {
   type database
-  usedBy "payment-service" access "read-write"
-  usedBy "reporting-service" access "read"
+  usedBy "payment-service"
+  usedBy "reporting-service"
 }`
 	f, err := Parse(src)
 	if err != nil {
@@ -1124,25 +1124,22 @@ data_asset "payments-db" {
 	if len(da.UsedBy) != 2 {
 		t.Fatalf("expected 2 usedBy, got %d", len(da.UsedBy))
 	}
-	if da.UsedBy[0].Target != "payment-service" {
-		t.Errorf("expected target %q, got %q", "payment-service", da.UsedBy[0].Target)
+	if da.UsedBy[0] != "payment-service" {
+		t.Errorf("expected usedBy[0] %q, got %q", "payment-service", da.UsedBy[0])
 	}
-	if da.UsedBy[0].Access != "read-write" {
-		t.Errorf("expected access %q, got %q", "read-write", da.UsedBy[0].Access)
-	}
-	if da.UsedBy[1].Access != "read" {
-		t.Errorf("expected access %q, got %q", "read", da.UsedBy[1].Access)
+	if da.UsedBy[1] != "reporting-service" {
+		t.Errorf("expected usedBy[1] %q, got %q", "reporting-service", da.UsedBy[1])
 	}
 }
 
-// P1: DataAsset producedBy and consumedBy
-func TestParse_DataAssetProducedConsumed(t *testing.T) {
+// P1: DataAsset usedBy list (formerly producedBy/consumedBy — now all usedBy)
+func TestParse_DataAssetMultipleUsedBy(t *testing.T) {
 	src := `
 data_asset "events" {
   type event-stream
-  producedBy "event-service"
-  consumedBy "analytics-service"
-  consumedBy "billing-service"
+  usedBy "event-service"
+  usedBy "analytics-service"
+  usedBy "billing-service"
 }`
 	f, err := Parse(src)
 	if err != nil {
@@ -1152,14 +1149,11 @@ data_asset "events" {
 		t.Fatalf("expected 1 data_asset, got %d", len(f.DataAssets))
 	}
 	da := f.DataAssets[0]
-	if da.ProducedBy != "event-service" {
-		t.Errorf("expected producedBy %q, got %q", "event-service", da.ProducedBy)
+	if len(da.UsedBy) != 3 {
+		t.Fatalf("expected 3 usedBy, got %d", len(da.UsedBy))
 	}
-	if len(da.ConsumedBy) != 2 {
-		t.Fatalf("expected 2 consumedBy, got %d", len(da.ConsumedBy))
-	}
-	if da.ConsumedBy[0] != "analytics-service" {
-		t.Errorf("expected consumedBy[0] %q, got %q", "analytics-service", da.ConsumedBy[0])
+	if da.UsedBy[0] != "event-service" {
+		t.Errorf("expected usedBy[0] %q, got %q", "event-service", da.UsedBy[0])
 	}
 }
 

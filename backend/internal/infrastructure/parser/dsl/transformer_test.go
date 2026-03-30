@@ -267,7 +267,7 @@ func TestTransform_DataAsset(t *testing.T) {
 				Name:        "payments-db",
 				Type:        "database",
 				Description: "Payment records",
-				UsedBy:      []DataAssetUsageNode{{Target: "payment-service"}},
+				UsedBy:      []string{"payment-service"},
 			},
 		},
 	}
@@ -285,8 +285,8 @@ func TestTransform_DataAsset(t *testing.T) {
 	if len(da.UsedBy) != 1 {
 		t.Fatalf("expected 1 usedBy, got %d", len(da.UsedBy))
 	}
-	if da.UsedBy[0].ServiceName != "payment-service" {
-		t.Errorf("expected usedBy service %q, got %q", "payment-service", da.UsedBy[0].ServiceName)
+	if da.UsedBy[0] != "payment-service" {
+		t.Errorf("expected usedBy[0] %q, got %q", "payment-service", da.UsedBy[0])
 	}
 }
 
@@ -395,16 +395,16 @@ func TestTransform_InvalidInteractionMode(t *testing.T) {
 	}
 }
 
-func TestTransform_InvalidDataAssetType(t *testing.T) {
+func TestTransform_FreeFormDataAssetType(t *testing.T) {
 	f := &File{
 		System: &SystemNode{Name: "Test"},
 		DataAssets: []*DataAssetNode{
-			{Name: "bad-asset", Type: "not-a-type"},
+			{Name: "custom-asset", Type: "custom-type"},
 		},
 	}
 	_, err := Transform(f)
-	if err == nil {
-		t.Fatal("expected error for invalid data asset type")
+	if err != nil {
+		t.Fatalf("expected no error for free-form data asset type, got: %v", err)
 	}
 }
 

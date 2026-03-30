@@ -120,20 +120,12 @@ type InteractionNode struct {
 	Description string
 }
 
-// DataAssetUsageNode represents a service using a data asset, with optional access role.
-type DataAssetUsageNode struct {
-	Target string
-	Access string // "read", "read-write", "write", or ""
-}
-
 // DataAssetNode represents a data_asset block in the DSL.
 type DataAssetNode struct {
 	Name        string
 	Type        string
 	Description string
-	UsedBy      []DataAssetUsageNode
-	ProducedBy  string
-	ConsumedBy  []string
+	UsedBy      []string
 }
 
 // ExternalDepUsageNode represents a service using an external dependency, with optional description.

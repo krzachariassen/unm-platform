@@ -32,6 +32,13 @@ func TestNewDataAsset(t *testing.T) {
 		}
 	})
 
+	t.Run("free-form type accepted", func(t *testing.T) {
+		_, err := NewDataAsset("da-1", "asset", "custom-type", "desc")
+		if err != nil {
+			t.Errorf("expected no error for custom type, got %v", err)
+		}
+	})
+
 	t.Run("empty id returns error", func(t *testing.T) {
 		_, err := NewDataAsset("", "orders-db", TypeDatabase, "desc")
 		if err == nil {
@@ -46,25 +53,18 @@ func TestNewDataAsset(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid type returns error", func(t *testing.T) {
-		_, err := NewDataAsset("da-1", "asset", "bogus-type", "desc")
-		if err == nil {
-			t.Error("expected error for invalid type, got nil")
-		}
-	})
-
-	t.Run("AddUsedBy appends service usage", func(t *testing.T) {
+	t.Run("AddUsedBy appends service names", func(t *testing.T) {
 		d, _ := NewDataAsset("da-1", "orders-db", TypeDatabase, "")
-		d.AddUsedBy("order-service", "read-write")
-		d.AddUsedBy("reporting-service", "read")
+		d.AddUsedBy("order-service")
+		d.AddUsedBy("reporting-service")
 		if len(d.UsedBy) != 2 {
 			t.Errorf("expected 2 UsedBy, got %d", len(d.UsedBy))
 		}
-		if d.UsedBy[0].ServiceName != "order-service" {
-			t.Errorf("expected ServiceName %q, got %q", "order-service", d.UsedBy[0].ServiceName)
+		if d.UsedBy[0] != "order-service" {
+			t.Errorf("expected UsedBy[0] %q, got %q", "order-service", d.UsedBy[0])
 		}
-		if d.UsedBy[0].Access != "read-write" {
-			t.Errorf("expected Access %q, got %q", "read-write", d.UsedBy[0].Access)
+		if d.UsedBy[1] != "reporting-service" {
+			t.Errorf("expected UsedBy[1] %q, got %q", "reporting-service", d.UsedBy[1])
 		}
 	})
 }

@@ -381,12 +381,8 @@ func transformDataAssets(model *entity.UNMModel, nodes []*DataAssetNode) error {
 		if err != nil {
 			return fmt.Errorf("transform: data_asset %q: %w", n.Name, err)
 		}
-		for _, usage := range n.UsedBy {
-			da.AddUsedBy(usage.Target, usage.Access)
-		}
-		da.ProducedBy = n.ProducedBy
-		for _, consumer := range n.ConsumedBy {
-			da.ConsumedBy = append(da.ConsumedBy, consumer)
+		for _, svcName := range n.UsedBy {
+			da.AddUsedBy(svcName)
 		}
 		if err := model.AddDataAsset(da); err != nil {
 			return fmt.Errorf("transform: %w", err)

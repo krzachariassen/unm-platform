@@ -72,18 +72,11 @@ type yamlPlatform struct {
 	Teams       []string `yaml:"teams,omitempty"`
 }
 
-type yamlDataAssetUsedByRef struct {
-	Target string `yaml:"target"`
-	Access string `yaml:"access,omitempty"`
-}
-
 type yamlDataAsset struct {
-	Name        string                   `yaml:"name"`
-	Type        string                   `yaml:"type,omitempty"`
-	Description string                   `yaml:"description,omitempty"`
-	ProducedBy  string                   `yaml:"producedBy,omitempty"`
-	ConsumedBy  []string                 `yaml:"consumedBy,omitempty"`
-	UsedBy      []yamlDataAssetUsedByRef `yaml:"usedBy,omitempty"`
+	Name        string   `yaml:"name"`
+	Type        string   `yaml:"type,omitempty"`
+	Description string   `yaml:"description,omitempty"`
+	UsedBy      []string `yaml:"usedBy,omitempty"`
 }
 
 type yamlExternalDependency struct {
@@ -297,14 +290,10 @@ func serializeDataAssets(m *entity.UNMModel) []yamlDataAsset {
 			Name:        da.Name,
 			Type:        da.Type,
 			Description: da.Description,
-			ProducedBy:  da.ProducedBy,
 		}
-		if len(da.ConsumedBy) > 0 {
-			ya.ConsumedBy = make([]string, len(da.ConsumedBy))
-			copy(ya.ConsumedBy, da.ConsumedBy)
-		}
-		for _, u := range da.UsedBy {
-			ya.UsedBy = append(ya.UsedBy, yamlDataAssetUsedByRef{Target: u.ServiceName, Access: u.Access})
+		if len(da.UsedBy) > 0 {
+			ya.UsedBy = make([]string, len(da.UsedBy))
+			copy(ya.UsedBy, da.UsedBy)
 		}
 		assets = append(assets, ya)
 	}

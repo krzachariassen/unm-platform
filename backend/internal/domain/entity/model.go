@@ -325,21 +325,11 @@ func (m *UNMModel) GetCapabilitiesByLayer(layer string) []*Capability {
 	return result
 }
 
-// GetDataAssetsForService returns DataAssets used by/produced by/consumed by the named service.
+// GetDataAssetsForService returns DataAssets used by the named service.
 func (m *UNMModel) GetDataAssetsForService(serviceName string) []*DataAsset {
 	var result []*DataAsset
 	for _, da := range m.DataAssets {
-		if da.ProducedBy == serviceName {
-			result = append(result, da)
-			continue
-		}
-		for _, u := range da.UsedBy {
-			if u.ServiceName == serviceName {
-				result = append(result, da)
-				break
-			}
-		}
-		if slices.Contains(da.ConsumedBy, serviceName) {
+		if slices.Contains(da.UsedBy, serviceName) {
 			result = append(result, da)
 		}
 	}
