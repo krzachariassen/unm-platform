@@ -23,6 +23,7 @@ ai:
   api_key_env: "UNM_OPENAI_API_KEY"
   base_url: "https://api.openai.com/v1"
   model: "gpt-5.4-nano"             # fallback model for any category not in 'models'
+  allowed_ips: []                   # empty = no restriction; set IPs/CIDRs to restrict AI access by client IP
   models:
     default:                 "gpt-5.4-nano"   # $0.20/$1.25 — frontier-class nano, great default
     insights:                "gpt-5-nano"     # $0.05/$0.40 — cheapest model, perfect for structured JSON
