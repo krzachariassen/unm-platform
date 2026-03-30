@@ -12,6 +12,15 @@ type System struct {
 	Description string
 }
 
+// ModelMeta holds serialization-layer metadata that passes through the domain
+// untouched. The domain never interprets these values; parsers populate them
+// on read and serializers emit (and may auto-stamp) them on write.
+type ModelMeta struct {
+	Version      string // user-controlled version identifier
+	LastModified string // ISO 8601 timestamp, auto-set by serializer on export
+	Author       string // who last exported/modified
+}
+
 // ModelSummary provides a high-level summary of the UNMModel.
 type ModelSummary struct {
 	SystemName           string
@@ -29,6 +38,7 @@ type ModelSummary struct {
 // UNMModel is the root aggregate for a User Needs Map.
 type UNMModel struct {
 	System               System
+	Meta                 ModelMeta
 	Actors               map[string]*Actor
 	Needs                map[string]*Need
 	Capabilities         map[string]*Capability

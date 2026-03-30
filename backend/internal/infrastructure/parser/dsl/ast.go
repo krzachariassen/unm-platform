@@ -33,8 +33,11 @@ type File struct {
 
 // SystemNode represents a system block in the DSL.
 type SystemNode struct {
-	Name        string
-	Description string
+	Name         string
+	Description  string
+	Version      string
+	LastModified string
+	Author       string
 }
 
 // ActorNode represents an actor block in the DSL.

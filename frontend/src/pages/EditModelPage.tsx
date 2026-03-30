@@ -116,16 +116,18 @@ export function EditModelPage() {
     }
   }, [changesetId, modelId, parseResult, setModel])
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (format: 'yaml' | 'dsl' = 'yaml') => {
     if (!modelId) return
     setExporting(true)
     try {
-      const yaml = await api.exportModel(modelId)
-      const blob = new Blob([yaml], { type: 'application/x-yaml' })
+      const content = await api.exportModel(modelId, format)
+      const ext = format === 'dsl' ? '.unm' : '.unm.yaml'
+      const mimeType = format === 'dsl' ? 'text/plain' : 'application/x-yaml'
+      const blob = new Blob([content], { type: mimeType })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${parseResult?.system_name?.replace(/\s+/g, '-').toLowerCase() ?? 'model'}.unm.yaml`
+      a.download = `${parseResult?.system_name?.replace(/\s+/g, '-').toLowerCase() ?? 'model'}${ext}`
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
@@ -148,9 +150,13 @@ export function EditModelPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport} disabled={exporting} className="gap-2">
+          <Button variant="outline" onClick={() => handleExport('dsl')} disabled={exporting} className="gap-2">
             {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-            {phase === 'committed' ? 'Export Updated Model as YAML' : 'Export Current Model as YAML'}
+            Export .unm
+          </Button>
+          <Button variant="outline" onClick={() => handleExport('yaml')} disabled={exporting} className="gap-2">
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            Export .yaml
           </Button>
         </div>
       </div>
@@ -198,7 +204,7 @@ export function EditModelPage() {
           <div>
             <p className="text-sm font-medium" style={{ color: '#15803d' }}>Changes committed successfully</p>
             <p className="text-xs mt-1" style={{ color: '#166534' }}>
-              The model has been updated. You can export the YAML to save it to your git repository.
+              The model has been updated. Export as .unm or .yaml to save it to your git repository.
             </p>
             {commitResult.validation.warnings && commitResult.validation.warnings.length > 0 && (
               <div className="mt-2 space-y-1">

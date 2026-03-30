@@ -33,12 +33,17 @@ func NewModelStore() *ModelStore {
 }
 
 // Store saves a model and returns its generated ID.
+// If the model has no version, it is initialized to 1.
+// LastModified is stamped to the current time.
 func (s *ModelStore) Store(m *entity.UNMModel) (string, error) {
 	id, err := generateID()
 	if err != nil {
 		return "", fmt.Errorf("model store: %w", err)
 	}
 	now := time.Now()
+	if m != nil {
+		stampMeta(&m.Meta, now)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.models[id] = &StoredModel{ID: id, Model: m, CreatedAt: now, LastAccessedAt: now}
@@ -59,12 +64,18 @@ func (s *ModelStore) Get(id string) *StoredModel {
 
 // Replace swaps the model stored under the given ID with a new model,
 // preserving the ID and CreatedAt timestamp. Returns false if the ID does not exist.
+// Increments the model version and stamps LastModified.
 func (s *ModelStore) Replace(id string, newModel *entity.UNMModel) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	existing, ok := s.models[id]
 	if !ok {
 		return false
+	}
+	if newModel != nil && existing.Model != nil {
+		newModel.Meta.Version = existing.Model.Meta.Version
+		newModel.Meta.Author = existing.Model.Meta.Author
+		stampMeta(&newModel.Meta, time.Now())
 	}
 	existing.Model = newModel
 	existing.LastAccessedAt = time.Now()
@@ -148,4 +159,15 @@ func generateID() (string, error) {
 		return "", fmt.Errorf("generate id: %w", err)
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// stampMeta increments the version (parsing the existing value as an integer,
+// defaulting to 1 if absent or non-numeric) and sets LastModified to now.
+func stampMeta(meta *entity.ModelMeta, now time.Time) {
+	var v int
+	if _, err := fmt.Sscanf(meta.Version, "%d", &v); err != nil || v < 1 {
+		v = 0
+	}
+	meta.Version = fmt.Sprintf("%d", v+1)
+	meta.LastModified = now.UTC().Format(time.RFC3339)
 }

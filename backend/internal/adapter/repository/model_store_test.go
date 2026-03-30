@@ -3,6 +3,8 @@ package repository
 import (
 	"testing"
 	"time"
+
+	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
 func TestModelStore_StoreAndGet(t *testing.T) {
@@ -122,6 +124,81 @@ func TestModelStore_EvictExpired(t *testing.T) {
 	}
 	if len(cascaded) != 1 || cascaded[0] != old {
 		t.Errorf("cascade: want [%s], got %v", old, cascaded)
+	}
+}
+
+func TestModelStore_StoreStampsVersion(t *testing.T) {
+	s := NewModelStore()
+	m := entity.NewUNMModel("Test", "")
+
+	id, err := s.Store(m)
+	if err != nil {
+		t.Fatalf("Store: %v", err)
+	}
+
+	stored := s.Get(id)
+	if stored.Model.Meta.Version != "1" {
+		t.Errorf("want version '1', got %q", stored.Model.Meta.Version)
+	}
+	if stored.Model.Meta.LastModified == "" {
+		t.Error("want non-empty LastModified")
+	}
+}
+
+func TestModelStore_ReplaceIncrementsVersion(t *testing.T) {
+	s := NewModelStore()
+	m := entity.NewUNMModel("Test", "")
+
+	id, _ := s.Store(m)
+	stored := s.Get(id)
+	if stored.Model.Meta.Version != "1" {
+		t.Fatalf("initial version: want '1', got %q", stored.Model.Meta.Version)
+	}
+
+	m2 := entity.NewUNMModel("Test Updated", "")
+	if !s.Replace(id, m2) {
+		t.Fatal("Replace returned false")
+	}
+
+	stored2 := s.Get(id)
+	if stored2.Model.Meta.Version != "2" {
+		t.Errorf("want version '2', got %q", stored2.Model.Meta.Version)
+	}
+	if stored2.Model.Meta.LastModified == "" {
+		t.Error("want non-empty LastModified after Replace")
+	}
+}
+
+func TestModelStore_ReplacePreservesAuthor(t *testing.T) {
+	s := NewModelStore()
+	m := entity.NewUNMModel("Test", "")
+	m.Meta.Author = "original-author"
+
+	id, _ := s.Store(m)
+
+	m2 := entity.NewUNMModel("Test Updated", "")
+	s.Replace(id, m2)
+
+	stored := s.Get(id)
+	if stored.Model.Meta.Author != "original-author" {
+		t.Errorf("want author 'original-author', got %q", stored.Model.Meta.Author)
+	}
+}
+
+func TestModelStore_MultipleReplacesIncrementSequentially(t *testing.T) {
+	s := NewModelStore()
+	m := entity.NewUNMModel("Test", "")
+
+	id, _ := s.Store(m)
+
+	for i := 2; i <= 5; i++ {
+		mn := entity.NewUNMModel("Test", "")
+		s.Replace(id, mn)
+	}
+
+	stored := s.Get(id)
+	if stored.Model.Meta.Version != "5" {
+		t.Errorf("want version '5' after 4 replaces, got %q", stored.Model.Meta.Version)
 	}
 }
 

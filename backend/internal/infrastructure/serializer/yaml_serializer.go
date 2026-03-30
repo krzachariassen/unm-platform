@@ -17,8 +17,11 @@ type yamlRelationship struct {
 }
 
 type yamlSystem struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description,omitempty"`
+	Name         string `yaml:"name"`
+	Description  string `yaml:"description,omitempty"`
+	Version      string `yaml:"version,omitempty"`
+	LastModified string `yaml:"lastModified,omitempty"`
+	Author       string `yaml:"author,omitempty"`
 }
 
 type yamlActor struct {
@@ -101,8 +104,11 @@ type yamlDocument struct {
 func MarshalYAML(m *entity.UNMModel) ([]byte, error) {
 	doc := yamlDocument{
 		System: yamlSystem{
-			Name:        m.System.Name,
-			Description: m.System.Description,
+			Name:         m.System.Name,
+			Description:  m.System.Description,
+			Version:      m.Meta.Version,
+			LastModified: m.Meta.LastModified,
+			Author:       m.Meta.Author,
 		},
 	}
 

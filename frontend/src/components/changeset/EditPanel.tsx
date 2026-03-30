@@ -117,16 +117,18 @@ export function EditPanel({ onClose, onCommitted }: EditPanelProps) {
     }
   }, [changesetId, modelId, parseResult, setModel, onCommitted])
 
-  const handleExport = useCallback(async () => {
+  const handleExport = useCallback(async (format: 'yaml' | 'dsl' = 'dsl') => {
     if (!modelId) return
     setExporting(true)
     try {
-      const yaml = await api.exportModel(modelId)
-      const blob = new Blob([yaml], { type: 'application/x-yaml' })
+      const content = await api.exportModel(modelId, format)
+      const ext = format === 'dsl' ? '.unm' : '.unm.yaml'
+      const mimeType = format === 'dsl' ? 'text/plain' : 'application/x-yaml'
+      const blob = new Blob([content], { type: mimeType })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${parseResult?.system_name?.replace(/\s+/g, '-').toLowerCase() ?? 'model'}.unm.yaml`
+      a.download = `${parseResult?.system_name?.replace(/\s+/g, '-').toLowerCase() ?? 'model'}${ext}`
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
@@ -159,8 +161,8 @@ export function EditPanel({ onClose, onCommitted }: EditPanelProps) {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={handleExport} disabled={exporting}
-            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40" title="Export YAML">
+          <button onClick={() => handleExport('dsl')} disabled={exporting}
+            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-40" title="Export .unm">
             {exporting ? <Loader2 size={14} className="animate-spin" style={{ color: '#9ca3af' }} /> :
               <Download size={14} style={{ color: '#6b7280' }} />}
           </button>

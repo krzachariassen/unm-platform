@@ -77,8 +77,11 @@ type yamlDocument struct {
 }
 
 type yamlSystem struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
+	Name         string `yaml:"name"`
+	Description  string `yaml:"description"`
+	Version      string `yaml:"version"`
+	LastModified string `yaml:"lastModified"`
+	Author       string `yaml:"author"`
 }
 
 type yamlActor struct {
@@ -222,6 +225,11 @@ func buildModel(raw *yamlDocument) (*entity.UNMModel, error) {
 	}
 
 	model := entity.NewUNMModel(raw.System.Name, raw.System.Description)
+	model.Meta = entity.ModelMeta{
+		Version:      raw.System.Version,
+		LastModified: raw.System.LastModified,
+		Author:       raw.System.Author,
+	}
 	var warnings []string
 
 	if err := addActors(model, raw.Actors); err != nil {

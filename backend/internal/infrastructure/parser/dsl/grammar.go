@@ -176,6 +176,27 @@ func (p *parser) parseSystem() (*SystemNode, error) {
 				return nil, p.errorf("system description: %s", err.Error())
 			}
 			node.Description = v
+		case "version":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("system version: %s", err.Error())
+			}
+			node.Version = v
+		case "lastModified":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("system lastModified: %s", err.Error())
+			}
+			node.LastModified = v
+		case "author":
+			p.readToken()
+			v, err := p.readString()
+			if err != nil {
+				return nil, p.errorf("system author: %s", err.Error())
+			}
+			node.Author = v
 		default:
 			p.readToken() // consume to advance p.line to the token's line
 			return nil, p.errorf("system: unexpected field %q", tok)

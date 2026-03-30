@@ -137,13 +137,29 @@ func buildValidatePayload(result service.ValidationResult) validatePayload {
 	}
 }
 
-// handleExport serializes the stored model back to YAML for download.
+// handleExport serializes the stored model for download.
+// Pass ?format=dsl to export as .unm DSL format; default is YAML.
 func (h *Handler) handleExport(w http.ResponseWriter, r *http.Request) {
 	modelID := r.PathValue("id")
 
 	stored := h.store.Get(modelID)
 	if stored == nil {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+
+	if r.URL.Query().Get("format") == "dsl" {
+		data, err := serializer.MarshalDSL(stored.Model)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to export model: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Content-Disposition", "attachment; filename=model.unm")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write(data); err != nil {
+			log.Printf("export write: %v", err)
+		}
 		return
 	}
 

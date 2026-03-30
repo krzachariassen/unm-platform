@@ -535,8 +535,9 @@ export const api = {
     return res.json()
   },
 
-  async exportModel(modelId: string): Promise<string> {
-    const res = await fetch(`${API_BASE}/models/${modelId}/export`)
+  async exportModel(modelId: string, format?: 'yaml' | 'dsl'): Promise<string> {
+    const query = format === 'dsl' ? '?format=dsl' : ''
+    const res = await fetch(`${API_BASE}/models/${modelId}/export${query}`)
     if (!res.ok) throw new Error(await extractError(res, 'Failed to export model'))
     return res.text()
   },

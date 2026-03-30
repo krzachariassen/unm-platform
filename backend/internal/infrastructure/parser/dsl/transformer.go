@@ -20,6 +20,13 @@ func Transform(f *File) (*entity.UNMModel, error) {
 	}
 
 	model := entity.NewUNMModel(systemName, systemDesc)
+	if f.System != nil {
+		model.Meta = entity.ModelMeta{
+			Version:      f.System.Version,
+			LastModified: f.System.LastModified,
+			Author:       f.System.Author,
+		}
+	}
 
 	if err := transformActors(model, f.Actors); err != nil {
 		return nil, err
