@@ -653,30 +653,7 @@ func (p *parser) parseDataAsset() (*DataAssetNode, error) {
 			if err != nil {
 				return nil, p.errorf("data_asset usedBy: %s", err.Error())
 			}
-			usage := DataAssetUsageNode{Target: target}
-			if p.peekToken() == "access" {
-				p.readToken()
-				access, err := p.readString()
-				if err != nil {
-					return nil, p.errorf("data_asset usedBy access: %s", err.Error())
-				}
-				usage.Access = access
-			}
-			node.UsedBy = append(node.UsedBy, usage)
-		case "producedBy":
-			p.readToken()
-			v, err := p.readString()
-			if err != nil {
-				return nil, p.errorf("data_asset producedBy: %s", err.Error())
-			}
-			node.ProducedBy = v
-		case "consumedBy":
-			p.readToken()
-			v, err := p.readString()
-			if err != nil {
-				return nil, p.errorf("data_asset consumedBy: %s", err.Error())
-			}
-			node.ConsumedBy = append(node.ConsumedBy, v)
+			node.UsedBy = append(node.UsedBy, target)
 		default:
 			p.readToken()
 			return nil, p.errorf("data_asset: unexpected field %q", tok)

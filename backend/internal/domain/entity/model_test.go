@@ -818,25 +818,25 @@ func TestGetServicesForCapability_DanglingReference(t *testing.T) {
 func TestGetDataAssetsForService(t *testing.T) {
 	m := entity.NewUNMModel("Test", "")
 
-	// DataAsset found via ProducedBy
+	// DataAsset found via UsedBy
 	da1, err := entity.NewDataAsset("da-1", "CatalogDB", "database", "Core catalog store")
 	require.NoError(t, err)
-	da1.ProducedBy = "feed-svc"
+	da1.AddUsedBy("feed-svc")
 	require.NoError(t, m.AddDataAsset(da1))
 
 	// DataAsset found via UsedBy
 	da2, err := entity.NewDataAsset("da-2", "CacheLayer", "cache", "Redis cache")
 	require.NoError(t, err)
-	da2.AddUsedBy("serving-svc", "read")
+	da2.AddUsedBy("serving-svc")
 	require.NoError(t, m.AddDataAsset(da2))
 
-	// DataAsset found via ConsumedBy
+	// DataAsset found via UsedBy (multiple services)
 	da3, err := entity.NewDataAsset("da-3", "EventStream", "event-stream", "Kafka stream")
 	require.NoError(t, err)
-	da3.ConsumedBy = append(da3.ConsumedBy, "analytics-svc")
+	da3.AddUsedBy("analytics-svc")
 	require.NoError(t, m.AddDataAsset(da3))
 
-	// ProducedBy match
+	// UsedBy match
 	result := m.GetDataAssetsForService("feed-svc")
 	assert.Len(t, result, 1)
 	assert.Equal(t, "CatalogDB", result[0].Name)
@@ -846,7 +846,7 @@ func TestGetDataAssetsForService(t *testing.T) {
 	assert.Len(t, result, 1)
 	assert.Equal(t, "CacheLayer", result[0].Name)
 
-	// ConsumedBy match
+	// UsedBy match
 	result = m.GetDataAssetsForService("analytics-svc")
 	assert.Len(t, result, 1)
 	assert.Equal(t, "EventStream", result[0].Name)

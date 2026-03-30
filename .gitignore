@@ -38,5 +38,4 @@ Thumbs.db
 
 # Internal data — never commit
 examples/inca*.yaml
-examples/inca.unm
 examples/nexus.unm

@@ -171,7 +171,7 @@ func TestComplexityAnalyzer_TotalComplexityWeightedSum(t *testing.T) {
 	}
 
 	da := mustDataAsset(t, "da-1", "da-1", entity.TypeDatabase)
-	da.AddUsedBy("svc-a", "read")
+	da.AddUsedBy("svc-a")
 	if err := m.AddDataAsset(da); err != nil {
 		t.Fatalf("AddDataAsset: %v", err)
 	}

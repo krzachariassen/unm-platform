@@ -867,87 +867,55 @@ data_assets:
     - name: catalog_item_mapping_v1
       type: database
       description: Datastore collection mapping listing item UUIDs to catalog item and product entries in the serving layer
-      usedBy:
-        - target: nexus-serving-ingestor
-          access: read-write
+      usedBy: [nexus-serving-ingestor]
     - name: catalog_item_v1
       type: database
       description: Serving-layer datastore collection with denormalized item records optimized for high-throughput reads
-      usedBy:
-        - target: nexus-serving-ingestor
-          access: read-write
-        - target: nexus-serving
-          access: read
-        - target: nexus-query
-          access: read
+      usedBy: [nexus-serving-ingestor, nexus-serving, nexus-query]
     - name: catalog_product_v1
       type: database
       description: Serving-layer datastore collection with denormalized product records for the serving path
-      usedBy:
-        - target: nexus-serving-ingestor
-          access: read-write
-        - target: nexus-serving
-          access: read
+      usedBy: [nexus-serving-ingestor, nexus-serving]
     - name: external.store.catalog_update_v2
       type: event-stream
       description: External Kafka topic notifying Nexus of catalog entity updates from partner store systems
-      producedBy: external-store
-      consumedBy:
-        - nexus-serving-ingestor
+      usedBy: [external-store, nexus-serving-ingestor]
     - name: nexus.anomalies
       type: event-stream
       description: Kafka topic carrying anomaly events detected by anomaly-detector for alerting consumers
-      producedBy: nexus-anomaly-detector
-      consumedBy:
-        - nexus-realtime-stats
+      usedBy: [nexus-anomaly-detector, nexus-realtime-stats]
     - name: nexus.core.entity_change
       type: event-stream
       description: Kafka topic emitting entity change events whenever catalog entities are created, updated, or deleted
-      producedBy: nexus-core
-      consumedBy:
-        - nexus-serving-ingestor
+      usedBy: [nexus-core, nexus-serving-ingestor]
     - name: nexus.core.entity_change_nodedup
       type: event-stream
       description: Deduplication-free Kafka topic of entity change events; consumed by nexus-enricher to find entities needing enrichment
-      producedBy: nexus-core
-      consumedBy:
-        - nexus-enricher
+      usedBy: [nexus-core, nexus-enricher]
     - name: nexus.regression.stats
       type: event-stream
       description: Kafka topic carrying per-catalog statistical measurements for regression baseline tracking
-      producedBy: nexus-anomaly-detector
-      consumedBy:
-        - nexus-realtime-stats
+      usedBy: [nexus-anomaly-detector, nexus-realtime-stats]
     - name: nexus_backref_v1
       type: database
       description: Datastore collection storing back-reference relationships between catalog entities
-      usedBy:
-        - target: nexus-core
-          access: read-write
+      usedBy: [nexus-core]
     - name: nexus_entity_metadata_v1
       type: database
       description: Datastore collection storing entity metadata (touched_at, provided_at) for change tracking
-      usedBy:
-        - target: nexus-core
-          access: read-write
+      usedBy: [nexus-core]
     - name: nexus_entity_v2
       type: database
       description: Primary datastore collection storing all catalog entity records — the authoritative source of truth for Nexus
-      usedBy:
-        - target: nexus-core
-          access: read-write
+      usedBy: [nexus-core]
     - name: nexus_extension_v2
       type: database
       description: Datastore collection storing flexible schema extension attributes for catalog entities
-      usedBy:
-        - target: nexus-core
-          access: read-write
+      usedBy: [nexus-core]
     - name: nexus_external_id_v2
       type: database
       description: Datastore collection mapping external source identifiers to Nexus entity UUIDs
-      usedBy:
-        - target: nexus-core
-          access: read-write
+      usedBy: [nexus-core]
 external_dependencies:
     - name: auth-service
       description: OAuth and identity service for authentication

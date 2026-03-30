@@ -344,11 +344,9 @@ data_assets:
   - name: "Catalog Data"
     type: "database"
     description: "Core catalog records"
-    producedBy: "feed-svc"
     usedBy:
-      - target: "serving-svc"
-        access: "read"
-    consumedBy:
+      - "feed-svc"
+      - "serving-svc"
       - "analytics-svc"
 `
 	p := parser.NewYAMLParser()
@@ -358,11 +356,10 @@ data_assets:
 	da := model.DataAssets["Catalog Data"]
 	require.NotNil(t, da)
 	assert.Equal(t, "database", da.Type)
-	assert.Equal(t, "feed-svc", da.ProducedBy)
-	require.Len(t, da.UsedBy, 1)
-	assert.Equal(t, "serving-svc", da.UsedBy[0].ServiceName)
-	assert.Equal(t, "read", da.UsedBy[0].Access)
-	assert.Contains(t, da.ConsumedBy, "analytics-svc")
+	require.Len(t, da.UsedBy, 3)
+	assert.Contains(t, da.UsedBy, "feed-svc")
+	assert.Contains(t, da.UsedBy, "serving-svc")
+	assert.Contains(t, da.UsedBy, "analytics-svc")
 }
 
 func TestYAMLParser_DataAssetEmptyName(t *testing.T) {

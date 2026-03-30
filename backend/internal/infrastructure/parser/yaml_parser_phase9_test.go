@@ -600,7 +600,7 @@ services:
 // 9.8 — Data assets compact usedBy syntax
 // ---------------------------------------------------------------------------
 
-func TestPhase9_DataAsset_CompactUsedBy(t *testing.T) {
+func TestPhase9_DataAsset_UsedBy(t *testing.T) {
 	yaml := `
 system:
   name: "Test"
@@ -608,8 +608,8 @@ data_assets:
   - name: "Orders DB"
     type: "database"
     usedBy:
-      svc-a: "read-write"
-      svc-b: "read"
+      - "svc-a"
+      - "svc-b"
 `
 	p := parser.NewYAMLParser()
 	model, err := p.Parse(strings.NewReader(yaml))
@@ -618,25 +618,19 @@ data_assets:
 	da := model.DataAssets["Orders DB"]
 	require.NotNil(t, da)
 	require.Len(t, da.UsedBy, 2)
-
-	usedByMap := make(map[string]string)
-	for _, u := range da.UsedBy {
-		usedByMap[u.ServiceName] = u.Access
-	}
-	assert.Equal(t, "read-write", usedByMap["svc-a"])
-	assert.Equal(t, "read", usedByMap["svc-b"])
+	assert.Contains(t, da.UsedBy, "svc-a")
+	assert.Contains(t, da.UsedBy, "svc-b")
 }
 
-func TestPhase9_DataAsset_ObjectUsedBy_StillWorks(t *testing.T) {
+func TestPhase9_DataAsset_FreeFormType(t *testing.T) {
 	yaml := `
 system:
   name: "Test"
 data_assets:
   - name: "Orders DB"
-    type: "database"
+    type: "custom-type"
     usedBy:
-      - target: "svc-a"
-        access: "read-write"
+      - "svc-a"
 `
 	p := parser.NewYAMLParser()
 	model, err := p.Parse(strings.NewReader(yaml))
@@ -644,7 +638,5 @@ data_assets:
 
 	da := model.DataAssets["Orders DB"]
 	require.NotNil(t, da)
-	require.Len(t, da.UsedBy, 1)
-	assert.Equal(t, "svc-a", da.UsedBy[0].ServiceName)
-	assert.Equal(t, "read-write", da.UsedBy[0].Access)
+	assert.Equal(t, "custom-type", da.Type)
 }

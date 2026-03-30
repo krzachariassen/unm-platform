@@ -5,12 +5,13 @@ Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
 _Last updated: 2026-03-30_
-_Priority: Phase 9.11 Multi-Actor Needs in progress._
+_Priority: Phase 9 cleanup + data_asset simplification._
 
 ---
 
 ## Recently Completed
 
+- [x] **refactor(data-asset)** — Simplify DataAsset: remove ProducedBy/ConsumedBy/Access; UsedBy becomes flat `[]string`; type is free-form. Updated across all parsers, serializer, analyzer, tests, and nexus.unm.yaml (2026-03-30)
 - [x] **Phase 9.11 (9.11.1–9.11.8)** — Multi-Actor Needs: `ActorNames []string`, flex YAML/DSL parsing, multi-actor view grouping, signals/value-chain updates, frontend SignalsView + api.ts (2026-03-30)
 - [x] **BUG-1** — Fix `.unm` DSL file upload via UI — detect `.unm` extension, send `?format=dsl` (2026-03-30)
 - [x] **Phase 9 clean-up** — Merge all Phase 9 PRs to main, replace INCA examples with Nexus (anonymized), enforce backlog update in git-flow rules (2026-03-30)

@@ -140,59 +140,17 @@ type yamlService struct {
 	Supports          []flexRelationship `yaml:"supports"`
 	DependsOn         []flexRelationship `yaml:"dependsOn"`
 	ExternalDependsOn []flexRelationship `yaml:"externalDependsOn"`
-	DataAssets        []yamlDataAssetRef `yaml:"dataAssets"`
+	DataAssets        []string           `yaml:"dataAssets"`
 	Realizes          []flexRelationship `yaml:"realizes"`    // 9.3: service declares what it realizes
 	ExternalDeps      []string           `yaml:"externalDeps"` // 9.4: service declares its external deps
 }
 
-// flexDataAssetUsedBy handles both compact map form and object list form for data_asset.usedBy
-type flexDataAssetUsedBy struct {
-	entries []entity.DataAssetServiceUsage
-}
-
-func (f *flexDataAssetUsedBy) UnmarshalYAML(value *yaml.Node) error {
-	// Map form: {svc-a: "read-write", svc-b: "read"}
-	if value.Kind == yaml.MappingNode {
-		for i := 0; i+1 < len(value.Content); i += 2 {
-			key := value.Content[i].Value
-			val := value.Content[i+1].Value
-			f.entries = append(f.entries, entity.DataAssetServiceUsage{
-				ServiceName: key,
-				Access:      val,
-			})
-		}
-		return nil
-	}
-	// Sequence form: [{target: svc, access: rw}, ...]
-	if value.Kind == yaml.SequenceNode {
-		for _, item := range value.Content {
-			var ref yamlDataAssetRef
-			if err := item.Decode(&ref); err != nil {
-				return err
-			}
-			f.entries = append(f.entries, entity.DataAssetServiceUsage{
-				ServiceName: ref.Target,
-				Access:      ref.Access,
-			})
-		}
-		return nil
-	}
-	return fmt.Errorf("parser: data_asset.usedBy must be a map or sequence")
-}
-
-type yamlDataAssetRef struct {
-	Target string `yaml:"target"`
-	Access string `yaml:"access"`
-}
-
-// yamlDataAssetFlex wraps yamlDataAsset to use flexDataAssetUsedBy
+// yamlDataAssetFlex wraps yamlDataAsset to use a simple string list for usedBy
 type yamlDataAssetFlex struct {
-	Name        string              `yaml:"name"`
-	Type        string              `yaml:"type"`
-	Description string              `yaml:"description"`
-	UsedBy      flexDataAssetUsedBy `yaml:"usedBy"`
-	ProducedBy  string              `yaml:"producedBy"`
-	ConsumedBy  []string            `yaml:"consumedBy"`
+	Name        string   `yaml:"name"`
+	Type        string   `yaml:"type"`
+	Description string   `yaml:"description"`
+	UsedBy      []string `yaml:"usedBy"`
 }
 
 type yamlTeam struct {
@@ -758,12 +716,8 @@ func addDataAssetsFromFlex(model *entity.UNMModel, assets []yamlDataAssetFlex) (
 		if err != nil {
 			return nil, fmt.Errorf("parser: data_asset %q: %w", a.Name, err)
 		}
-		for _, u := range a.UsedBy.entries {
-			da.AddUsedBy(u.ServiceName, u.Access)
-		}
-		da.ProducedBy = a.ProducedBy
-		for _, c := range a.ConsumedBy {
-			da.ConsumedBy = append(da.ConsumedBy, c)
+		for _, svcName := range a.UsedBy {
+			da.AddUsedBy(svcName)
 		}
 		if err := model.AddDataAsset(da); err != nil {
 			return nil, fmt.Errorf("parser: %w", err)

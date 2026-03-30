@@ -108,10 +108,8 @@ func deepCopyModel(m *entity.UNMModel) *entity.UNMModel {
 	// DataAssets
 	for k, v := range m.DataAssets {
 		copied := *v
-		copied.UsedBy = make([]entity.DataAssetServiceUsage, len(v.UsedBy))
+		copied.UsedBy = make([]string, len(v.UsedBy))
 		copy(copied.UsedBy, v.UsedBy)
-		copied.ConsumedBy = make([]string, len(v.ConsumedBy))
-		copy(copied.ConsumedBy, v.ConsumedBy)
 		result.DataAssets[k] = &copied
 	}
 

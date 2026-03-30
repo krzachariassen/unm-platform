@@ -77,7 +77,7 @@ func TestCouplingAnalyzer_SingleServiceNotReported(t *testing.T) {
 	couplingAddService(t, m, svcA)
 
 	da := couplingMustDataAsset(t, "db-1", "db-1", entity.TypeDatabase)
-	da.AddUsedBy("svc-a", "read-write")
+	da.AddUsedBy("svc-a")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
@@ -101,8 +101,8 @@ func TestCouplingAnalyzer_SameTeamNotCrossteam(t *testing.T) {
 	couplingAddService(t, m, svcB)
 
 	da := couplingMustDataAsset(t, "db-1", "db-1", entity.TypeDatabase)
-	da.AddUsedBy("svc-a", "read-write")
-	da.AddUsedBy("svc-b", "read")
+	da.AddUsedBy("svc-a")
+	da.AddUsedBy("svc-b")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
@@ -138,8 +138,8 @@ func TestCouplingAnalyzer_DifferentTeamIsCrossteam(t *testing.T) {
 	couplingAddService(t, m, svcB)
 
 	da := couplingMustDataAsset(t, "cache-1", "cache-1", entity.TypeCache)
-	da.AddUsedBy("svc-a", "read")
-	da.AddUsedBy("svc-b", "write")
+	da.AddUsedBy("svc-a")
+	da.AddUsedBy("svc-b")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
@@ -154,7 +154,7 @@ func TestCouplingAnalyzer_DifferentTeamIsCrossteam(t *testing.T) {
 	}
 }
 
-// Test 5: Mix of UsedBy + ProducedBy + ConsumedBy → all deduped into Services list
+// Test 5: Multiple services in UsedBy → all deduped into Services list
 func TestCouplingAnalyzer_DeduplicatesAllSources(t *testing.T) {
 	m := entity.NewUNMModel("sys", "")
 
@@ -166,14 +166,11 @@ func TestCouplingAnalyzer_DeduplicatesAllSources(t *testing.T) {
 	couplingAddService(t, m, svcC)
 
 	da := couplingMustDataAsset(t, "stream-1", "stream-1", entity.TypeEventStream)
-	// svc-a appears in UsedBy
-	da.AddUsedBy("svc-a", "read-write")
-	// svc-b appears in ProducedBy
-	da.ProducedBy = "svc-b"
-	// svc-c appears in ConsumedBy
-	da.ConsumedBy = []string{"svc-c"}
-	// svc-a also appears in ConsumedBy (duplicate — must be deduped)
-	da.ConsumedBy = append(da.ConsumedBy, "svc-a")
+	da.AddUsedBy("svc-a")
+	da.AddUsedBy("svc-b")
+	da.AddUsedBy("svc-c")
+	// svc-a again (duplicate — must be deduped)
+	da.AddUsedBy("svc-a")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
@@ -206,9 +203,9 @@ func TestCouplingAnalyzer_ThreeServicesTwoTeams(t *testing.T) {
 	couplingAddService(t, m, svcC)
 
 	da := couplingMustDataAsset(t, "db-shared", "db-shared", entity.TypeDatabase)
-	da.AddUsedBy("svc-a", "read")
-	da.AddUsedBy("svc-b", "read")
-	da.AddUsedBy("svc-c", "write")
+	da.AddUsedBy("svc-a")
+	da.AddUsedBy("svc-b")
+	da.AddUsedBy("svc-c")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
@@ -239,18 +236,18 @@ func TestCouplingAnalyzer_MultipleAssetsSortedByName(t *testing.T) {
 
 	// "zebra-db" should sort after "alpha-cache"
 	daZebra := couplingMustDataAsset(t, "zebra-db", "zebra-db", entity.TypeDatabase)
-	daZebra.AddUsedBy("svc-a", "read")
-	daZebra.AddUsedBy("svc-b", "write")
+	daZebra.AddUsedBy("svc-a")
+	daZebra.AddUsedBy("svc-b")
 	couplingAddDataAsset(t, m, daZebra)
 
 	daAlpha := couplingMustDataAsset(t, "alpha-cache", "alpha-cache", entity.TypeCache)
-	daAlpha.AddUsedBy("svc-b", "read")
-	daAlpha.AddUsedBy("svc-c", "read")
+	daAlpha.AddUsedBy("svc-b")
+	daAlpha.AddUsedBy("svc-c")
 	couplingAddDataAsset(t, m, daAlpha)
 
 	// single-user asset — should NOT appear in report
 	daSingle := couplingMustDataAsset(t, "solo-index", "solo-index", entity.TypeSearchIndex)
-	daSingle.AddUsedBy("svc-a", "read")
+	daSingle.AddUsedBy("svc-a")
 	couplingAddDataAsset(t, m, daSingle)
 
 	a := NewCouplingAnalyzer()
@@ -278,8 +275,8 @@ func TestCouplingAnalyzer_EmptyOwnerNotCrossteam(t *testing.T) {
 	couplingAddService(t, m, svcB)
 
 	da := couplingMustDataAsset(t, "db-1", "db-1", entity.TypeDatabase)
-	da.AddUsedBy("svc-a", "read")
-	da.AddUsedBy("svc-b", "write")
+	da.AddUsedBy("svc-a")
+	da.AddUsedBy("svc-b")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
@@ -305,8 +302,8 @@ func TestCouplingAnalyzer_BothEmptyOwnerNotCrossteam(t *testing.T) {
 	couplingAddService(t, m, svcB)
 
 	da := couplingMustDataAsset(t, "db-1", "db-1", entity.TypeDatabase)
-	da.AddUsedBy("svc-a", "read")
-	da.AddUsedBy("svc-b", "write")
+	da.AddUsedBy("svc-a")
+	da.AddUsedBy("svc-b")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
@@ -326,8 +323,8 @@ func TestCouplingAnalyzer_UnknownServiceNamesKeptAsIs(t *testing.T) {
 
 	// No services added to model, but data asset references two service names
 	da := couplingMustDataAsset(t, "db-1", "db-1", entity.TypeDatabase)
-	da.AddUsedBy("ghost-svc-a", "read")
-	da.AddUsedBy("ghost-svc-b", "write")
+	da.AddUsedBy("ghost-svc-a")
+	da.AddUsedBy("ghost-svc-b")
 	couplingAddDataAsset(t, m, da)
 
 	a := NewCouplingAnalyzer()
