@@ -23,6 +23,7 @@ type parseResponse struct {
 	SystemDescription string          `json:"system_description"`
 	Summary           parseSummary    `json:"summary"`
 	Validation        validatePayload `json:"validation"`
+	Warnings          []string        `json:"warnings,omitempty"`
 }
 
 // parseSummary holds entity counts for the parse response.
@@ -91,6 +92,7 @@ func (h *Handler) handleParse(w http.ResponseWriter, r *http.Request) {
 			Teams:        summary.TeamCount,
 		},
 		Validation: buildValidatePayload(result),
+		Warnings:   model.Warnings,
 	})
 }
 

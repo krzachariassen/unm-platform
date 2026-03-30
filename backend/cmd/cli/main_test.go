@@ -165,7 +165,7 @@ func TestRunAnalyzeCommand_Complexity(t *testing.T) {
 
 func TestRunAnalyzeCommand_BottleneckExampleModel(t *testing.T) {
 	var buf strings.Builder
-	code := runAnalyzeCommand([]string{"bottleneck", "../../../examples/inca.unm.yaml"}, &buf, entity.DefaultConfig())
+	code := runAnalyzeCommand([]string{"bottleneck", "../../../examples/nexus.unm.yaml"}, &buf, entity.DefaultConfig())
 	if code != 0 {
 		t.Fatalf("expected exit code 0, got %d\noutput:\n%s", code, buf.String())
 	}
@@ -252,5 +252,49 @@ func TestRunAnalyzeCommand_NonExistentFile(t *testing.T) {
 	code := runAnalyzeCommand([]string{"fragmentation", "/nonexistent.yaml"}, &buf, entity.DefaultConfig())
 	if code != 1 {
 		t.Fatalf("expected exit code 1 for missing file, got %d", code)
+	}
+}
+
+// ── Phase 9.7 tests: --strict flag and warnings in parse output ──────────────
+
+func TestRunValidateCommand_StrictMode_WithWarnings(t *testing.T) {
+	var buf strings.Builder
+	// --strict flag: unresolved reference → warning → exit 2
+	code := runValidateCommand([]string{"--strict", "../../testdata/unresolved_ref.unm.yaml"}, &buf)
+	if code != 2 {
+		t.Fatalf("expected exit code 2 with --strict and warnings, got %d\noutput:\n%s", code, buf.String())
+	}
+	out := buf.String()
+	if !strings.Contains(out, "NonExistentCapability") {
+		t.Errorf("expected output to mention unresolved reference, got:\n%s", out)
+	}
+}
+
+func TestRunValidateCommand_StrictMode_Clean(t *testing.T) {
+	var buf strings.Builder
+	// --strict flag: valid file with no warnings → exit 0
+	code := runValidateCommand([]string{"--strict", "../../testdata/simple.unm.yaml"}, &buf)
+	if code != 0 {
+		t.Fatalf("expected exit code 0 with --strict and no warnings, got %d\noutput:\n%s", code, buf.String())
+	}
+	out := buf.String()
+	if !strings.Contains(out, "Validation: PASSED") {
+		t.Errorf("expected 'Validation: PASSED' in output, got:\n%s", out)
+	}
+}
+
+func TestRunParseCommand_PrintsWarnings(t *testing.T) {
+	var buf strings.Builder
+	// parse with unresolved ref → warnings printed, exit 0
+	code := runParseCommand([]string{"../../testdata/unresolved_ref.unm.yaml"}, &buf)
+	if code != 0 {
+		t.Fatalf("expected exit code 0 for file with only warnings, got %d\noutput:\n%s", code, buf.String())
+	}
+	out := buf.String()
+	if !strings.Contains(out, "Warning") && !strings.Contains(out, "warning") {
+		t.Errorf("expected parse output to contain warning information, got:\n%s", out)
+	}
+	if !strings.Contains(out, "NonExistentCapability") {
+		t.Errorf("expected warning to mention the unresolved reference 'NonExistentCapability', got:\n%s", out)
 	}
 }

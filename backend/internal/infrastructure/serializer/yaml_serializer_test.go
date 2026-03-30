@@ -198,8 +198,8 @@ func TestMarshalYAML_V2_DeterministicOrder(t *testing.T) {
 	assert.Equal(t, string(data1), string(data2), "v2 YAML output should be deterministic")
 }
 
-func TestYAMLSerializer_RoundTrip_Inca(t *testing.T) {
-	m, err := parser.ParseFile("../../../../examples/inca.unm.yaml")
+func TestYAMLSerializer_RoundTrip_Nexus(t *testing.T) {
+	m, err := parser.ParseFile("../../../../examples/nexus.unm.yaml")
 	require.NoError(t, err)
 
 	// Serialize to v2 YAML

@@ -1,0 +1,11 @@
+system:
+  name: "Warning Test"
+
+actors:
+  - name: "User"
+
+needs:
+  - name: "User Need"
+    actor: "User"
+    supportedBy:
+      - "NonExistentCapability"

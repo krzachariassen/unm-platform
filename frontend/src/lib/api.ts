@@ -29,6 +29,7 @@ export interface ParseResponse {
     errors: ValidationItem[]
     warnings: ValidationItem[]
   }
+  warnings?: string[]  // reference validation warnings from parser
 }
 
 export interface ValidationItem {
