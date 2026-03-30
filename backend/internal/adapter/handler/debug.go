@@ -21,9 +21,9 @@ func (h *Handler) handleLoadExample(w http.ResponseWriter, r *http.Request) {
 	candidates := h.cfg.Features.DebugExamplePaths
 	if len(candidates) == 0 {
 		candidates = []string{
-			"../examples/inca.unm.yaml",
-			"../../examples/inca.unm.yaml",
-			"examples/inca.unm.yaml",
+			"../examples/nexus.unm.yaml",
+			"../../examples/nexus.unm.yaml",
+			"examples/nexus.unm.yaml",
 		}
 	}
 

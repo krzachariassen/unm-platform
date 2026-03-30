@@ -5,11 +5,14 @@ Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
 _Last updated: 2026-03-30_
-_Priority: Phase 9 (DSL v2) is the active focus — Waves 1–3 complete, docs items remain._
+_Priority: Phase 9 (DSL v2) complete — clean-up and docs remain._
 
 ---
 
 ## Recently Completed
+
+- [x] **Phase 9 clean-up** — Merge all Phase 9 PRs to main, replace INCA examples with Nexus (anonymized), enforce backlog update in git-flow rules (2026-03-30)
+- [x] **PR #24 anonymize** — Add nexus.unm.yaml (generic marketplace model), gitignore INCA files, update all test fixtures (2026-03-30)
 
 - [x] **Phase 9 Wave 1** — YAML parser + DSL parser Phase 9: flat caps, visibility inheritance, service.realizes, service.externalDeps, team.interacts, reference validation, --strict CLI, API warnings, frontend amber UI (PRs #27, #28, #29, #30) (2026-03-30)
 - [x] **Phase 9 Wave 2** — v2 YAML serializer: flat caps with parent, realizes on services, externalDeps on services, interacts on teams (PR #31) (2026-03-30)
