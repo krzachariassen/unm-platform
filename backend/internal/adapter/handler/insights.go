@@ -201,7 +201,11 @@ func (h *Handler) handleGetInsightsStatus(w http.ResponseWriter, r *http.Request
 	for domain := range validInsightDomains {
 		key := id + ":" + domain
 		if raw, ok := h.insightCache.Load(key); ok {
-			entry := raw.(insightEntry)
+			entry, ok := raw.(insightEntry)
+			if !ok {
+				writeError(w, http.StatusInternalServerError, "insight cache error")
+				return
+			}
 			domains[domain] = entry.status
 			if entry.status != "ready" && entry.status != "failed" {
 				allReady = false
@@ -383,7 +387,11 @@ func (h *Handler) handleGetInsights(w http.ResponseWriter, r *http.Request) {
 
 	key := id + ":" + domain
 	if raw, ok := h.insightCache.Load(key); ok {
-		entry := raw.(insightEntry)
+		entry, ok := raw.(insightEntry)
+		if !ok {
+			writeError(w, http.StatusInternalServerError, "insight cache error")
+			return
+		}
 		if entry.status == "computing" {
 			writeJSON(w, http.StatusOK, InsightsResponse{
 				Domain:       domain,
