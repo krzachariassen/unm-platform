@@ -67,6 +67,7 @@ export function UploadPage() {
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
+  const [parseWarnings, setParseWarnings] = useState<string[]>([])
   const [debugEnabled, setDebugEnabled] = useState(false)
   const aiEnabled = useAIEnabled()
   const STEPS = aiEnabled ? [...BASE_STEPS, AI_STEP] : BASE_STEPS
@@ -117,6 +118,7 @@ export function UploadPage() {
     setProcessing(true)
     setStepStatuses({ read: 'done', parse: 'idle', analyse: 'idle', ai: 'idle' })
     setParseResult(null)
+    setParseWarnings([])
 
     // Step: Parse
     setStep('parse', 'active')
@@ -140,6 +142,9 @@ export function UploadPage() {
 
     setStep('parse', 'done')
     setModel(parsed.id, parsed)
+    if (parsed.warnings && parsed.warnings.length > 0) {
+      setParseWarnings(parsed.warnings)
+    }
 
     // Step: Analyse (synchronous in backend — parse already ran all analyzers)
     setStep('analyse', 'active')
@@ -158,6 +163,7 @@ export function UploadPage() {
     setProcessing(true)
     setStepStatuses({ read: 'done', parse: 'idle', analyse: 'idle', ai: 'idle' })
     setParseResult(null)
+    setParseWarnings([])
 
     setStep('parse', 'active')
     let parsed: ParseResponse
@@ -179,6 +185,9 @@ export function UploadPage() {
 
     setStep('parse', 'done')
     setModel(parsed.id, parsed)
+    if (parsed.warnings && parsed.warnings.length > 0) {
+      setParseWarnings(parsed.warnings)
+    }
     setStep('analyse', 'active')
     await new Promise(r => setTimeout(r, 200))
     setStep('analyse', 'done')
@@ -311,6 +320,26 @@ export function UploadPage() {
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Reference warnings from parser */}
+      {parseWarnings.length > 0 && (
+        <div style={{
+          background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <span style={{ color: '#d97706', fontSize: 16 }}>⚠</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#92400e' }}>
+              Reference Warnings ({parseWarnings.length})
+            </span>
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#78350f' }}>
+            {parseWarnings.map((w, i) => <li key={i}>{w}</li>)}
+          </ul>
+          <p style={{ fontSize: 12, color: '#92400e', marginTop: 8, marginBottom: 0 }}>
+            These references were not found in the model. Check spelling of capability, service, or team names.
+          </p>
         </div>
       )}
 
