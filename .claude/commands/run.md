@@ -20,7 +20,6 @@ produce multiple work units across different agents.
 | **documentation-writer** | README, docs, examples, tutorial, DSL guide | `docs/`, `examples/`, `README.md` |
 | **code-reviewer** | review, audit, check quality, find issues in code | read-only |
 | **ui-reviewer** | UX review, test the UI, check pages, visual bugs | read-only |
-| **code-to-dsl** | generate UNM model from codebase, analyze repo | `examples/` |
 | **backlog-manager** | update backlog, mark items done, suggest next steps | `docs/BACKLOG.md` |
 
 ### Classification Rules

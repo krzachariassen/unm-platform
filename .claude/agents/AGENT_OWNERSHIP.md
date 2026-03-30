@@ -14,7 +14,6 @@ This document defines who owns agent briefing materials, how memory and anti-pat
 | code-reviewer | Agent author | Monthly — agent appends, engineer curates | As needed — PR-based, any engineer | Monthly memory review; quarterly skim of review checklists and severity rubric |
 | ui-reviewer | Agent author | Monthly — agent appends, engineer curates | As needed — PR-based, any engineer | Monthly memory review; quarterly skim of UX heuristics and scope |
 | documentation-writer | Agent author | Monthly — agent appends, engineer curates | As needed — PR-based, any engineer | Monthly memory review; quarterly check against DSL/spec and example models |
-| code-to-dsl | Agent author | Monthly — agent appends, engineer curates | As needed — PR-based, any engineer | Monthly memory review; quarterly alignment with parser/domain changes |
 | backlog-manager | Agent author | Monthly — agent appends, engineer curates | As needed — PR-based, any engineer | Monthly memory review; quarterly check against `docs/BACKLOG.md` workflow |
 
 **Owner** means accountability for keeping `AGENT.md`, `MEMORY.md`, and optional extras accurate—not exclusive authorship of every line.
