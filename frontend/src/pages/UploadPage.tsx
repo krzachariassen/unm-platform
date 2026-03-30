@@ -113,18 +113,20 @@ export function UploadPage() {
     pollRef.current = setInterval(poll, 2000)
   }, [navigate])
 
-  const runUploadFlow = useCallback(async (content: string) => {
+  const runUploadFlow = useCallback(async (content: string, filename: string) => {
     setError(null)
     setProcessing(true)
     setStepStatuses({ read: 'done', parse: 'idle', analyse: 'idle', ai: 'idle' })
     setParseResult(null)
     setParseWarnings([])
 
+    const format = filename.endsWith('.unm') && !filename.endsWith('.unm.yaml') ? 'dsl' as const : undefined
+
     // Step: Parse
     setStep('parse', 'active')
     let parsed: ParseResponse
     try {
-      parsed = await api.parseModel(content, modelId ?? undefined)
+      parsed = await api.parseModel(content, modelId ?? undefined, format)
     } catch (e) {
       setStep('parse', 'error')
       setError(e instanceof Error ? e.message : 'Upload failed')
@@ -207,7 +209,7 @@ export function UploadPage() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       setStep('read', 'done')
-      runUploadFlow(ev.target?.result as string)
+      runUploadFlow(ev.target?.result as string, file.name)
     }
     reader.readAsText(file)
   }, [runUploadFlow])
@@ -219,7 +221,7 @@ export function UploadPage() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       setStep('read', 'done')
-      runUploadFlow(ev.target?.result as string)
+      runUploadFlow(ev.target?.result as string, file.name)
     }
     reader.readAsText(file)
   }

@@ -12,6 +12,7 @@ _Priority: Phase 9.11 Multi-Actor Needs in progress._
 ## Recently Completed
 
 - [x] **Phase 9.11 (9.11.1–9.11.8)** — Multi-Actor Needs: `ActorNames []string`, flex YAML/DSL parsing, multi-actor view grouping, signals/value-chain updates, frontend SignalsView + api.ts (2026-03-30)
+- [x] **BUG-1** — Fix `.unm` DSL file upload via UI — detect `.unm` extension, send `?format=dsl` (2026-03-30)
 - [x] **Phase 9 clean-up** — Merge all Phase 9 PRs to main, replace INCA examples with Nexus (anonymized), enforce backlog update in git-flow rules (2026-03-30)
 - [x] **PR #24 anonymize** — Add nexus.unm.yaml (generic marketplace model), gitignore INCA files, update all test fixtures (2026-03-30)
 
@@ -339,12 +340,9 @@ Existing YAML/UNM files will be converted to v2 format — no backward compat ne
 
 ## Bugs
 
-- [ ] **BUG-1** — Cannot upload `.unm` DSL files via the UI: server returns
-      `parser: invalid YAML: yaml: line 2: mapping values are not allowed in
-      this context`. Root cause: the upload endpoint routes all files through
-      the YAML parser regardless of extension. Fix: detect `.unm` extension in
-      the parse handler and dispatch to the DSL parser.
-      _File: `handler/model.go` or `usecase/parse_and_validate.go`_ (#backend)
+- [x] **BUG-1** — Cannot upload `.unm` DSL files via the UI: server returns
+      `parser: invalid YAML`. Fix: detect `.unm` extension in `UploadPage.tsx`
+      and pass `?format=dsl` to the parse API. _Files: `api.ts`, `UploadPage.tsx`_ (#frontend)
 
 ---
 
