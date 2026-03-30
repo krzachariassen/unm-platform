@@ -11,6 +11,7 @@ _Priority: Phase 9 cleanup + data_asset simplification._
 
 ## Recently Completed
 
+- [x] **feat(ai)** — AI IP allowlist: restrict AI features by client IP; supports exact IPs and CIDR ranges; respects X-Forwarded-For (2026-03-30)
 - [x] **BUG-2** — DSL parser did not support `#` hash comments; only `//` was supported. Fix: extend `skipWhitespaceAndComments` to treat `#` as a line comment delimiter. (2026-03-30)
 - [x] **refactor(data-asset)** — Simplify DataAsset: remove ProducedBy/ConsumedBy/Access; UsedBy becomes flat `[]string`; type is free-form. Updated across all parsers, serializer, analyzer, tests, and nexus.unm.yaml (2026-03-30)
 - [x] **Phase 9.11 (9.11.1–9.11.8)** — Multi-Actor Needs: `ActorNames []string`, flex YAML/DSL parsing, multi-actor view grouping, signals/value-chain updates, frontend SignalsView + api.ts (2026-03-30)

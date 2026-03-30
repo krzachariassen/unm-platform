@@ -9,6 +9,8 @@ server:
 
 ai:
   request_timeout: 120s
+  allowed_ips:
+    - "165.225.194.126"  # office egress IP
   reasoning:
     default: "medium"
     advisor: "high"

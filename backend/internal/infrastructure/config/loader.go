@@ -24,6 +24,17 @@ import (
 //  4. Code defaults via entity.DefaultConfig()
 //
 // If environment is empty, it defaults to "local".
+//
+// Environment variable naming convention (double-underscore as level separator):
+//
+//	UNM_<LEVEL1>__<LEVEL2>__<KEY_NAME>
+//
+// Examples:
+//
+//	UNM_SERVER__PORT=9090          → server.port
+//	UNM_AI__ENABLED=false          → ai.enabled
+//	UNM_AI__ALLOWED_IPS=1.2.3.4   → ai.allowed_ips  (single _ preserved in key name)
+//	UNM_ANALYSIS__BOTTLENECK__FAN_IN_WARNING=3 → analysis.bottleneck.fan_in_warning
 func LoadConfig(environment string) (*entity.Config, error) {
 	if environment == "" {
 		environment = "local"
@@ -50,10 +61,10 @@ func LoadConfig(environment string) (*entity.Config, error) {
 		}
 	}
 
-	// Load environment variables: UNM_SERVER_PORT → server.port
-	if err := k.Load(env.Provider("UNM_", ".", func(s string) string {
-		return strings.ReplaceAll(strings.ToLower(strings.TrimPrefix(s, "UNM_")), "_", ".")
-	}), nil); err != nil {
+	// Load environment variables using double-underscore as the level separator.
+	// Single underscores within a segment are preserved as literal underscores in key names.
+	// e.g. UNM_AI__ALLOWED_IPS → ai.allowed_ips
+	if err := k.Load(env.Provider("UNM_", ".", envKeyTransform), nil); err != nil {
 		return nil, fmt.Errorf("load env vars: %w", err)
 	}
 
@@ -66,6 +77,18 @@ func LoadConfig(environment string) (*entity.Config, error) {
 	// Resolve API key secret from environment
 	if cfg.AI.APIKeyEnv != "" {
 		cfg.AI.APIKey = os.Getenv(cfg.AI.APIKeyEnv)
+	}
+
+	// koanf reads env var slice values as a single string; split on comma if needed.
+	// e.g. UNM_AI__ALLOWED_IPS=1.2.3.4,10.0.0.0/8 → ["1.2.3.4", "10.0.0.0/8"]
+	if len(cfg.AI.AllowedIPs) == 1 && strings.Contains(cfg.AI.AllowedIPs[0], ",") {
+		parts := strings.Split(cfg.AI.AllowedIPs[0], ",")
+		cfg.AI.AllowedIPs = make([]string, 0, len(parts))
+		for _, p := range parts {
+			if p = strings.TrimSpace(p); p != "" {
+				cfg.AI.AllowedIPs = append(cfg.AI.AllowedIPs, p)
+			}
+		}
 	}
 
 	// Validate final config
@@ -108,4 +131,16 @@ func findConfigDir() string {
 	}
 
 	return ""
+}
+
+// envKeyTransform converts a UNM_ prefixed env var name to a koanf key path.
+// Double-underscore (__) is the level separator; single underscore is preserved.
+//
+//	UNM_SERVER__PORT          → server.port
+//	UNM_AI__ALLOWED_IPS       → ai.allowed_ips
+//	UNM_AI__ENABLED           → ai.enabled
+func envKeyTransform(s string) string {
+	s = strings.ToLower(strings.TrimPrefix(s, "UNM_"))
+	parts := strings.Split(s, "__")
+	return strings.Join(parts, ".")
 }
