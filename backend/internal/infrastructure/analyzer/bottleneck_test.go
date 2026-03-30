@@ -308,36 +308,36 @@ func testDir() string {
 }
 
 // TestBottleneckAnalyzer_ExternalDepFanIn verifies external dependency bottleneck detection
-// using the INCA model. Cadence is used by 12 services and must appear as IsCritical=true.
+// using the Nexus example model. Temporal is used by 12 services and must appear as IsCritical=true.
 func TestBottleneckAnalyzer_ExternalDepFanIn(t *testing.T) {
-	incaPath := filepath.Join(testDir(), "..", "..", "..", "..", "examples", "inca.unm.yaml")
-	m, err := parser.ParseFile(incaPath)
+	nexusPath := filepath.Join(testDir(), "..", "..", "..", "..", "examples", "nexus.unm.yaml")
+	m, err := parser.ParseFile(nexusPath)
 	if err != nil {
-		t.Fatalf("failed to parse INCA model: %v", err)
+		t.Fatalf("failed to parse Nexus model: %v", err)
 	}
 
 	a := NewBottleneckAnalyzer(entity.DefaultConfig().Analysis.Bottleneck)
 	report := a.Analyze(m)
 
-	// Find cadence in ExternalDependencyBottlenecks
+	// Find temporal in ExternalDependencyBottlenecks
 	var found *ExternalDepBottleneck
 	for i := range report.ExternalDependencyBottlenecks {
-		if report.ExternalDependencyBottlenecks[i].Name == "cadence" {
+		if report.ExternalDependencyBottlenecks[i].Name == "temporal" {
 			found = &report.ExternalDependencyBottlenecks[i]
 			break
 		}
 	}
 	if found == nil {
-		t.Fatal("cadence not found in ExternalDependencyBottlenecks")
+		t.Fatal("temporal not found in ExternalDependencyBottlenecks")
 	}
 	if found.ServiceCount != 12 {
-		t.Errorf("expected cadence ServiceCount=12, got %d", found.ServiceCount)
+		t.Errorf("expected temporal ServiceCount=12, got %d", found.ServiceCount)
 	}
 	if !found.IsCritical {
-		t.Errorf("expected cadence IsCritical=true (12 services >= threshold 5), got false")
+		t.Errorf("expected temporal IsCritical=true (12 services >= threshold 5), got false")
 	}
 	if found.IsWarning {
-		t.Errorf("expected cadence IsWarning=false (critical takes priority), got true")
+		t.Errorf("expected temporal IsWarning=false (critical takes priority), got true")
 	}
 	if len(found.Services) != 12 {
 		t.Errorf("expected 12 service names, got %d", len(found.Services))

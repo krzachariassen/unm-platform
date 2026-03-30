@@ -275,7 +275,7 @@ func DefaultConfig() Config {
 			},
 		},
 		Features: FeaturesConfig{
-			DebugRoutes: true,
+			DebugRoutes: false,
 		},
 		Logging: LoggingConfig{
 			Level:  "info",

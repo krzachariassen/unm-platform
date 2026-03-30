@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
@@ -73,10 +74,6 @@ func (h *Handler) handleParse(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to store model: "+err.Error())
 		return
 	}
-
-	// Eagerly compute all AI insights in the background so they are ready
-	// by the time the user navigates to any view page.
-	go h.precomputeInsights(id, h.store.Get(id))
 
 	summary := model.Summary()
 
@@ -159,5 +156,7 @@ func (h *Handler) handleExport(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/x-yaml")
 	w.Header().Set("Content-Disposition", "attachment; filename=model.unm.yaml")
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		log.Printf("export write: %v", err)
+	}
 }

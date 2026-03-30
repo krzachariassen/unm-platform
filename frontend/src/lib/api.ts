@@ -553,13 +553,13 @@ export const api = {
   },
 
   async getNeedView(modelId: string): Promise<NeedViewResponse> {
-    const r = await fetch(`/api/models/${encodeURIComponent(modelId)}/views/need`)
+    const r = await fetch(`${API_BASE}/models/${encodeURIComponent(modelId)}/views/need`)
     if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch need view'))
     return r.json()
   },
 
   async getCapabilityView(modelId: string): Promise<CapabilityViewResponse> {
-    const r = await fetch(`/api/models/${encodeURIComponent(modelId)}/views/capability`)
+    const r = await fetch(`${API_BASE}/models/${encodeURIComponent(modelId)}/views/capability`)
     if (!r.ok) throw new Error(await extractError(r, 'Failed to fetch capability view'))
     return r.json()
   },

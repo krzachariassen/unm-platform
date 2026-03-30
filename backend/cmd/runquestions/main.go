@@ -64,7 +64,7 @@ func main() {
 	}
 
 	// Load example model
-	examplePath := filepath.Join("..", "examples", "inca.unm.yaml")
+	examplePath := filepath.Join("..", "examples", "nexus.unm.yaml")
 	yamlBytes, err := os.ReadFile(examplePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "read example: %v\n", err)
