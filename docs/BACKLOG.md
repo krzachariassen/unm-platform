@@ -5,12 +5,13 @@ Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
 _Last updated: 2026-03-30_
-_Priority: Phase 9 (DSL v2) complete — clean-up and docs remain._
+_Priority: Phase 9.11 Multi-Actor Needs in progress._
 
 ---
 
 ## Recently Completed
 
+- [x] **Phase 9.11 (9.11.1–9.11.8)** — Multi-Actor Needs: `ActorNames []string`, flex YAML/DSL parsing, multi-actor view grouping, signals/value-chain updates, frontend SignalsView + api.ts (2026-03-30)
 - [x] **Phase 9 clean-up** — Merge all Phase 9 PRs to main, replace INCA examples with Nexus (anonymized), enforce backlog update in git-flow rules (2026-03-30)
 - [x] **PR #24 anonymize** — Add nexus.unm.yaml (generic marketplace model), gitignore INCA files, update all test fixtures (2026-03-30)
 
@@ -316,25 +317,14 @@ needs:
     supportedBy: [...]
 ```
 
-- [ ] **9.11.1** — Change `Need.ActorName string` to `ActorNames []string`
-      in domain entity. Update all references across domain, use cases, and
-      adapters. _File: `entity/need.go` + all dependents_ (#backend)
-- [ ] **9.11.2** — Parser: `actor` field accepts both a string and a list of
-      strings (flex unmarshaling). Convert singular to `[]string{actor}`.
-      _File: `yaml_parser.go`_ (#backend)
-- [ ] **9.11.3** — DSL parser: support `actor "A", "B"` syntax.
-      _File: `dsl_parser.go`, `dsl/grammar.go`_ (#backend)
-- [ ] **9.11.4** — Need View API: needs with multiple actors appear in each
-      actor's group (not duplicated in the model, but rendered under each).
-      _File: `handler/view_enriched.go`_ (#backend)
-- [ ] **9.11.5** — Frontend NeedView: handle multi-actor needs in grouping
-      and display. _File: `NeedView.tsx`_ (#frontend)
-- [ ] **9.11.6** — Realization View: `capToSvcTeam` builder handles
-      multi-actor needs. _File: `RealizationView.tsx`_ (#frontend)
-- [ ] **9.11.7** — Signals/Cognitive Load views: need-span calculations
-      account for multi-actor needs. _File: `signals.go`, `cognitive_load.go`_ (#backend)
-- [ ] **9.11.8** — Parser + domain tests for multi-actor needs.
-      _File: `yaml_parser_test.go`, `need_test.go`_ (#backend)
+- [x] **9.11.1** — Change `Need.ActorName string` to `ActorNames []string`
+- [x] **9.11.2** — Parser: `actor` field accepts both a string and a list of strings (flex unmarshaling).
+- [x] **9.11.3** — DSL parser: support `actor "A", "B"` syntax.
+- [x] **9.11.4** — Need View API: needs with multiple actors appear in each actor's group.
+- [x] **9.11.5** — Frontend NeedView: handle multi-actor needs (server-side grouping, no client changes needed).
+- [x] **9.11.6** — Signals View: `actor_names[]` display in SignalsView.tsx and api.ts.
+- [x] **9.11.7** — Signals/Cognitive Load views: `ActorNames []string` in signals_service, value_chain, analysis_runner.
+- [x] **9.11.8** — Parser + domain tests for multi-actor needs.
 - [ ] **9.11.9** — Convert existing example files: deduplicate needs shared
       across actors. _Files: `examples/*.unm.yaml`_ (#docs)
 
@@ -344,6 +334,17 @@ needs:
 **Wave 2** (relationship direction changes): 9.3, 9.4, 9.5
 **Wave 3** (examples + docs): 9.8, 9.9, 9.10
 Existing YAML/UNM files will be converted to v2 format — no backward compat needed.
+
+---
+
+## Bugs
+
+- [ ] **BUG-1** — Cannot upload `.unm` DSL files via the UI: server returns
+      `parser: invalid YAML: yaml: line 2: mapping values are not allowed in
+      this context`. Root cause: the upload endpoint routes all files through
+      the YAML parser regardless of extension. Fix: detect `.unm` extension in
+      the parse handler and dispatch to the DSL parser.
+      _File: `handler/model.go` or `usecase/parse_and_validate.go`_ (#backend)
 
 ---
 
