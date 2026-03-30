@@ -477,6 +477,31 @@ actor "Merchant" {}
 	}
 }
 
+func TestParse_HashComments(t *testing.T) {
+	src := `
+# This is a hash comment
+system "My System" {
+  # inline hash comment
+  description "desc"
+}
+# end hash comment
+actor "Merchant" {} # trailing comment
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f.System == nil {
+		t.Fatal("expected system node")
+	}
+	if f.System.Name != "My System" {
+		t.Errorf("expected name %q, got %q", "My System", f.System.Name)
+	}
+	if len(f.Actors) != 1 {
+		t.Errorf("expected 1 actor, got %d", len(f.Actors))
+	}
+}
+
 func TestParse_MissingOpenBrace(t *testing.T) {
 	src := `system "My System" description "desc" }`
 	_, err := Parse(src)
