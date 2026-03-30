@@ -47,6 +47,7 @@ type AIConfig struct {
 	RequestTimeout time.Duration              `koanf:"request_timeout"`
 	Timeouts       map[string]string          `koanf:"timeouts"`
 	Reasoning      map[string]string          `koanf:"reasoning"`
+	AllowedIPs     []string                   `koanf:"allowed_ips"` // empty = no restriction; set to restrict AI by client IP
 }
 
 // ModelForCategory returns the model to use for a given template category.

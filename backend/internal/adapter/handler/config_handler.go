@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"net"
 	"net/http"
+	"strings"
 )
 
 // configResponse is the safe (no secrets) config payload returned by GET /api/config.
@@ -47,9 +49,16 @@ type valueChainConfigResponse struct {
 
 // handleGetConfig returns safe (non-secret) configuration values.
 func (h *Handler) handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	aiEnabled := h.aiClient != nil && h.aiClient.IsConfigured()
+
+	if aiEnabled && len(h.cfg.AI.AllowedIPs) > 0 {
+		clientIP := extractClientIP(r)
+		aiEnabled = isIPAllowed(clientIP, h.cfg.AI.AllowedIPs)
+	}
+
 	resp := configResponse{
 		AI: aiConfigResponse{
-			Enabled: h.aiClient != nil && h.aiClient.IsConfigured(),
+			Enabled: aiEnabled,
 		},
 		Features: featuresConfigResponse{
 			DebugRoutes: h.cfg.Features.DebugRoutes,
@@ -76,3 +85,38 @@ func (h *Handler) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, resp)
 }
+
+// extractClientIP returns the real client IP, respecting X-Forwarded-For and X-Real-IP proxy headers.
+func extractClientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For can be a comma-separated list; take the first (original client).
+		parts := strings.SplitN(xff, ",", 2)
+		return strings.TrimSpace(parts[0])
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// isIPAllowed returns true if ip matches any entry in the allowlist.
+// Supports exact IPs and CIDR ranges (e.g. "10.0.0.0/8").
+func isIPAllowed(ip string, allowlist []string) bool {
+	parsed := net.ParseIP(ip)
+	for _, entry := range allowlist {
+		if strings.Contains(entry, "/") {
+			_, network, err := net.ParseCIDR(entry)
+			if err == nil && parsed != nil && network.Contains(parsed) {
+				return true
+			}
+		} else if entry == ip {
+			return true
+		}
+	}
+	return false
+}
+
