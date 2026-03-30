@@ -1,916 +1,734 @@
-# INCA — UNM Model (Louie's Org Design Workshop)
-# Source: INCA - Org Design Workshop - Page 1.svg
-# Decoded from Lucidchart SVG vector text
-
+# INCA — UNM Model (Org Design Workshop, v2 format)
+# Source: INCA Org Design Workshop (Louie, Feb 2026)
+# Format: UNM DSL v2 — flat capabilities, realizes on services, interacts on teams
+#
 system:
-  name: "INCA"
-  description: >
-    INCA (Inventory & Catalog Platform) manages the full lifecycle of menu and catalog data
-    at Uber: ingestion from merchant feeds, validation, publishing, indexing, and serving
-    to downstream consumers. This model reflects the org design workshop mapping by Louie.
-
+    name: INCA
+    description: |
+        INCA (Inventory & Catalog Platform) manages the full lifecycle of menu and catalog data at Uber: ingestion from merchant feeds, validation, publishing, indexing, and serving to downstream consumers. This model reflects the org design workshop mapping by Louie.
 actors:
-  - name: "INCA Platform Engineers"
-    description: >
-      Platform engineers responsible for operating, maintaining, and evolving
-      the INCA platform infrastructure and services.
-
-  - name: "Internal Engineers"
-    description: >
-      Internal engineering teams that interact with INCA for publishing catalogs,
-      managing product images, and recovering from data issues.
-
-  - name: "Catalog Data Engineers"
-    description: >
-      Engineers focused on catalog data quality, enrichment, and schema evolution.
-
-  - name: "Catalog Management"
-    description: >
-      Operators and managers who perform catalog data operations, quality checks,
-      and bulk corrections on merchant catalog data.
-
-  - name: "Consumer Facing Teams"
-    description: >
-      Teams building consumer-facing experiences that depend on real-time menu
-      data for eater-facing applications.
-
-  - name: "Data Solutions"
-    description: >
-      Analytics and data teams that consume INCA event data to build reporting
-      and analytics capabilities.
-
+    - name: Catalog Data Engineers
+      description: |
+        Engineers focused on catalog data quality, enrichment, and schema evolution.
+    - name: Catalog Management
+      description: |
+        Operators and managers who perform catalog data operations, quality checks, and bulk corrections on merchant catalog data.
+    - name: Consumer Facing Teams
+      description: |
+        Teams building consumer-facing experiences that depend on real-time menu data for eater-facing applications.
+    - name: Data Solutions
+      description: |
+        Analytics and data teams that consume INCA event data to build reporting and analytics capabilities.
+    - name: INCA Platform Engineers
+      description: |
+        Platform engineers responsible for operating, maintaining, and evolving the INCA platform infrastructure and services.
+    - name: Internal Engineers
+      description: |
+        Internal engineering teams that interact with INCA for publishing catalogs, managing product images, and recovering from data issues.
 needs:
-  # ── INCA Platform Engineers ──
-  - name: "Safely perform changes on catalog model to expand functionality"
-    actor: "INCA Platform Engineers"
-    outcome: >
-      Platform engineers can safely modify the catalog data model and add new attributes
-      or entity types to expand platform functionality without breaking existing consumers.
-    supportedBy:
-      - target: "Catalog Model & Attribute Management"
-      - target: "Development Environment"
-
-  - name: "Perform large-scale transformation actions on catalog data"
-    actor: "INCA Platform Engineers"
-    outcome: >
-      Engineers can execute bulk data transformations and migrations across the catalog
-      dataset reliably and with tracking.
-    supportedBy:
-      - target: "Catalog Data Management"
-      - target: "Catalog Bulk-Actions"
-
-  - name: "Debug catalog processing pipeline to root-cause issues"
-    actor: "INCA Platform Engineers"
-    outcome: >
-      Engineers can trace data through the processing pipeline, identify where failures
-      occur, and diagnose root causes of catalog processing issues.
-    supportedBy:
-      - target: "Catalog Processing Status"
-      - target: "Issue Tracking & Management"
-      - target: "Catalog Regression Detection"
-
-  - name: "Enrich development workflows with context"
-    actor: "INCA Platform Engineers"
-    outcome: >
-      Development tools provide contextual information about catalog entities and
-      processing state to accelerate development and debugging.
-    supportedBy:
-      - target: "Development Environment"
-      - target: "Internal Catalog Management & Health Portal"
-
-  # ── Internal Engineers ──
-  - name: "Onboard and publish new merchant catalogs"
-    actor: "Internal Engineers"
-    outcome: >
-      Internal teams can onboard new merchants by submitting their catalog data and
-      having it published through the standard ingestion pipeline.
-    supportedBy:
-      - target: "Catalog Ingestion & Job Tracking"
-      - target: "Entity Publishing & Enrichment Framework"
-
-  - name: "Ensure product images are correctly associated and render properly"
-    actor: "Internal Engineers"
-    outcome: >
-      Product images uploaded by merchants are correctly linked to catalog entities,
-      stored reliably, and render properly across consumer surfaces.
-    supportedBy:
-      - target: "Image Processing & Management"
-
-  - name: "Recover catalog data from a specific point in time"
-    actor: "Internal Engineers"
-    outcome: >
-      When data corruption or unintended changes occur, engineers can restore catalog
-      data to a known good state from a specific point in time.
-    supportedBy:
-      - target: "Back-Up & Point-In-Time Recovery"
-
-  # ── Catalog Data Engineers ──
-  - name: "Understand why a feed failed and correct the issue"
-    actor: "Catalog Data Engineers"
-    outcome: >
-      When a feed fails processing, engineers receive actionable error information
-      identifying which items failed and why, so they can correct and resubmit.
-    supportedBy:
-      - target: "Issue Tracking & Management"
-      - target: "Catalog Processing Status"
-      - target: "Catalog Ingestion & Job Tracking"
-
-  - name: "Enrich catalog data from other sources to improve Quality"
-    actor: "Catalog Data Engineers"
-    outcome: >
-      Catalog data can be enriched with information from external and internal sources
-      to improve data quality, completeness, and accuracy.
-    supportedBy:
-      - target: "Entity Publishing & Enrichment Framework"
-      - target: "Entity Validation Management"
-
-  - name: "Expand and change catalog data model features"
-    actor: "Catalog Data Engineers"
-    outcome: >
-      Data engineers can evolve the catalog data model by adding new fields,
-      changing constraints, and extending entity schemas.
-    supportedBy:
-      - target: "Catalog Model & Attribute Management"
-      - target: "Entity CRUD & Lifecycle"
-
-  # ── Catalog Management ──
-  - name: "Ensure catalog data adheres to constraints"
-    actor: "Catalog Management"
-    outcome: >
-      Catalog data is validated against defined constraints and business rules,
-      ensuring consistency and correctness before it reaches consumers.
-    supportedBy:
-      - target: "Entity Validation Management"
-      - target: "Catalog Regression Detection"
-
-  - name: "Perform safe bulk corrections on catalog data"
-    actor: "Catalog Management"
-    outcome: >
-      Operators can perform bulk corrections on catalog data safely, with proper
-      tracking and the ability to roll back if needed.
-    supportedBy:
-      - target: "Catalog Bulk-Actions"
-      - target: "Back-Up & Point-In-Time Recovery"
-
-  - name: "Access raw merchant catalog data"
-    actor: "Catalog Management"
-    outcome: >
-      Operators can access and inspect the raw merchant catalog data as submitted,
-      before any transformation or enrichment has been applied.
-    supportedBy:
-      - target: "Raw Catalog File Storage"
-      - target: "Internal Catalog Management & Health Portal"
-
-  # ── Consumer Facing Teams ──
-  - name: "Receive real-time menu entity changes to serve to eaters"
-    actor: "Consumer Facing Teams"
-    outcome: >
-      Consumer-facing applications receive real-time notifications of menu and catalog
-      entity changes so eaters always see current menus and availability.
-    supportedBy:
-      - target: "Catalog Serving & Notifications"
-      - target: "Entity Change Notifications"
-
-  - name: "Reliably access menus to hydrate and backfill served menus"
-    actor: "Consumer Facing Teams"
-    outcome: >
-      Consumer-facing services can reliably read menu data for hydration and backfill
-      scenarios, ensuring complete and consistent menu presentation.
-    supportedBy:
-      - target: "Catalog Serving & Retrieval"
-      - target: "Menu Generation"
-
-  # ── Data Solutions ──
-  - name: "Ingest comprehensive event data to build analytics tables"
-    actor: "Data Solutions"
-    outcome: >
-      Analytics teams can ingest comprehensive catalog event data to build reporting
-      tables and dashboards for business intelligence.
-    supportedBy:
-      - target: "Entity Change Notifications"
-
+    - name: Access raw merchant catalog data
+      actor: Catalog Management
+      outcome: |
+        Operators can access and inspect the raw merchant catalog data as submitted, before any transformation or enrichment has been applied.
+      supportedBy:
+        - Raw Catalog File Storage
+        - Internal Catalog Management & Health Portal
+    - name: Debug catalog processing pipeline to root-cause issues
+      actor: INCA Platform Engineers
+      outcome: |
+        Engineers can trace data through the processing pipeline, identify where failures occur, and diagnose root causes of catalog processing issues.
+      supportedBy:
+        - Catalog Processing Status
+        - Issue Tracking & Management
+        - Catalog Regression Detection
+    - name: Enrich catalog data from other sources to improve Quality
+      actor: Catalog Data Engineers
+      outcome: |
+        Catalog data can be enriched with information from external and internal sources to improve data quality, completeness, and accuracy.
+      supportedBy:
+        - Entity Publishing & Enrichment Framework
+        - Entity Validation Management
+    - name: Enrich development workflows with context
+      actor: INCA Platform Engineers
+      outcome: |
+        Development tools provide contextual information about catalog entities and processing state to accelerate development and debugging.
+      supportedBy:
+        - Development Environment
+        - Internal Catalog Management & Health Portal
+    - name: Ensure catalog data adheres to constraints
+      actor: Catalog Management
+      outcome: |
+        Catalog data is validated against defined constraints and business rules, ensuring consistency and correctness before it reaches consumers.
+      supportedBy:
+        - Entity Validation Management
+        - Catalog Regression Detection
+    - name: Ensure product images are correctly associated and render properly
+      actor: Internal Engineers
+      outcome: |
+        Product images uploaded by merchants are correctly linked to catalog entities, stored reliably, and render properly across consumer surfaces.
+      supportedBy:
+        - Image Processing & Management
+    - name: Expand and change catalog data model features
+      actor: Catalog Data Engineers
+      outcome: |
+        Data engineers can evolve the catalog data model by adding new fields, changing constraints, and extending entity schemas.
+      supportedBy:
+        - Catalog Model & Attribute Management
+        - Entity CRUD & Lifecycle
+    - name: Ingest comprehensive event data to build analytics tables
+      actor: Data Solutions
+      outcome: |
+        Analytics teams can ingest comprehensive catalog event data to build reporting tables and dashboards for business intelligence.
+      supportedBy:
+        - Entity Change Notifications
+    - name: Onboard and publish new merchant catalogs
+      actor: Internal Engineers
+      outcome: |
+        Internal teams can onboard new merchants by submitting their catalog data and having it published through the standard ingestion pipeline.
+      supportedBy:
+        - Catalog Ingestion & Job Tracking
+        - Entity Publishing & Enrichment Framework
+    - name: Perform large-scale transformation actions on catalog data
+      actor: INCA Platform Engineers
+      outcome: |
+        Engineers can execute bulk data transformations and migrations across the catalog dataset reliably and with tracking.
+      supportedBy:
+        - Catalog Data Management
+        - Catalog Bulk-Actions
+    - name: Perform safe bulk corrections on catalog data
+      actor: Catalog Management
+      outcome: |
+        Operators can perform bulk corrections on catalog data safely, with proper tracking and the ability to roll back if needed.
+      supportedBy:
+        - Catalog Bulk-Actions
+        - Back-Up & Point-In-Time Recovery
+    - name: Receive real-time menu entity changes to serve to eaters
+      actor: Consumer Facing Teams
+      outcome: |
+        Consumer-facing applications receive real-time notifications of menu and catalog entity changes so eaters always see current menus and availability.
+      supportedBy:
+        - Catalog Serving & Notifications
+        - Entity Change Notifications
+    - name: Recover catalog data from a specific point in time
+      actor: Internal Engineers
+      outcome: |
+        When data corruption or unintended changes occur, engineers can restore catalog data to a known good state from a specific point in time.
+      supportedBy:
+        - Back-Up & Point-In-Time Recovery
+    - name: Reliably access menus to hydrate and backfill served menus
+      actor: Consumer Facing Teams
+      outcome: |
+        Consumer-facing services can reliably read menu data for hydration and backfill scenarios, ensuring complete and consistent menu presentation.
+      supportedBy:
+        - Catalog Serving & Retrieval
+        - Menu Generation
+    - name: Safely perform changes on catalog model to expand functionality
+      actor: INCA Platform Engineers
+      outcome: |
+        Platform engineers can safely modify the catalog data model and add new attributes or entity types to expand platform functionality without breaking existing consumers.
+      supportedBy:
+        - Catalog Model & Attribute Management
+        - Development Environment
+    - name: Understand why a feed failed and correct the issue
+      actor: Catalog Data Engineers
+      outcome: |
+        When a feed fails processing, engineers receive actionable error information identifying which items failed and why, so they can correct and resubmit.
+      supportedBy:
+        - Issue Tracking & Management
+        - Catalog Processing Status
+        - Catalog Ingestion & Job Tracking
 capabilities:
-  # ── Band 1: Primary Capabilities ──
-  - name: "Catalog Model & Attribute Management"
-    description: >
-      Manages the catalog data model schema, attributes, and entity type definitions.
-      Note: This happens by hand today.
-    visibility: "domain"
-    ownedBy: "inca-catalog-experience-dev"
-    realizedBy:
-      - target: "inca-tool"
-        role: "primary"
-
-  - name: "Catalog Data Management"
-    description: >
-      Manages catalog data operations including migrations and bulk data management.
-    visibility: "domain"
-    ownedBy: "inca-catalog-experience-dev"
-    realizedBy:
-      - target: "inca-data-migrations"
-        role: "primary"
-      - target: "inca-tool"
-        role: "supporting"
-
-  - name: "Development Environment"
-    description: >
-      Provides development tooling and local environment support for INCA engineers.
-    visibility: "domain"
-    ownedBy: "inca-catalog-experience-dev"
-    realizedBy:
-      - target: "inca-mcp"
-        role: "primary"
-      - target: "inca-tool"
-        role: "supporting"
-
-  - name: "Menu Ingestion"
-    description: >
-      Ingests menu data from merchant feeds and external sources into the catalog pipeline.
-    visibility: "user-facing"
-    ownedBy: "inca-ingestion-dev"
-    realizedBy:
-      - target: "menu2catalog"
-        role: "primary"
-      - target: "restaurant-gateway"
-        role: "supporting"
-
-  - name: "Catalog Ingestion & Job Tracking"
-    description: >
-      Processes catalog feed submissions and tracks ingestion job status and progress.
-    visibility: "user-facing"
-    ownedBy: "inca-ingestion-dev"
-    realizedBy:
-      - target: "inca-feed-api"
-        role: "primary"
-      - target: "inca-feed-adhoc-worker"
-        role: "supporting"
-
-  - name: "Image Processing & Management"
-    description: >
-      Handles product image upload, processing, storage, and association with catalog entities.
-    visibility: "domain"
-    ownedBy: "inca-ingestion-dev"
-    realizedBy:
-      - target: "inca-image"
-        role: "primary"
-
-  - name: "Internal Catalog Management & Health Portal"
-    description: >
-      Internal web portal for catalog management operations, system health monitoring,
-      and operational tooling.
-    visibility: "domain"
-    ownedBy: "inca-catalog-experience-dev"
-    realizedBy:
-      - target: "inca-web"
-        role: "primary"
-
-  - name: "Entity Publishing & Enrichment Framework"
-    description: >
-      Publishes validated entities to the serving layer and applies enrichment transformations.
-    visibility: "domain"
-    ownedBy: "inca-publisher-dev"
-    realizedBy:
-      - target: "inca-publisher"
-        role: "primary"
-      - target: "inca-publisher-worker"
-        role: "supporting"
-      - target: "inca-entity-builder"
-        role: "supporting"
-      - target: "inca-serverless"
-        role: "supporting"
-
-  - name: "Entity Validation Management"
-    description: >
-      Validates catalog entities against business rules, semantic constraints,
-      and menu-specific validation logic.
-    visibility: "domain"
-    ownedBy: "catalog-quality-eng"
-    realizedBy:
-      - target: "inca-umpire"
-        role: "primary"
-      - target: "semantic-validations"
-        role: "supporting"
-      - target: "menu-validations"
-        role: "supporting"
-
-  - name: "Catalog Bulk-Actions"
-    description: >
-      Enables bulk transformation and correction operations on catalog data at scale.
-    visibility: "domain"
-    ownedBy: "catalog-quality-eng"
-    realizedBy:
-      - target: "inca-transformer"
-        role: "primary"
-
-  - name: "Catalog Query"
-    description: >
-      Provides query interfaces for searching and retrieving catalog data.
-    visibility: "domain"
-    ownedBy: "catalog-quality-eng"
-    realizedBy:
-      - target: "inca-query"
-        role: "primary"
-
-  - name: "Catalog Serving & Notifications"
-    description: >
-      Serves catalog data to consumers and publishes real-time change notifications.
-    visibility: "user-facing"
-    ownedBy: "inca-serving"
-    realizedBy:
-      - target: "menu-topics"
-        role: "primary"
-      - target: "inca-serving"
-        role: "primary"
-      - target: "inca-serving-gateway"
-        role: "supporting"
-
-  - name: "Catalog Serving & Retrieval"
-    description: >
-      Provides high-performance catalog data retrieval for consumer-facing applications.
-    visibility: "user-facing"
-    ownedBy: "inca-serving"
-    realizedBy:
-      - target: "restaurant-gateway"
-        role: "primary"
-      - target: "menu-serving"
-        role: "supporting"
-
-  # ── Band 2: Supporting Capabilities ──
-  - name: "Data Scrubbing & Clean-Up"
-    description: >
-      Scrubs and cleans catalog data to remove stale, duplicate, or invalid entries.
-    visibility: "foundational"
-    ownedBy: "inca-publisher-dev"
-    realizedBy:
-      - target: "inca-scrubber"
-        role: "primary"
-
-  - name: "Catalog Registry & Configuration"
-    description: >
-      Manages catalog registry entries and platform configuration settings.
-    visibility: "foundational"
-    ownedBy: "inca-core-dev"
-    realizedBy:
-      - target: "inca-registry"
-        role: "primary"
-
-  - name: "Back-Up & Point-In-Time Recovery"
-    description: >
-      Provides backup and point-in-time recovery capabilities for catalog data.
-    visibility: "foundational"
-    ownedBy: "inca-observability-dev"
-    realizedBy:
-      - target: "inca-backup"
-        role: "primary"
-
-  - name: "Issue Tracking & Management"
-    description: >
-      Tracks and manages catalog processing issues, errors, and data quality problems.
-    visibility: "foundational"
-    ownedBy: "inca-observability-dev"
-    realizedBy:
-      - target: "inca-issue-store"
-        role: "primary"
-
-  - name: "Entity Change Notifications"
-    description: >
-      Publishes asynchronous notifications of entity changes for downstream consumers.
-    visibility: "foundational"
-    ownedBy: "inca-publisher-dev"
-    realizedBy:
-      - target: "inca-async"
-        role: "primary"
-
-  - name: "Catalog Processing Status"
-    description: >
-      Monitors and reports on catalog processing pipeline status and progress.
-    visibility: "foundational"
-    ownedBy: "inca-observability-dev"
-    realizedBy:
-      - target: "inca-status"
-        role: "primary"
-
-  - name: "Menu Generation"
-    description: >
-      Generates consumer-ready menu representations from catalog entities, including
-      format conversion and caching.
-    visibility: "foundational"
-    ownedBy: "inca-model-conversion-dev"
-    realizedBy:
-      - target: "menu-cache-worker"
-        role: "primary"
-      - target: "inca-model-conversion-worker"
-        role: "supporting"
-      - target: "catalog2menu"
-        role: "supporting"
-
-  - name: "Catalog Regression Detection"
-    description: >
-      Detects regressions in catalog data quality and processing metrics in real-time.
-    visibility: "foundational"
-    ownedBy: "inca-observability-dev"
-    realizedBy:
-      - target: "inca-realtime-stats"
-        role: "primary"
-      - target: "inca-regression-detector"
-        role: "supporting"
-
-  # ── Band 3: Foundation Capabilities ──
-  - name: "Catalog Indexing"
-    description: >
-      Indexes catalog entities for efficient search and retrieval.
-    visibility: "infrastructure"
-    ownedBy: "inca-core-dev"
-    realizedBy:
-      - target: "inca-indexer"
-        role: "primary"
-      - target: "inca-indexer-worker"
-        role: "supporting"
-
-  - name: "Entity CRUD & Lifecycle"
-    description: >
-      Core CRUD operations and lifecycle management for catalog entities.
-    visibility: "infrastructure"
-    ownedBy: "inca-core-dev"
-    realizedBy:
-      - target: "inca-core"
-        role: "primary"
-
-  - name: "Catalog To Menu Mapper"
-    description: >
-      Maps and transforms catalog entities into menu representations.
-    visibility: "infrastructure"
-    ownedBy: "inca-model-conversion-dev"
-    realizedBy:
-      - target: "catalog2menu"
-        role: "primary"
-
-  # ── Band 4: Data Layer ──
-  - name: "Raw Catalog File Storage"
-    description: >
-      Storage for raw merchant catalog files as originally submitted.
-    visibility: "infrastructure"
-    ownedBy: "inca-core-dev"
-    realizedBy:
-      - target: "inca-blob"
-        role: "primary"
-
+    - name: Back-Up & Point-In-Time Recovery
+      description: |
+        Provides backup and point-in-time recovery capabilities for catalog data.
+      visibility: foundational
+    - name: Catalog Bulk-Actions
+      description: |
+        Enables bulk transformation and correction operations on catalog data at scale.
+      visibility: domain
+    - name: Catalog Data Management
+      description: |
+        Manages catalog data operations including migrations and bulk data management.
+      visibility: domain
+    - name: Catalog Indexing
+      description: |
+        Indexes catalog entities for efficient search and retrieval.
+      visibility: infrastructure
+    - name: Catalog Ingestion & Job Tracking
+      description: |
+        Processes catalog feed submissions and tracks ingestion job status and progress.
+      visibility: user-facing
+    - name: Catalog Model & Attribute Management
+      description: |
+        Manages the catalog data model schema, attributes, and entity type definitions. Note: This happens by hand today.
+      visibility: domain
+    - name: Catalog Processing Status
+      description: |
+        Monitors and reports on catalog processing pipeline status and progress.
+      visibility: foundational
+    - name: Catalog Query
+      description: |
+        Provides query interfaces for searching and retrieving catalog data.
+      visibility: domain
+    - name: Catalog Registry & Configuration
+      description: |
+        Manages catalog registry entries and platform configuration settings.
+      visibility: foundational
+    - name: Catalog Regression Detection
+      description: |
+        Detects regressions in catalog data quality and processing metrics in real-time.
+      visibility: foundational
+    - name: Catalog Serving & Notifications
+      description: |
+        Serves catalog data to consumers and publishes real-time change notifications.
+      visibility: user-facing
+    - name: Catalog Serving & Retrieval
+      description: |
+        Provides high-performance catalog data retrieval for consumer-facing applications.
+      visibility: user-facing
+    - name: Catalog To Menu Mapper
+      description: |
+        Maps and transforms catalog entities into menu representations.
+      visibility: infrastructure
+    - name: Data Scrubbing & Clean-Up
+      description: |
+        Scrubs and cleans catalog data to remove stale, duplicate, or invalid entries.
+      visibility: foundational
+    - name: Development Environment
+      description: |
+        Provides development tooling and local environment support for INCA engineers.
+      visibility: domain
+    - name: Entity CRUD & Lifecycle
+      description: |
+        Core CRUD operations and lifecycle management for catalog entities.
+      visibility: infrastructure
+    - name: Entity Change Notifications
+      description: |
+        Publishes asynchronous notifications of entity changes for downstream consumers.
+      visibility: foundational
+    - name: Entity Publishing & Enrichment Framework
+      description: |
+        Publishes validated entities to the serving layer and applies enrichment transformations.
+      visibility: domain
+    - name: Entity Validation Management
+      description: |
+        Validates catalog entities against business rules, semantic constraints, and menu-specific validation logic.
+      visibility: domain
+    - name: Image Processing & Management
+      description: |
+        Handles product image upload, processing, storage, and association with catalog entities.
+      visibility: domain
+    - name: Internal Catalog Management & Health Portal
+      description: |
+        Internal web portal for catalog management operations, system health monitoring, and operational tooling.
+      visibility: domain
+    - name: Issue Tracking & Management
+      description: |
+        Tracks and manages catalog processing issues, errors, and data quality problems.
+      visibility: foundational
+    - name: Menu Generation
+      description: |
+        Generates consumer-ready menu representations from catalog entities, including format conversion and caching.
+      visibility: foundational
+    - name: Menu Ingestion
+      description: |
+        Ingests menu data from merchant feeds and external sources into the catalog pipeline.
+      visibility: user-facing
+    - name: Raw Catalog File Storage
+      description: |
+        Storage for raw merchant catalog files as originally submitted.
+      visibility: infrastructure
 services:
-  - name: "inca-tool"
-    description: "CLI tooling for catalog model management, data operations, and development tasks"
-    ownedBy: "inca-catalog-experience-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Entity inspection commands read from EntityService"
-
-  - name: "inca-data-migrations"
-    description: "Manages and executes catalog data migrations"
-    ownedBy: "inca-catalog-experience-dev"
-
-  - name: "inca-mcp"
-    description: "Development environment and local tooling support service"
-    ownedBy: "inca-catalog-experience-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "readentity tool reads entity state via EntityService"
-      - target: "inca-publisher"
-        description: "simulatepublishing tool invokes publisher validation"
-
-  - name: "menu2catalog"
-    description: "Transforms incoming menu feed data into catalog entity format"
-    ownedBy: "inca-ingestion-dev"
-
-  - name: "restaurant-gateway"
-    description: "Gateway service for restaurant and menu data ingestion and retrieval"
-    ownedBy: "inca-serving"
-
-  - name: "inca-feed-api"
-    description: "API service for catalog feed submission and job status tracking"
-    ownedBy: "inca-ingestion-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads catalog configuration and entity state during feed job coordination"
-
-  - name: "inca-feed-adhoc-worker"
-    description: "Worker for processing ad-hoc and bulk feed ingestion jobs"
-    ownedBy: "inca-ingestion-dev"
-
-  - name: "inca-image"
-    description: "Handles product image processing, storage, and association"
-    ownedBy: "inca-ingestion-dev"
-    dependsOn:
-      - target: "inca-blob"
-        description: "Stores processed image artifacts"
-      - target: "inca-core"
-        description: "Associates processed images with catalog entities via EntityService"
-
-  - name: "inca-web"
-    description: "Internal web portal for catalog management and system health monitoring"
-    ownedBy: "inca-catalog-experience-dev"
-
-  - name: "inca-publisher"
-    description: "Publishes validated entities to the serving layer"
-    ownedBy: "inca-publisher-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads and enriches entities from EntityService before publishing"
-
-  - name: "inca-publisher-worker"
-    description: "Async worker for entity publishing pipeline"
-    ownedBy: "inca-publisher-dev"
-    dependsOn:
-      - target: "inca-publisher"
-        description: "PublishingManagementService and PublishingStatusService for workflow orchestration"
-      - target: "inca-realtime-stats"
-        description: "RealtimeStatsService to check catalog statistics before publishing decisions"
-
-  - name: "inca-entity-builder"
-    description: "Builds and enriches entity representations for publishing"
-    ownedBy: "inca-publisher-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads raw entities and extension data from EntityService"
-
-  - name: "inca-serverless"
-    description: "Serverless functions for entity enrichment and transformation"
-    ownedBy: "inca-publisher-dev"
-    dependsOn:
-      - target: "inca-publisher"
-        description: "SimulatePublishEntity RPC for comparing enrichment results"
-      - target: "inca-core"
-        description: "EntityService for retrieving entity data during enrichment"
-      - target: "inca-registry"
-        description: "CatalogManagementService for catalog definitions used as enrichment context"
-
-  - name: "inca-umpire"
-    description: "Entity validation engine enforcing business rules and constraints"
-    ownedBy: "catalog-quality-eng"
-
-  - name: "semantic-validations"
-    description: "Semantic validation rules for catalog entity correctness"
-    ownedBy: "catalog-quality-eng"
-
-  - name: "menu-validations"
-    description: "Menu-specific validation logic and constraint checking"
-    ownedBy: "catalog-quality-eng"
-
-  - name: "inca-transformer"
-    description: "Bulk transformation engine for large-scale catalog data corrections"
-    ownedBy: "catalog-quality-eng"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads and writes transformed entities via EntityService"
-
-  - name: "inca-query"
-    description: "Query service for searching and retrieving catalog entities"
-    ownedBy: "catalog-quality-eng"
-
-  - name: "menu-topics"
-    description: "Publishes menu change events to topic-based notification channels"
-    ownedBy: "inca-serving"
-
-  - name: "inca-serving"
-    description: "Primary serving layer for catalog data reads"
-    ownedBy: "inca-serving"
-
-  - name: "inca-serving-gateway"
-    description: "Gateway for serving-layer read requests with routing and load balancing"
-    ownedBy: "inca-serving"
-    dependsOn:
-      - target: "inca-serving"
-        description: "Routes requests to CatalogServing service"
-
-  - name: "menu-serving"
-    description: "Menu-specific serving endpoint for consumer-facing read access"
-    ownedBy: "inca-serving"
-
-  - name: "inca-scrubber"
-    description: "Scrubs and cleans stale or invalid catalog data"
-    ownedBy: "inca-publisher-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads entities for analysis and deletes stale records via EntityService"
-
-  - name: "inca-registry"
-    description: "Manages catalog registry entries and platform configuration"
-    ownedBy: "inca-core-dev"
-
-  - name: "inca-backup"
-    description: "Catalog backup service with point-in-time recovery support"
-    ownedBy: "inca-observability-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "ScanCatalog to read all entities for backup; UpsertEntity to write them back on restore"
-      - target: "inca-blob"
-        description: "Stores and retrieves backup artifact files"
-
-  - name: "inca-issue-store"
-    description: "Stores and manages catalog processing issues and data quality alerts"
-    ownedBy: "inca-observability-dev"
-
-  - name: "inca-async"
-    description: "Publishes asynchronous entity change notifications"
-    ownedBy: "inca-publisher-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Delegates entity operations to EntityService"
-
-  - name: "inca-status"
-    description: "Monitors and reports catalog processing pipeline status"
-    ownedBy: "inca-observability-dev"
-
-  - name: "menu-cache-worker"
-    description: "Generates and caches consumer-ready menu representations"
-    ownedBy: "inca-model-conversion-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads entity data via EntityService to assemble menu caches"
-
-  - name: "inca-model-conversion-worker"
-    description: "Converts catalog model representations between formats"
-    ownedBy: "inca-model-conversion-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads source entities and writes converted entities via EntityService"
-
-  - name: "catalog2menu"
-    description: "Maps catalog entities to menu format representations"
-    ownedBy: "inca-model-conversion-dev"
-
-  - name: "inca-realtime-stats"
-    description: "Computes real-time statistics for catalog data quality monitoring"
-    ownedBy: "inca-observability-dev"
-    dependsOn:
-      - target: "inca-regression-detector"
-        description: "RegressionDetectorService to correlate live stats with detected regressions"
-
-  - name: "inca-regression-detector"
-    description: "Detects regressions in catalog data quality and processing metrics"
-    ownedBy: "inca-observability-dev"
-    dependsOn:
-      - target: "menu-cache-worker"
-        description: "MenuCacheWorkerService to access cached menu baseline data for comparison"
-
-  - name: "inca-indexer"
-    description: "Indexes catalog entities for search and retrieval"
-    ownedBy: "inca-core-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads entities from EntityService to build index entries"
-
-  - name: "inca-indexer-worker"
-    description: "Async worker for catalog entity indexing operations"
-    ownedBy: "inca-core-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Reads entities from EntityService to build index entries"
-      - target: "inca-indexer"
-        description: "Coordinates index build operations with the indexer API"
-
-  - name: "inca-core"
-    description: "Core CRUD operations and lifecycle management for catalog entities"
-    ownedBy: "inca-core-dev"
-
-  - name: "inca-hive-ingestor"
-    description: "Hive data ingestor for analytics (deprecated — DDS maintains this now)"
-    ownedBy: "inca-ingestion-dev"
-    dependsOn:
-      - target: "inca-core"
-        description: "Writes ingested Hive entities to EntityService"
-
-  - name: "inca-blob"
-    description: "Blob storage service for catalog and menu data files"
-    ownedBy: "inca-core-dev"
-
+    - name: catalog2menu
+      description: Maps catalog entities to menu format representations
+      ownedBy: inca-model-conversion-dev
+      realizes:
+        - target: Catalog To Menu Mapper
+          role: primary
+        - target: Menu Generation
+          role: supporting
+    - name: inca-async
+      description: Publishes asynchronous entity change notifications
+      ownedBy: inca-publisher-dev
+      dependsOn:
+        - target: inca-core
+          description: Delegates entity operations to EntityService
+      realizes:
+        - target: Entity Change Notifications
+          role: primary
+    - name: inca-backup
+      description: Catalog backup service with point-in-time recovery support
+      ownedBy: inca-observability-dev
+      dependsOn:
+        - target: inca-core
+          description: ScanCatalog to read all entities for backup; UpsertEntity to write them back on restore
+        - target: inca-blob
+          description: Stores and retrieves backup artifact files
+      realizes:
+        - target: Back-Up & Point-In-Time Recovery
+          role: primary
+      externalDeps:
+        - Cadence
+    - name: inca-blob
+      description: Blob storage service for catalog and menu data files
+      ownedBy: inca-core-dev
+      realizes:
+        - target: Raw Catalog File Storage
+          role: primary
+      externalDeps:
+        - Docstore
+        - Terrablob
+    - name: inca-core
+      description: Core CRUD operations and lifecycle management for catalog entities
+      ownedBy: inca-core-dev
+      realizes:
+        - target: Entity CRUD & Lifecycle
+          role: primary
+      externalDeps:
+        - Docstore
+    - name: inca-data-migrations
+      description: Manages and executes catalog data migrations
+      ownedBy: inca-catalog-experience-dev
+      realizes:
+        - target: Catalog Data Management
+          role: primary
+    - name: inca-entity-builder
+      description: Builds and enriches entity representations for publishing
+      ownedBy: inca-publisher-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads raw entities and extension data from EntityService
+      realizes:
+        - target: Entity Publishing & Enrichment Framework
+          role: supporting
+    - name: inca-feed-adhoc-worker
+      description: Worker for processing ad-hoc and bulk feed ingestion jobs
+      ownedBy: inca-ingestion-dev
+      realizes:
+        - target: Catalog Ingestion & Job Tracking
+          role: supporting
+      externalDeps:
+        - Cadence
+    - name: inca-feed-api
+      description: API service for catalog feed submission and job status tracking
+      ownedBy: inca-ingestion-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads catalog configuration and entity state during feed job coordination
+      realizes:
+        - target: Catalog Ingestion & Job Tracking
+          role: primary
+    - name: inca-hive-ingestor
+      description: Hive data ingestor for analytics (deprecated — DDS maintains this now)
+      ownedBy: inca-ingestion-dev
+      dependsOn:
+        - target: inca-core
+          description: Writes ingested Hive entities to EntityService
+    - name: inca-image
+      description: Handles product image processing, storage, and association
+      ownedBy: inca-ingestion-dev
+      dependsOn:
+        - target: inca-blob
+          description: Stores processed image artifacts
+        - target: inca-core
+          description: Associates processed images with catalog entities via EntityService
+      realizes:
+        - target: Image Processing & Management
+          role: primary
+      externalDeps:
+        - Terrablob
+    - name: inca-indexer
+      description: Indexes catalog entities for search and retrieval
+      ownedBy: inca-core-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads entities from EntityService to build index entries
+      realizes:
+        - target: Catalog Indexing
+          role: primary
+    - name: inca-indexer-worker
+      description: Async worker for catalog entity indexing operations
+      ownedBy: inca-core-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads entities from EntityService to build index entries
+        - target: inca-indexer
+          description: Coordinates index build operations with the indexer API
+      realizes:
+        - target: Catalog Indexing
+          role: supporting
+      externalDeps:
+        - Cadence
+    - name: inca-issue-store
+      description: Stores and manages catalog processing issues and data quality alerts
+      ownedBy: inca-observability-dev
+      realizes:
+        - target: Issue Tracking & Management
+          role: primary
+    - name: inca-mcp
+      description: Development environment and local tooling support service
+      ownedBy: inca-catalog-experience-dev
+      dependsOn:
+        - target: inca-core
+          description: readentity tool reads entity state via EntityService
+        - target: inca-publisher
+          description: simulatepublishing tool invokes publisher validation
+      realizes:
+        - target: Development Environment
+          role: primary
+    - name: inca-model-conversion-worker
+      description: Converts catalog model representations between formats
+      ownedBy: inca-model-conversion-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads source entities and writes converted entities via EntityService
+      realizes:
+        - target: Menu Generation
+          role: supporting
+      externalDeps:
+        - Cadence
+    - name: inca-publisher
+      description: Publishes validated entities to the serving layer
+      ownedBy: inca-publisher-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads and enriches entities from EntityService before publishing
+      realizes:
+        - target: Entity Publishing & Enrichment Framework
+          role: primary
+    - name: inca-publisher-worker
+      description: Async worker for entity publishing pipeline
+      ownedBy: inca-publisher-dev
+      dependsOn:
+        - target: inca-publisher
+          description: PublishingManagementService and PublishingStatusService for workflow orchestration
+        - target: inca-realtime-stats
+          description: RealtimeStatsService to check catalog statistics before publishing decisions
+      realizes:
+        - target: Entity Publishing & Enrichment Framework
+          role: supporting
+      externalDeps:
+        - Cadence
+    - name: inca-query
+      description: Query service for searching and retrieving catalog entities
+      ownedBy: catalog-quality-eng
+      realizes:
+        - target: Catalog Query
+          role: primary
+    - name: inca-realtime-stats
+      description: Computes real-time statistics for catalog data quality monitoring
+      ownedBy: inca-observability-dev
+      dependsOn:
+        - target: inca-regression-detector
+          description: RegressionDetectorService to correlate live stats with detected regressions
+      realizes:
+        - target: Catalog Regression Detection
+          role: primary
+      externalDeps:
+        - Cadence
+    - name: inca-registry
+      description: Manages catalog registry entries and platform configuration
+      ownedBy: inca-core-dev
+      realizes:
+        - target: Catalog Registry & Configuration
+          role: primary
+    - name: inca-regression-detector
+      description: Detects regressions in catalog data quality and processing metrics
+      ownedBy: inca-observability-dev
+      dependsOn:
+        - target: menu-cache-worker
+          description: MenuCacheWorkerService to access cached menu baseline data for comparison
+      realizes:
+        - target: Catalog Regression Detection
+          role: supporting
+    - name: inca-scrubber
+      description: Scrubs and cleans stale or invalid catalog data
+      ownedBy: inca-publisher-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads entities for analysis and deletes stale records via EntityService
+      realizes:
+        - target: Data Scrubbing & Clean-Up
+          role: primary
+      externalDeps:
+        - Cadence
+    - name: inca-serverless
+      description: Serverless functions for entity enrichment and transformation
+      ownedBy: inca-publisher-dev
+      dependsOn:
+        - target: inca-publisher
+          description: SimulatePublishEntity RPC for comparing enrichment results
+        - target: inca-core
+          description: EntityService for retrieving entity data during enrichment
+        - target: inca-registry
+          description: CatalogManagementService for catalog definitions used as enrichment context
+      realizes:
+        - target: Entity Publishing & Enrichment Framework
+          role: supporting
+    - name: inca-serving
+      description: Primary serving layer for catalog data reads
+      ownedBy: inca-serving
+      realizes:
+        - target: Catalog Serving & Notifications
+          role: primary
+    - name: inca-serving-gateway
+      description: Gateway for serving-layer read requests with routing and load balancing
+      ownedBy: inca-serving
+      dependsOn:
+        - target: inca-serving
+          description: Routes requests to CatalogServing service
+      realizes:
+        - target: Catalog Serving & Notifications
+          role: supporting
+    - name: inca-status
+      description: Monitors and reports catalog processing pipeline status
+      ownedBy: inca-observability-dev
+      realizes:
+        - target: Catalog Processing Status
+          role: primary
+    - name: inca-tool
+      description: CLI tooling for catalog model management, data operations, and development tasks
+      ownedBy: inca-catalog-experience-dev
+      dependsOn:
+        - target: inca-core
+          description: Entity inspection commands read from EntityService
+      realizes:
+        - target: Catalog Data Management
+          role: supporting
+        - target: Catalog Model & Attribute Management
+          role: primary
+        - target: Development Environment
+          role: supporting
+    - name: inca-transformer
+      description: Bulk transformation engine for large-scale catalog data corrections
+      ownedBy: catalog-quality-eng
+      dependsOn:
+        - target: inca-core
+          description: Reads and writes transformed entities via EntityService
+      realizes:
+        - target: Catalog Bulk-Actions
+          role: primary
+      externalDeps:
+        - Cadence
+    - name: inca-umpire
+      description: Entity validation engine enforcing business rules and constraints
+      ownedBy: catalog-quality-eng
+      realizes:
+        - target: Entity Validation Management
+          role: primary
+    - name: inca-web
+      description: Internal web portal for catalog management and system health monitoring
+      ownedBy: inca-catalog-experience-dev
+      realizes:
+        - target: Internal Catalog Management & Health Portal
+          role: primary
+    - name: menu-cache-worker
+      description: Generates and caches consumer-ready menu representations
+      ownedBy: inca-model-conversion-dev
+      dependsOn:
+        - target: inca-core
+          description: Reads entity data via EntityService to assemble menu caches
+      realizes:
+        - target: Menu Generation
+          role: primary
+      externalDeps:
+        - Cadence
+    - name: menu-serving
+      description: Menu-specific serving endpoint for consumer-facing read access
+      ownedBy: inca-serving
+      realizes:
+        - target: Catalog Serving & Retrieval
+          role: supporting
+    - name: menu-topics
+      description: Publishes menu change events to topic-based notification channels
+      ownedBy: inca-serving
+      realizes:
+        - target: Catalog Serving & Notifications
+          role: primary
+    - name: menu-validations
+      description: Menu-specific validation logic and constraint checking
+      ownedBy: catalog-quality-eng
+      realizes:
+        - target: Entity Validation Management
+          role: supporting
+    - name: menu2catalog
+      description: Transforms incoming menu feed data into catalog entity format
+      ownedBy: inca-ingestion-dev
+      realizes:
+        - target: Menu Ingestion
+          role: primary
+    - name: restaurant-gateway
+      description: Gateway service for restaurant and menu data ingestion and retrieval
+      ownedBy: inca-serving
+      realizes:
+        - target: Catalog Serving & Retrieval
+          role: primary
+        - target: Menu Ingestion
+          role: supporting
+    - name: semantic-validations
+      description: Semantic validation rules for catalog entity correctness
+      ownedBy: catalog-quality-eng
+      realizes:
+        - target: Entity Validation Management
+          role: supporting
 teams:
-  - name: "inca-core-dev"
-    type: "platform"
-    size: 5
-    description: >
-      Owns the authoritative catalog entity store (inca-core) and its immediate platform
-      support services. Acts as an internal platform providing Entity CRUD to all other
-      INCA teams and to external teams via x-as-a-service.
-    owns:
-      - "Entity CRUD & Lifecycle"
-      - "Catalog Indexing"
-      - "Catalog Registry & Configuration"
-      - "Raw Catalog File Storage"
-
-  - name: "inca-ingestion-dev"
-    type: "stream-aligned"
-    size: 5
-    description: >
-      Owns the merchant feed ingestion pipeline end-to-end: feed API, feed processing
-      workers, image handling, and menu ingestion.
-    owns:
-      - "Menu Ingestion"
-      - "Catalog Ingestion & Job Tracking"
-      - "Image Processing & Management"
-
-  - name: "inca-publisher-dev"
-    type: "stream-aligned"
-    size: 5
-    description: >
-      Owns entity publishing, validation, and downstream enrichment services including
-      entity construction, async writes, and data scrubbing.
-    owns:
-      - "Entity Publishing & Enrichment Framework"
-      - "Data Scrubbing & Clean-Up"
-      - "Entity Change Notifications"
-
-  - name: "inca-serving"
-    type: "stream-aligned"
-    size: 5
-    description: >
-      Owns the eater-facing serving layer: the CatalogServing API, the serving gateway,
-      menu-serving, and restaurant-gateway.
-    owns:
-      - "Catalog Serving & Notifications"
-      - "Catalog Serving & Retrieval"
-
-  - name: "inca-catalog-experience-dev"
-    type: "stream-aligned"
-    size: 5
-    description: >
-      Owns operational tooling, developer experience interfaces (MCP, CLI, web portal),
-      and data migration workflows.
-    owns:
-      - "Catalog Model & Attribute Management"
-      - "Catalog Data Management"
-      - "Development Environment"
-      - "Internal Catalog Management & Health Portal"
-
-  - name: "inca-observability-dev"
-    type: "complicated-subsystem"
-    size: 5
-    description: >
-      Owns statistical regression detection, real-time monitoring, issue tracking,
-      backup/restore, and platform health status.
-    owns:
-      - "Back-Up & Point-In-Time Recovery"
-      - "Issue Tracking & Management"
-      - "Catalog Processing Status"
-      - "Catalog Regression Detection"
-
-  - name: "inca-model-conversion-dev"
-    type: "stream-aligned"
-    size: 5
-    description: >
-      Owns menu cache generation, model conversion workflows, and catalog-to-menu
-      data pipeline.
-    owns:
-      - "Menu Generation"
-      - "Catalog To Menu Mapper"
-
-  - name: "catalog-quality-eng"
-    type: "complicated-subsystem"
-    size: 5
-    description: >
-      Owns quality frameworks, validators, indexed query, and data transformation
-      pipeline for catalog data quality.
-    owns:
-      - "Entity Validation Management"
-      - "Catalog Bulk-Actions"
-      - "Catalog Query"
-
-interactions:
-  - from: "inca-ingestion-dev"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Entity CRUD & Lifecycle"
-    description: "Feed workers and feed-api read/write catalog entities through inca-core's EntityService"
-
-  - from: "inca-publisher-dev"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Entity CRUD & Lifecycle"
-    description: "Publisher and entity-builder read entities from inca-core before publishing and construction"
-
-  - from: "inca-serving"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Entity CRUD & Lifecycle"
-    description: "Serving gateway reads full entity details from inca-core when processing requests"
-
-  - from: "inca-observability-dev"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Entity CRUD & Lifecycle"
-    description: "inca-backup reads all entities via ScanCatalog and writes them back on restore"
-
-  - from: "catalog-quality-eng"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Entity CRUD & Lifecycle"
-    description: "inca-transformer and inca-indexer read and write entities via inca-core's EntityService"
-
-  - from: "catalog-quality-eng"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Catalog Indexing"
-    description: "inca-query (catalog-quality-eng) depends on the index built by inca-indexer-worker (inca-core-dev)"
-
-  - from: "inca-catalog-experience-dev"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Entity CRUD & Lifecycle"
-    description: "inca-tool and inca-mcp read entities from inca-core for debugging and management operations"
-
-  - from: "inca-model-conversion-dev"
-    to: "inca-core-dev"
-    mode: "x-as-a-service"
-    via: "Entity CRUD & Lifecycle"
-    description: "menu-cache-worker and model-conversion-worker read entity data from inca-core"
-
-  - from: "inca-ingestion-dev"
-    to: "inca-publisher-dev"
-    mode: "x-as-a-service"
-    via: "Entity Publishing & Enrichment Framework"
-    description: "inca-feed-worker triggers entity publishing via PublisherService after writing feed entities"
-
-  - from: "inca-catalog-experience-dev"
-    to: "inca-publisher-dev"
-    mode: "x-as-a-service"
-    via: "Entity Publishing & Enrichment Framework"
-    description: "inca-mcp simulates publishing via inca-publisher for development debugging"
-
-  - from: "inca-observability-dev"
-    to: "inca-model-conversion-dev"
-    mode: "x-as-a-service"
-    via: "Menu Generation"
-    description: "inca-regression-detector calls MenuCacheWorkerService to access cached menu baseline data"
-
-  - from: "inca-publisher-dev"
-    to: "inca-observability-dev"
-    mode: "x-as-a-service"
-    via: "Catalog Regression Detection"
-    description: "inca-publisher-worker queries inca-realtime-stats before making publishing decisions"
-
-  - from: "inca-ingestion-dev"
-    to: "inca-model-conversion-dev"
-    mode: "x-as-a-service"
-    via: "Menu Generation"
-    description: "inca-feed-worker calls MenuCacheWorkerService to invalidate and regenerate caches after feed changes"
-
+    - name: catalog-quality-eng
+      type: complicated-subsystem
+      description: |
+        Owns quality frameworks, validators, indexed query, and data transformation pipeline for catalog data quality.
+      size: 5
+      owns:
+        - Catalog Bulk-Actions
+        - Catalog Query
+        - Entity Validation Management
+      interacts:
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Entity CRUD & Lifecycle
+          description: inca-transformer and inca-indexer read and write entities via inca-core's EntityService
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Catalog Indexing
+          description: inca-query (catalog-quality-eng) depends on the index built by inca-indexer-worker (inca-core-dev)
+    - name: inca-catalog-experience-dev
+      type: stream-aligned
+      description: |
+        Owns operational tooling, developer experience interfaces (MCP, CLI, web portal), and data migration workflows.
+      size: 5
+      owns:
+        - Catalog Data Management
+        - Catalog Model & Attribute Management
+        - Development Environment
+        - Internal Catalog Management & Health Portal
+      interacts:
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Entity CRUD & Lifecycle
+          description: inca-tool and inca-mcp read entities from inca-core for debugging and management operations
+        - with: inca-publisher-dev
+          mode: x-as-a-service
+          via: Entity Publishing & Enrichment Framework
+          description: inca-mcp simulates publishing via inca-publisher for development debugging
+    - name: inca-core-dev
+      type: platform
+      description: |
+        Owns the authoritative catalog entity store (inca-core) and its immediate platform support services. Acts as an internal platform providing Entity CRUD to all other INCA teams and to external teams via x-as-a-service.
+      size: 5
+      owns:
+        - Catalog Indexing
+        - Catalog Registry & Configuration
+        - Entity CRUD & Lifecycle
+        - Raw Catalog File Storage
+    - name: inca-ingestion-dev
+      type: stream-aligned
+      description: |
+        Owns the merchant feed ingestion pipeline end-to-end: feed API, feed processing workers, image handling, and menu ingestion.
+      size: 5
+      owns:
+        - Catalog Ingestion & Job Tracking
+        - Image Processing & Management
+        - Menu Ingestion
+      interacts:
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Entity CRUD & Lifecycle
+          description: Feed workers and feed-api read/write catalog entities through inca-core's EntityService
+        - with: inca-model-conversion-dev
+          mode: x-as-a-service
+          via: Menu Generation
+          description: inca-feed-worker calls MenuCacheWorkerService to invalidate and regenerate caches after feed changes
+        - with: inca-publisher-dev
+          mode: x-as-a-service
+          via: Entity Publishing & Enrichment Framework
+          description: inca-feed-worker triggers entity publishing via PublisherService after writing feed entities
+    - name: inca-model-conversion-dev
+      type: stream-aligned
+      description: |
+        Owns menu cache generation, model conversion workflows, and catalog-to-menu data pipeline.
+      size: 5
+      owns:
+        - Catalog To Menu Mapper
+        - Menu Generation
+      interacts:
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Entity CRUD & Lifecycle
+          description: menu-cache-worker and model-conversion-worker read entity data from inca-core
+    - name: inca-observability-dev
+      type: complicated-subsystem
+      description: |
+        Owns statistical regression detection, real-time monitoring, issue tracking, backup/restore, and platform health status.
+      size: 5
+      owns:
+        - Back-Up & Point-In-Time Recovery
+        - Catalog Processing Status
+        - Catalog Regression Detection
+        - Issue Tracking & Management
+      interacts:
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Entity CRUD & Lifecycle
+          description: inca-backup reads all entities via ScanCatalog and writes them back on restore
+        - with: inca-model-conversion-dev
+          mode: x-as-a-service
+          via: Menu Generation
+          description: inca-regression-detector calls MenuCacheWorkerService to access cached menu baseline data
+    - name: inca-publisher-dev
+      type: stream-aligned
+      description: |
+        Owns entity publishing, validation, and downstream enrichment services including entity construction, async writes, and data scrubbing.
+      size: 5
+      owns:
+        - Data Scrubbing & Clean-Up
+        - Entity Change Notifications
+        - Entity Publishing & Enrichment Framework
+      interacts:
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Entity CRUD & Lifecycle
+          description: Publisher and entity-builder read entities from inca-core before publishing and construction
+        - with: inca-observability-dev
+          mode: x-as-a-service
+          via: Catalog Regression Detection
+          description: inca-publisher-worker queries inca-realtime-stats before making publishing decisions
+    - name: inca-serving
+      type: stream-aligned
+      description: |
+        Owns the eater-facing serving layer: the CatalogServing API, the serving gateway, menu-serving, and restaurant-gateway.
+      size: 5
+      owns:
+        - Catalog Serving & Notifications
+        - Catalog Serving & Retrieval
+      interacts:
+        - with: inca-core-dev
+          mode: x-as-a-service
+          via: Entity CRUD & Lifecycle
+          description: Serving gateway reads full entity details from inca-core when processing requests
 data_assets:
-  - name: "Raw Catalog File Storage"
-    type: "database"
-    description: "Storage for raw merchant catalog files as originally submitted"
-    usedBy:
-      - target: "inca-blob"
-        access: "read-write"
-
-  - name: "Catalog Storage (docstore/product/catalog)"
-    type: "database"
-    description: "Primary Docstore table for catalog product entities"
-    usedBy:
-      - target: "inca-core"
-        access: "read-write"
-
-  - name: "Menu Storage (docstore/inca/indexed)"
-    type: "database"
-    description: "Docstore table for indexed menu data and inca-blob storage"
-    usedBy:
-      - target: "inca-indexer-worker"
-        access: "read-write"
-      - target: "inca-query"
-        access: "read"
-
+    - name: Catalog Storage (docstore/product/catalog)
+      type: database
+      description: Primary Docstore table for catalog product entities
+      usedBy:
+        - target: inca-core
+          access: read-write
+    - name: Menu Storage (docstore/inca/indexed)
+      type: database
+      description: Docstore table for indexed menu data and inca-blob storage
+      usedBy:
+        - target: inca-indexer-worker
+          access: read-write
+        - target: inca-query
+          access: read
+    - name: Raw Catalog File Storage
+      type: database
+      description: Storage for raw merchant catalog files as originally submitted
+      usedBy:
+        - target: inca-blob
+          access: read-write
 external_dependencies:
-  - name: "Terrablob"
-    description: "Uber's blob storage infrastructure for raw file storage"
-    usedBy:
-      - target: "inca-blob"
-        description: "Backend storage for inca-blob service"
-      - target: "inca-image"
-        description: "Stores processed image files"
-
-  - name: "Docstore"
-    description: "Uber's document store for structured entity persistence"
-    usedBy:
-      - target: "inca-core"
-        description: "Primary storage for all entity collections"
-      - target: "inca-blob"
-        description: "Storage backend for blob service"
-
-  - name: "Cadence"
-    description: "Uber's workflow orchestration engine for async processing pipelines"
-    usedBy:
-      - target: "inca-publisher-worker"
-        description: "Publishing workflow execution"
-      - target: "inca-indexer-worker"
-        description: "Indexing workflow execution"
-      - target: "menu-cache-worker"
-        description: "Menu cache generation workflow"
-      - target: "inca-backup"
-        description: "Backup and restore workflow execution"
-      - target: "inca-scrubber"
-        description: "Scrubbing and cleanup workflow execution"
-      - target: "inca-transformer"
-        description: "Data transformation workflow execution"
-      - target: "inca-feed-adhoc-worker"
-        description: "Ad-hoc feed workflow execution"
-      - target: "inca-model-conversion-worker"
-        description: "Model conversion workflow execution"
-      - target: "inca-realtime-stats"
-        description: "Stats consistency check workflow execution"
+    - name: Cadence
+      description: Uber's workflow orchestration engine for async processing pipelines
+    - name: Docstore
+      description: Uber's document store for structured entity persistence
+    - name: Terrablob
+      description: Uber's blob storage infrastructure for raw file storage

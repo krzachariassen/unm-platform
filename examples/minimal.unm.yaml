@@ -1,0 +1,75 @@
+# minimal.unm.yaml — Minimal UNM v2 example
+# Demonstrates every v2 format feature in the smallest possible model.
+# Use this as a reference when writing new .unm.yaml files.
+
+system:
+  name: "Minimal Shop"
+  description: A minimal UNM model showing all v2 format features.
+
+actors:
+  - name: "Shopper"
+    description: A person browsing and buying products.
+
+needs:
+  - name: "Browse and buy products"
+    actor: "Shopper"
+    outcome: Shopper can find and purchase products quickly.
+    supportedBy:
+      - "Product Catalog"
+      - "Order Placement"
+
+capabilities:
+  # v2: flat list — children reference parent by name
+  - name: "Product Catalog"
+    description: Shows available products.
+    visibility: user-facing
+
+  - name: "Product Search"
+    description: Full-text search within the catalog.
+    parent: "Product Catalog"        # v2: parent reference (replaces nested children)
+    visibility: user-facing
+
+  - name: "Order Placement"
+    description: Accepts and records customer orders.
+    visibility: user-facing
+
+services:
+  - name: "catalog-service"
+    description: Serves product catalog data.
+    ownedBy: "Core Team"
+    realizes:                          # v2: realizes (replaces capability.realizedBy)
+      - "Product Catalog"
+      - "Product Search"
+    externalDeps:                      # v2: externalDeps (replaces external_dependency.usedBy)
+      - "Elasticsearch"
+
+  - name: "order-service"
+    description: Handles order creation and storage.
+    ownedBy: "Commerce Team"
+    realizes:
+      - "Order Placement"
+    dependsOn:
+      - "catalog-service"
+
+teams:
+  - name: "Core Team"
+    type: stream-aligned
+    description: Owns the product catalog.
+    size: 5
+    owns:
+      - "Product Catalog"
+    interacts:                         # v2: interacts on team (replaces top-level interactions)
+      - with: "Commerce Team"
+        mode: x-as-a-service
+        description: Core Team exposes catalog APIs consumed by Commerce Team.
+
+  - name: "Commerce Team"
+    type: stream-aligned
+    description: Owns the order pipeline.
+    size: 4
+    owns:
+      - "Order Placement"
+
+external_dependencies:
+  - name: "Elasticsearch"
+    description: Full-text search engine used for product search indexing.
