@@ -1,0 +1,876 @@
+# INCA — UNM Model (DSL format)
+# DSL equivalent of examples/inca.unm.yaml
+# Demonstrates: nested capabilities with realizedBy, standalone interaction blocks,
+# external dependency usedBy, data_asset usedBy/producedBy/consumedBy
+# Compare: YAML v2 uses flat caps + realizes on services + interacts on teams
+#
+# Format: UNM DSL v0.1 — traditional nested style
+# Generated: 2026-03-30
+
+system "INCA" {
+  description "INCA (Inventory & Catalog Platform) is Uber's large-scale distributed platform for managing catalog and inventory data. It handles the full lifecycle of menu and catalog data: ingestion from merchant feeds, validation and publishing, indexing for high-performance reads, and serving to downstream consumers. The platform consists of 33 microservices and workers that together form the authoritative source of truth for Uber Eats catalog entities. Ownership is organized across eight INCA sub-teams plus one external team (dotcom-eng)."
+}
+
+# ─── Actors ──────────────────────────────────────────────────────────────────
+
+actor "Downstream Platform Team" {
+  description "Internal engineering teams (storefront, pricing, availability, promotions) that build features using INCA catalog data. They consume catalog entities via RPC, Kafka events, and the serving layer."
+}
+
+actor "Eater / Consumer" {
+  description "End users of the Uber Eats app who browse restaurant menus and place orders. They experience INCA's output indirectly through menu display, item availability, and pricing accuracy."
+}
+
+actor "INCA Platform Engineer" {
+  description "On-call and platform engineers responsible for operating and maintaining INCA services. They need visibility into data quality, the ability to debug production state, and tools to perform operational tasks like backups and bulk corrections."
+}
+
+actor "Merchant / Restaurant Partner" {
+  description "Restaurant owners and their integration partners who submit menu data to Uber Eats. They care about accurate representation of their menu, timely propagation of changes, and visibility into processing failures."
+}
+
+# ─── Needs ───────────────────────────────────────────────────────────────────
+
+need "Debug entity state and trace feed processing history in production" {
+  actor "INCA Platform Engineer"
+  outcome "An engineer can inspect the current state of any catalog entity and trace how it arrived at that state (which feed changed it, when, what validations ran) without needing direct database access."
+  supportedBy capability "Operational CLI Tooling" : "Provides entity inspection, feed debugging, and catalog audit subcommands"
+  supportedBy capability "MCP Debug Interface" : "Exposes interactive tools for reading entity state and simulating publishing"
+  supportedBy capability "Administrative & Bulk Operations" : "Provides admin APIs for entity inspection and semantic validation"
+}
+
+need "Detect and remediate regressions in catalog data quality proactively" {
+  actor "INCA Platform Engineer"
+  outcome "The platform continuously monitors catalog data for statistical anomalies or regressions and alerts engineers before eaters or merchants are impacted."
+  supportedBy capability "Regression Detection & Statistical Analysis" : "Continuously monitors catalog stats and detects deviations from baseline"
+  supportedBy capability "Issue Tracking & Management" : "Records detected issues for triage and remediation tracking"
+}
+
+need "Ensure menu images are correctly associated and render properly" {
+  actor "Merchant / Restaurant Partner"
+  outcome "Images submitted with catalog entities are processed, validated, and stored so that they render correctly in the Uber Eats app without broken links or wrong associations."
+  supportedBy capability "Image Processing & Management" : "Handles image upload, validation, and association with catalog entities"
+  supportedBy capability "Blob Storage" : "Provides durable storage for processed image assets"
+}
+
+need "Get fast, complete menu data for purchase decisions" {
+  actor "Eater / Consumer"
+  outcome "Menu pages load quickly with full item details (descriptions, photos, modifiers, prices) so the eater can make informed purchase decisions without delays."
+  supportedBy capability "Real-time Catalog Serving" : "Serves complete item records from the serving layer"
+  supportedBy capability "Indexed Catalog Query" : "Provides indexed access with low read latency"
+  supportedBy capability "Serving Data Synchronization" : "Keeps serving data up-to-date from the authoritative entity store"
+}
+
+need "Perform safe bulk corrections on catalog data" {
+  actor "INCA Platform Engineer"
+  outcome "An engineer can apply bulk changes to catalog entities via a controlled administrative interface, with auditability and rollback options."
+  supportedBy capability "Administrative & Bulk Operations" : "Provides controlled bulk entity management operations"
+  supportedBy capability "Data Scrubbing & Cleanup" : "Runs automated and manual cleanup workflows to correct data issues"
+}
+
+need "Receive real-time notifications of catalog entity changes" {
+  actor "Downstream Platform Team"
+  outcome "Downstream systems can subscribe to catalog change events and react in near-real-time when entities are created, updated, or deleted, keeping their own data synchronized without polling."
+  supportedBy capability "Entity Change Event Emission" : "Produces entity change events to Kafka topics consumed by downstream systems"
+}
+
+need "Recover catalog data from a specific point in time after data corruption" {
+  actor "INCA Platform Engineer"
+  outcome "An on-call engineer can restore a catalog to a known-good state from a backup taken at a specific point in time, minimizing data loss after a corruption incident."
+  supportedBy capability "Backup & Point-in-Time Recovery" : "Provides full catalog backup and time-based restore via Cadence workflows"
+}
+
+need "Reliably access current catalog data to build downstream features" {
+  actor "Downstream Platform Team"
+  outcome "A downstream team can call INCA APIs to read catalog entities with high availability and consistent data, enabling them to build pricing, availability, and storefront features without worrying about stale or missing data."
+  supportedBy capability "Entity CRUD & Lifecycle" : "Provides the authoritative read API for catalog entities"
+  supportedBy capability "Indexed Catalog Query" : "Supports high-volume indexed reads for downstream consumers"
+}
+
+need "Submit menu changes and see them live for eaters within SLA" {
+  actor "Merchant / Restaurant Partner"
+  outcome "A merchant submits a feed containing menu updates; those changes are ingested, validated, published, and reflected in the eater-facing catalog within the agreed service level (typically minutes), without manual intervention."
+  supportedBy capability "Feed Submission & Job Tracking" : "Provides the API entry point and job status tracking for submitted feeds"
+  supportedBy capability "Feed Ingestion & Processing" : "Processes submitted feed data through validation and entity writes"
+  supportedBy capability "Entity Publishing & Validation" : "Validates and publishes entities so they become visible in the serving layer"
+  supportedBy capability "Serving Data Synchronization" : "Propagates entity changes to the serving data store for read access"
+}
+
+need "Understand why a feed failed and correct the issue" {
+  actor "Merchant / Restaurant Partner"
+  outcome "When a feed fails validation or processing, the merchant or their integration partner receives actionable error information identifying which items failed and why, so they can correct and resubmit."
+  supportedBy capability "Feed Submission & Job Tracking" : "Exposes feed job status and error details via FeedAPIService"
+  supportedBy capability "Issue Tracking & Management" : "Stores and surfaces structured issues from feed validation failures"
+}
+
+need "View accurate, up-to-date menus when browsing" {
+  actor "Eater / Consumer"
+  outcome "An eater browsing the Uber Eats app sees a restaurant menu that accurately reflects the restaurant's current offerings, including correct items, prices, and availability, updated within the platform's freshness SLA."
+  supportedBy capability "Real-time Catalog Serving" : "Delivers current catalog data to consumer-facing surfaces"
+  supportedBy capability "Indexed Catalog Query" : "Provides fast, indexed access to catalog sections and items"
+  supportedBy capability "Menu Cache Generation" : "Maintains pre-computed menu views for serving performance"
+}
+
+# ─── Capabilities (nested hierarchical — DSL native style) ───────────────────
+
+capability "Feed & Ingestion Management" {
+  description "All capabilities for receiving, processing, and tracking data feeds from merchants and external systems"
+  visibility user-facing
+
+  capability "Feed Submission & Job Tracking" {
+    description "Accepts feed submissions from merchants and integration partners; provides job status and error visibility"
+    visibility user-facing
+    dependsOn capability "Feed Ingestion & Processing" : "Feed submission triggers asynchronous processing by feed-worker"
+    realizedBy service "inca-feed-api" { role primary description "Exposes FeedAPIService RPC with SubmitFeed and GetJob methods" }
+  }
+
+  capability "Feed Ingestion & Processing" {
+    description "Processes submitted feed payloads through validation, transformation, and entity writes in Cadence workflows"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "Feed processing writes entity changes through inca-core's EntityService"
+    dependsOn capability "Entity Publishing & Validation" : "Feed worker triggers publisher to validate and publish processed entities"
+    dependsOn capability "Issue Tracking & Management" : "Feed validation errors are persisted to issue-store"
+    realizedBy service "inca-feed-worker" { role primary description "Cadence worker executing feed processing workflows (task list: feed-processing-internal)" }
+    realizedBy service "inca-feed-adhoc-worker" { role supporting description "Handles ad-hoc and one-off feed processing workflows outside the scheduled pipeline" }
+  }
+
+  capability "Hive Data Ingestion" {
+    description "Ingests catalog data from Hive data warehouse via Heatpipe message pipelines"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "Persists ingested Hive entities through inca-core's EntityService"
+    realizedBy service "inca-hive-ingester" { role primary description "Cadence worker + API server consuming Heatpipe messages from Hive pipelines" }
+  }
+
+  capability "Social Media Content Ingestion" {
+    description "Ingests catalog images and content from social media platforms (Instagram Graph API)"
+    visibility domain
+    dependsOn capability "Entity Publishing & Validation" : "IG-ingested content goes through publishing validation before becoming live"
+    realizedBy service "inca-ig-ingester" { role primary description "Cadence worker + API server for IG content with PrePublish workflow; owned by dotcom-eng" }
+  }
+}
+
+capability "Catalog Entity Management" {
+  description "Core capabilities for creating, reading, updating, deleting, and streaming catalog entities"
+  visibility foundational
+
+  capability "Entity CRUD & Lifecycle" {
+    description "Authoritative create, read, update, delete, and scan operations for all catalog entities (items, sections, products, catalogs)"
+    visibility foundational
+    realizedBy service "inca-core" { role primary description "Exposes EntityService RPC: ReadEntity, UpsertEntity, UpdateEntity, DeleteEntity, ScanCatalog, ScanBackReferences" }
+  }
+
+  capability "Entity Change Event Emission" {
+    description "Emits Kafka events whenever catalog entities are created, updated, or deleted, enabling downstream systems to react in real-time"
+    visibility infrastructure
+    realizedBy service "inca-core" { role primary description "Publishes to inca.core.entity_change Heatpipe topic on every entity mutation" }
+  }
+
+  capability "Async Entity Writing" {
+    description "Processes entity write operations from Kafka queues asynchronously, decoupling write throughput from synchronous API calls"
+    visibility infrastructure
+    dependsOn capability "Entity CRUD & Lifecycle" : "Delegates actual entity writes to inca-core's EntityService"
+    realizedBy service "inca-async-entity-writer" { role primary description "Kafka consumer that reads entity write messages and applies them to inca-core" }
+    realizedBy service "inca-async" { role supporting description "Provides async operation coordination and event emulation for entity writes" }
+  }
+}
+
+capability "Content Publishing & Enrichment" {
+  description "Capabilities for validating, enriching, and publishing catalog entities to make them visible to eaters"
+  visibility domain
+
+  capability "Entity Publishing & Validation" {
+    description "Validates catalog entities against business rules and publishes them to the serving layer; manages publishing lifecycle"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads entities from inca-core to validate and enrich before publishing"
+    dependsOn capability "Regression Detection & Statistical Analysis" : "Publisher worker queries realtime-stats before publishing decisions"
+    realizedBy service "inca-publisher" { role primary description "PublisherService RPC exposing ProcessChangeEvent; runs validation pipeline" }
+    realizedBy service "inca-publisher-worker" { role supporting description "Cadence worker for async publishing workflows and retry logic" }
+  }
+
+  capability "Menu Cache Generation" {
+    description "Pre-computes and caches assembled menu views for performance optimization of the serving path"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads entity data from inca-core to assemble menu cache"
+    realizedBy service "inca-menu-cache-worker" { role primary description "Cadence worker running GenerateMenuCache workflow; writes assembled menu views to Docstore" }
+  }
+
+  capability "Image Processing & Management" {
+    description "Handles image ingestion, validation, transformation, and association with catalog entities"
+    visibility domain
+    dependsOn capability "Blob Storage" : "Stores processed image files in inca-blob / Terrablob"
+    dependsOn capability "Entity CRUD & Lifecycle" : "Associates processed images with catalog entities via inca-core"
+    realizedBy service "inca-image" { role primary description "Image service managing image lifecycle, validation, and Terrablob storage" }
+  }
+
+  capability "Data Transformation & Conversion" {
+    description "Transforms catalog data between model formats and converts between catalog and menu representations"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads and writes transformed entities through inca-core"
+    realizedBy service "inca-transformer" { role primary description "Cadence worker + API server transforming entities between formats; persists in MySQL" }
+    realizedBy service "inca-model-conversion-worker" { role supporting description "Cadence worker converting between catalog and menu model representations" }
+  }
+
+  capability "Catalog Entity Enrichment" {
+    description "Computes and applies extension attribute values to catalog entities before publication using the Product Enrichment Framework (PEF). A Change Management gate validates enrichment correctness by comparing entity enrichments across environments via Cadence."
+    visibility domain
+    dependsOn capability "Entity Publishing & Validation" : "cm-inca-gate calls SimulatePublishEntity on inca-publisher to compare enrichment results"
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads entity data from inca-core during enrichment processing"
+    dependsOn capability "Registry & Configuration Management" : "Reads catalog and item definitions from inca-registry for enrichment context"
+    realizedBy service "inca-serverless" { role primary description "Serverless PEF enricher functions (productusagetag, approximateproductid) + cm-inca-gate Cadence worker" }
+  }
+
+  capability "Entity Construction" {
+    description "Builds assembled entity objects from flattened extension values for downstream consumption"
+    visibility foundational
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads raw entities and extension data from inca-core"
+    realizedBy service "inca-entity-builder" { role primary description "API service exposing /build endpoint; assembles entities from extension attribute values" }
+  }
+}
+
+capability "Catalog Serving & Access" {
+  description "Capabilities for reading catalog data at high scale and low latency for consumer and downstream surfaces"
+  visibility user-facing
+
+  capability "Real-time Catalog Serving" {
+    description "Serves current catalog data (items, sections, products) to consumer-facing surfaces at high throughput"
+    visibility user-facing
+    dependsOn capability "Serving Data Synchronization" : "Reads from catalog_item_v1 tables kept up-to-date by serving-ingestor"
+    realizedBy service "inca-serving" { role primary description "CatalogServing gRPC exposing GetItems, ScanSection for eater-facing reads" }
+    realizedBy service "inca-serving-gateway" { role supporting description "Gateway routing layer; successor to restaurant-gateway for serving endpoints" }
+  }
+
+  capability "Indexed Catalog Query" {
+    description "Provides fast, index-based access to catalog sections and items for search and browse use cases"
+    visibility user-facing
+    dependsOn capability "Catalog Indexing" : "Queries depend on the index built and maintained by indexer-worker"
+    realizedBy service "inca-query" { role primary description "CatalogQueryService gRPC with ScanSection; optimized for indexed reads" }
+  }
+
+  capability "Catalog Indexing" {
+    description "Builds and maintains search and catalog indexes to enable fast indexed reads"
+    visibility foundational
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads entities from inca-core to populate index entries"
+    realizedBy service "inca-indexer" { role primary description "Indexing API server orchestrating index builds" }
+    realizedBy service "inca-indexer-worker" { role supporting description "Cadence worker executing IndexPublishedItems and IndexCatalog workflows" }
+  }
+
+  capability "Serving Data Synchronization" {
+    description "Continuously synchronizes entity changes from the authoritative store to the serving data layer"
+    visibility infrastructure
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads full entity details from inca-core when processing change notifications"
+    dependsOn capability "Entity Change Event Emission" : "Consumes entity change events from inca.core.entity_change Kafka topic"
+    realizedBy service "inca-serving-ingestor" { role primary description "Kafka consumer for inca.core.entity_change and hp-eats_store-menu_entity_update_v4; writes to catalog_item_v1, catalog_product_v1" }
+  }
+}
+
+capability "Data Quality & Platform Health" {
+  description "Capabilities for detecting regressions, tracking issues, scrubbing bad data, and maintaining overall catalog quality"
+  visibility foundational
+
+  capability "Regression Detection & Statistical Analysis" {
+    description "Monitors catalog metrics for statistical deviations and detects regressions in data quality before they impact eaters"
+    visibility foundational
+    dependsOn capability "Menu Cache Generation" : "Uses menu cache data as baseline for regression detection comparisons"
+    realizedBy service "inca-regression-detector" { role primary description "Aggregates stats over time windows, detects anomalies, produces to inca.regressions Kafka topic" }
+    realizedBy service "inca-realtime-stats" { role supporting description "Tracks real-time per-catalog statistics and runs Cadence-based consistency checks" }
+  }
+
+  capability "Issue Tracking & Management" {
+    description "Stores, surfaces, and manages structured issues arising from feed validation failures and data quality checks"
+    visibility foundational
+    realizedBy service "inca-issue-store" { role primary description "IssueStore gRPC with SyncIssues, ListProducerIssues; tracks validation failures per producer" }
+  }
+
+  capability "Data Scrubbing & Cleanup" {
+    description "Performs automated cleanup, deduplication, and trimming of stale or corrupt catalog data"
+    visibility foundational
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads entities for analysis and deletes stale records via inca-core's EntityService"
+    realizedBy service "inca-scrubber" { role primary description "Cadence worker + API server running cleanup, deduplicate, and trimming workflows" }
+  }
+
+  capability "Backup & Point-in-Time Recovery" {
+    description "Creates periodic backups of all catalog entities and supports restoring them to a specific point in time"
+    visibility foundational
+    dependsOn capability "Entity CRUD & Lifecycle" : "Reads all entities via ScanCatalog for backup; writes back via UpsertEntity on restore"
+    dependsOn capability "Blob Storage" : "Stores backup artifact files in inca-blob / Terrablob"
+    realizedBy service "inca-backup" { role primary description "gRPC Backup API + Cadence workflows: BackupCatalog, RestoreCatalog, EnsureBackup" }
+  }
+}
+
+capability "Platform Configuration & Operations" {
+  description "Cross-cutting capabilities for configuration management, administration, and operational tooling"
+  visibility foundational
+
+  capability "Registry & Configuration Management" {
+    description "Manages dynamic configuration for INCA services including schema registries and service config"
+    visibility foundational
+    realizedBy service "inca-registry" { role primary description "ConfigService gRPC providing dynamic configuration to other INCA services" }
+  }
+
+  capability "Administrative & Bulk Operations" {
+    description "Provides controlled administrative operations: semantic validation, bulk entity management, and operator-facing tooling"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "Admin operations read and write entities through inca-core"
+    realizedBy service "inca-admin" { role primary description "Admin gRPC service: Create, PerformSemanticValidation, and bulk entity operations" }
+  }
+
+  capability "Blob Storage" {
+    description "Provides on-premises blob/file storage for catalog assets such as images and backup artifacts"
+    visibility infrastructure
+    realizedBy service "inca-blob" { role primary description "Blob storage service backed by Docstore and Terrablob" }
+  }
+
+  capability "Platform Health Monitoring" {
+    description "Minimal health status reporting for infrastructure readiness checks and service discovery"
+    visibility infrastructure
+    realizedBy service "inca-status" { role primary description "Minimal gRPC health check service for infrastructure readiness probes" }
+  }
+
+  capability "Operational CLI Tooling" {
+    description "Command-line tool for operators to inspect, debug, and perform maintenance tasks on catalog data"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "Entity inspection commands read from inca-core"
+    dependsOn capability "Administrative & Bulk Operations" : "CLI wraps admin operations for operator convenience"
+    realizedBy service "inca-tool" { role primary description "inca-tool CLI with subcommands: catalog, feed, menu, image, backup, migration support" }
+  }
+
+  capability "MCP Debug Interface" {
+    description "Machine-readable debug interface exposing entity inspection and publishing simulation for developer tooling"
+    visibility domain
+    dependsOn capability "Entity CRUD & Lifecycle" : "readentity tool reads entity state from inca-core"
+    dependsOn capability "Entity Publishing & Validation" : "simulatepublishing tool invokes publisher service"
+    realizedBy service "inca-mcp" { role primary description "MCP server with tools: readentity, getcatalogconfig, simulatepublishing" }
+  }
+}
+
+# ─── Services ────────────────────────────────────────────────────────────────
+
+service "inca-admin" {
+  description "Administrative operations API for semantic validation, bulk entity management, and operator tasks"
+  ownedBy team "inca-core-dev"
+  dependsOn service "inca-core" : "Reads and writes entities via EntityService for admin operations"
+}
+
+service "inca-async" {
+  description "Async operations coordination service providing EmulateConsumeDBEvent for decoupled entity processing"
+  ownedBy team "inca-publisher-dev"
+  dependsOn service "inca-core" : "Delegates entity operations to EntityService"
+}
+
+service "inca-async-entity-writer" {
+  description "Kafka consumer service that reads entity write messages and applies them asynchronously to the entity store"
+  ownedBy team "inca-core-dev"
+  dependsOn service "inca-core" : "Writes entities via EntityService upon consuming Kafka messages"
+}
+
+service "inca-backup" {
+  description "Backup and restore service combining a gRPC API with Cadence workflows: BackupCatalog, RestoreCatalog, EnsureBackup"
+  ownedBy team "inca-observability-dev"
+  dependsOn service "inca-core" : "ScanCatalog to read all entities for backup; UpsertEntity to write them back on restore"
+  dependsOn service "inca-blob" : "Stores and retrieves backup artifact files"
+}
+
+service "inca-blob" {
+  description "On-premises blob storage service backed by Docstore for catalog assets"
+  ownedBy team "inca-core-dev"
+}
+
+service "inca-core" {
+  description "Authoritative entity CRUD API; main Docstore-backed database interaction layer for all catalog entities"
+  ownedBy team "inca-core-dev"
+}
+
+service "inca-entity-builder" {
+  description "Entity construction API that assembles entity objects from flattened extension attribute values"
+  ownedBy team "inca-publisher-dev"
+  dependsOn service "inca-core" : "Reads raw entities and extension data from EntityService"
+}
+
+service "inca-feed-adhoc-worker" {
+  description "Cadence worker for ad-hoc and one-off feed processing jobs outside the standard scheduled feed pipeline"
+  ownedBy team "inca-ingestion-dev"
+}
+
+service "inca-feed-api" {
+  description "RPC server for feed submission and job status tracking; exposes FeedAPIService (SubmitFeed, GetJob)"
+  ownedBy team "inca-ingestion-dev"
+  dependsOn service "inca-core" : "Reads catalog configuration and entity state during feed job coordination"
+}
+
+service "inca-feed-worker" {
+  description "Cadence worker executing feed processing workflows (task list: feed-processing-internal)"
+  ownedBy team "inca-ingestion-dev"
+  dependsOn service "inca-core" : "EntityService for reading and writing catalog entities during feed processing"
+  dependsOn service "inca-feed-api" : "FeedAPIService for job status updates and feed metadata"
+  dependsOn service "inca-publisher" : "PublisherService to trigger entity publishing after feed writes"
+  dependsOn service "inca-menu-cache-worker" : "MenuCacheWorkerService to invalidate and regenerate menu caches after changes"
+  dependsOn service "inca-issue-store" : "IssueStoreService to persist validation failures from feed processing"
+}
+
+service "inca-hive-ingester" {
+  description "Hive data ingestion service; Cadence worker + API server consuming Heatpipe messages from Hive pipelines"
+  ownedBy team "inca-ingestion-dev"
+  dependsOn service "inca-core" : "Writes ingested Hive entities to EntityService"
+}
+
+service "inca-ig-ingester" {
+  description "Instagram content ingestion service; Cadence worker + API server running PrePublish workflow for IG-sourced items"
+  ownedBy team "dotcom-eng"
+  dependsOn service "inca-publisher" : "Triggers PrePublish workflow via PublisherService for IG-ingested content"
+}
+
+service "inca-image" {
+  description "Image processing API managing image lifecycle: ingestion, validation, transformation, and Terrablob storage"
+  ownedBy team "inca-ingestion-dev"
+  dependsOn service "inca-blob" : "Stores processed image artifacts"
+  dependsOn service "inca-core" : "Associates processed images with catalog entities via EntityService"
+}
+
+service "inca-indexer" {
+  description "Catalog indexing API server that orchestrates the building of catalog search indexes"
+  ownedBy team "inca-core-dev"
+  dependsOn service "inca-core" : "Reads entities from EntityService to build index entries"
+}
+
+service "inca-indexer-worker" {
+  description "Cadence worker executing IndexPublishedItems and IndexCatalog workflows"
+  ownedBy team "inca-core-dev"
+  dependsOn service "inca-core" : "Reads entities from EntityService to build index entries"
+  dependsOn service "inca-indexer" : "Coordinates index build operations with the indexer API"
+}
+
+service "inca-issue-store" {
+  description "Issue management API exposing IssueStore gRPC (SyncIssues, ListProducerIssues)"
+  ownedBy team "inca-observability-dev"
+}
+
+service "inca-mcp" {
+  description "MCP (Model Context Protocol) server exposing debugging tools: readentity, getcatalogconfig, simulatepublishing"
+  ownedBy team "inca-catalog-experience-dev"
+  dependsOn service "inca-core" : "readentity tool reads entity state via EntityService"
+  dependsOn service "inca-publisher" : "simulatepublishing tool invokes publisher validation"
+}
+
+service "inca-menu-cache-worker" {
+  description "Cadence worker running GenerateMenuCache workflow; assembles and caches complete menu views"
+  ownedBy team "inca-model-conversion-dev"
+  dependsOn service "inca-core" : "Reads entity data via EntityService to assemble menu caches"
+}
+
+service "inca-model-conversion-worker" {
+  description "Cadence worker executing model conversion workflows between catalog and menu data representations"
+  ownedBy team "inca-model-conversion-dev"
+  dependsOn service "inca-core" : "Reads source entities and writes converted entities via EntityService"
+}
+
+service "inca-publisher" {
+  description "Publishing and validation API server; runs entity validation pipelines and manages publishing lifecycle via PublisherService.ProcessChangeEvent"
+  ownedBy team "inca-publisher-dev"
+  dependsOn service "inca-core" : "Reads and enriches entities from EntityService before publishing"
+}
+
+service "inca-publisher-worker" {
+  description "Cadence worker for asynchronous publishing workflows and retry logic"
+  ownedBy team "inca-publisher-dev"
+  dependsOn service "inca-publisher" : "PublishingManagementService and PublishingStatusService for workflow orchestration"
+  dependsOn service "inca-realtime-stats" : "RealtimeStatsService to check catalog statistics before publishing decisions"
+  dependsOn service "inca-feed-api" : "FeedAPIService for feed metadata during publishing workflows"
+}
+
+service "inca-query" {
+  description "Indexed catalog query API exposing CatalogQueryService gRPC (ScanSection) for fast, index-based catalog browsing"
+  ownedBy team "catalog-quality-eng"
+}
+
+service "inca-realtime-stats" {
+  description "Real-time statistics service tracking per-catalog metrics and running Cadence-based consistency checks"
+  ownedBy team "inca-observability-dev"
+  dependsOn service "inca-regression-detector" : "RegressionDetectorService to correlate live stats with detected regressions"
+}
+
+service "inca-registry" {
+  description "Configuration management service exposing ConfigService gRPC"
+  ownedBy team "inca-core-dev"
+}
+
+service "inca-regression-detector" {
+  description "Regression detection service aggregating catalog stats, detecting anomalies, producing to inca.regressions Kafka topic"
+  ownedBy team "inca-observability-dev"
+  dependsOn service "inca-menu-cache-worker" : "MenuCacheWorkerService to access cached menu baseline data for comparison"
+}
+
+service "inca-scrubber" {
+  description "Data scrubbing service combining a Cadence worker and API for cleanup, deduplication, and trimming"
+  ownedBy team "inca-publisher-dev"
+  dependsOn service "inca-core" : "Reads entities for deduplication analysis and deletes stale records via EntityService"
+}
+
+service "inca-serverless" {
+  description "Product Enrichment Framework (PEF) serverless service hosting enricher functions (productusagetag, approximateproductid) and cm-inca-gate Change Management gate"
+  ownedBy team "inca-publisher-dev"
+  dependsOn service "inca-publisher" : "SimulatePublishEntity RPC used by cm-inca-gate for enrichment comparison"
+  dependsOn service "inca-core" : "EntityService for retrieving entity data during enrichment"
+  dependsOn service "inca-registry" : "CatalogManagementService for catalog and item definitions used as enrichment context"
+}
+
+service "inca-serving" {
+  description "Read-optimized serving API exposing CatalogServing gRPC (GetItems, ScanSection) for consumer-facing applications"
+  ownedBy team "inca-serving"
+}
+
+service "inca-serving-gateway" {
+  description "Gateway routing layer for serving endpoints; migrated successor to restaurant-gateway"
+  ownedBy team "inca-serving"
+  dependsOn service "inca-serving" : "Routes requests to CatalogServing service"
+}
+
+service "inca-serving-ingestor" {
+  description "Kafka consumer syncing entity change events to serving-layer Docstore tables (catalog_item_v1, catalog_product_v1)"
+  ownedBy team "inca-serving"
+  dependsOn service "inca-core" : "Reads full entity details via EntityService when processing change notifications"
+}
+
+service "inca-status" {
+  description "Minimal health status reporting service providing gRPC health check endpoints for infrastructure readiness probes"
+  ownedBy team "inca-observability-dev"
+}
+
+service "inca-tool" {
+  description "Multi-purpose operator CLI with subcommands: catalog, feed, menu, image, backup, migration support"
+  ownedBy team "inca-catalog-experience-dev"
+  dependsOn service "inca-core" : "Entity inspection commands read from EntityService"
+  dependsOn service "inca-admin" : "Bulk and admin operations via Admin service"
+}
+
+service "inca-transformer" {
+  description "Data transformation service running Cadence workflows to convert entities between model formats; persists in MySQL"
+  ownedBy team "catalog-quality-eng"
+  dependsOn service "inca-core" : "Reads and writes transformed entities via EntityService"
+}
+
+# ─── Teams ───────────────────────────────────────────────────────────────────
+
+team "catalog-quality-eng" {
+  type complicated-subsystem
+  description "INCA sub-team that owns quality frameworks, enrichers, validators, indexed query, catalog indexing, and data transformation pipeline. Provides specialized indexing and transformation capabilities to the INCA platform. LDAP group: catalog-quality-eng."
+  size 5
+  owns capability "Data Transformation & Conversion"
+  owns capability "Indexed Catalog Query"
+}
+
+team "dotcom-eng" {
+  type stream-aligned
+  description "External team (outside INCA org) that owns the Instagram content ingestion service (inca-ig-ingester). Deploys and operates a service within the INCA platform boundary but is not part of the INCA org."
+  size 5
+  owns capability "Social Media Content Ingestion"
+}
+
+team "inca-catalog-experience-dev" {
+  type stream-aligned
+  description "Owns operational migration tooling and developer-facing catalog interfaces. Primary focus: operational migration workflows, catalogue tooling, and developer experience interfaces (MCP, CLI)."
+  size 5
+  owns capability "MCP Debug Interface"
+  owns capability "Operational CLI Tooling"
+}
+
+team "inca-core-dev" {
+  type platform
+  description "Owns the authoritative catalog entity store (inca-core) and its immediate platform support services. Acts as an internal platform providing Entity CRUD to all other INCA teams and to external teams via x-as-a-service. Also owns async entity writing infrastructure."
+  size 5
+  owns capability "Administrative & Bulk Operations"
+  owns capability "Async Entity Writing"
+  owns capability "Blob Storage"
+  owns capability "Catalog Indexing"
+  owns capability "Entity CRUD & Lifecycle"
+  owns capability "Entity Change Event Emission"
+  owns capability "Registry & Configuration Management"
+}
+
+team "inca-ingestion-dev" {
+  type stream-aligned
+  description "Owns the merchant feed ingestion pipeline end-to-end: feed API, feed processing workers, image handling, and Hive data ingestion. Aligned to the merchant feed submission and data ingestion flow."
+  size 5
+  owns capability "Feed Ingestion & Processing"
+  owns capability "Feed Submission & Job Tracking"
+  owns capability "Hive Data Ingestion"
+  owns capability "Image Processing & Management"
+}
+
+team "inca-model-conversion-dev" {
+  type stream-aligned
+  description "Owns menu cache generation and model conversion workflows; aligned to the catalog-to-menu data pipeline and serving cache population."
+  size 5
+  owns capability "Data Transformation & Conversion"
+  owns capability "Menu Cache Generation"
+}
+
+team "inca-observability-dev" {
+  type complicated-subsystem
+  description "Owns statistical regression detection, real-time monitoring, issue tracking, backup/restore, and platform health status. Specializes in the deep statistics and reliability capabilities that underpin catalog quality guarantees."
+  size 5
+  owns capability "Backup & Point-in-Time Recovery"
+  owns capability "Issue Tracking & Management"
+  owns capability "Platform Health Monitoring"
+  owns capability "Regression Detection & Statistical Analysis"
+}
+
+team "inca-publisher-dev" {
+  type stream-aligned
+  description "Owns entity publishing, validation, and downstream enrichment services including entity construction, async writes, and data scrubbing. Aligned to the entity publishing and distribution flow."
+  size 5
+  owns capability "Catalog Entity Enrichment"
+  owns capability "Data Scrubbing & Cleanup"
+  owns capability "Entity Construction"
+  owns capability "Entity Publishing & Validation"
+}
+
+team "inca-serving" {
+  type stream-aligned
+  description "Owns the eater-facing serving layer: the CatalogServing API, the serving gateway, and the serving-ingestor that keeps serving data synchronized. Aligned to the consumer read path. (LDAP group name: inca.)"
+  size 5
+  owns capability "Real-time Catalog Serving"
+  owns capability "Serving Data Synchronization"
+}
+
+# ─── Interactions ─────────────────────────────────────────────────────────────
+
+interaction {
+  from team "catalog-quality-eng"
+  to team "inca-core-dev"
+  mode x-as-a-service
+  via capability "Entity CRUD & Lifecycle"
+  description "inca-transformer and inca-indexer read and write entities via inca-core's EntityService"
+}
+
+interaction {
+  from team "catalog-quality-eng"
+  to team "inca-core-dev"
+  mode x-as-a-service
+  via capability "Catalog Indexing"
+  description "inca-query (catalog-quality-eng) depends on the index built by inca-indexer-worker (inca-core-dev)"
+}
+
+interaction {
+  from team "dotcom-eng"
+  to team "inca-publisher-dev"
+  mode x-as-a-service
+  via capability "Entity Publishing & Validation"
+  description "inca-ig-ingester (owned by dotcom-eng) triggers PrePublish workflow via inca-publisher"
+}
+
+interaction {
+  from team "inca-core-dev"
+  to team "inca-core-dev"
+  mode x-as-a-service
+  via capability "Async Entity Writing"
+  description "inca-async-entity-writer (owned by inca-core-dev) writes entities via EntityService upon consuming Kafka messages"
+}
+
+interaction {
+  from team "inca-ingestion-dev"
+  to team "inca-core-dev"
+  mode x-as-a-service
+  via capability "Entity CRUD & Lifecycle"
+  description "Feed workers and feed-api read/write catalog entities through inca-core's EntityService"
+}
+
+interaction {
+  from team "inca-ingestion-dev"
+  to team "inca-ingestion-dev"
+  mode collaboration
+  via capability "Hive Data Ingestion"
+  description "inca-hive-ingester is part of the ingestion team's portfolio, writing Hive-sourced entities to inca-core"
+}
+
+interaction {
+  from team "inca-ingestion-dev"
+  to team "inca-model-conversion-dev"
+  mode x-as-a-service
+  via capability "Menu Cache Generation"
+  description "inca-feed-worker calls MenuCacheWorkerService to invalidate and regenerate caches after feed changes"
+}
+
+interaction {
+  from team "inca-ingestion-dev"
+  to team "inca-publisher-dev"
+  mode x-as-a-service
+  via capability "Entity Publishing & Validation"
+  description "inca-feed-worker triggers entity publishing via PublisherService after writing feed entities"
+}
+
+interaction {
+  from team "inca-observability-dev"
+  to team "inca-core-dev"
+  mode x-as-a-service
+  via capability "Entity CRUD & Lifecycle"
+  description "inca-backup reads all entities via ScanCatalog and writes them back on restore"
+}
+
+interaction {
+  from team "inca-observability-dev"
+  to team "inca-model-conversion-dev"
+  mode x-as-a-service
+  via capability "Menu Cache Generation"
+  description "inca-regression-detector calls MenuCacheWorkerService to access cached menu baseline data"
+}
+
+interaction {
+  from team "inca-publisher-dev"
+  to team "inca-core-dev"
+  mode x-as-a-service
+  via capability "Entity CRUD & Lifecycle"
+  description "Publisher and entity-builder read entities from inca-core before publishing and construction"
+}
+
+interaction {
+  from team "inca-publisher-dev"
+  to team "inca-observability-dev"
+  mode x-as-a-service
+  via capability "Regression Detection & Statistical Analysis"
+  description "inca-publisher-worker queries inca-realtime-stats before making publishing decisions"
+}
+
+interaction {
+  from team "inca-serving"
+  to team "inca-core-dev"
+  mode x-as-a-service
+  via capability "Entity CRUD & Lifecycle"
+  description "Serving-ingestor reads full entity details from inca-core when processing change notifications"
+}
+
+# ─── Platform ─────────────────────────────────────────────────────────────────
+
+platform "Uber Eats Infrastructure Platform" {
+  description "Shared infrastructure services providing workflow orchestration (Cadence), event streaming (Kafka/Heatpipe), schemaless storage (Docstore/Safe DB), blob storage (Terrablob), and feature flags (Flipr). All INCA services consume these as external platform primitives."
+  includes team "inca-core-dev"
+}
+
+# ─── Data Assets ─────────────────────────────────────────────────────────────
+
+data_asset "catalog_item_mapping_v1" {
+  type database
+  description "Docstore collection mapping menu item UUIDs to catalog item and product entries in the serving layer"
+  usedBy service "inca-serving-ingestor" role "read-write"
+}
+
+data_asset "catalog_item_v1" {
+  type database
+  description "Serving-layer Docstore collection with denormalized item records optimized for high-throughput reads"
+  usedBy service "inca-serving-ingestor" role "read-write"
+  usedBy service "inca-serving" role "read"
+  usedBy service "inca-query" role "read"
+}
+
+data_asset "catalog_product_v1" {
+  type database
+  description "Serving-layer Docstore collection with denormalized product records for the serving path"
+  usedBy service "inca-serving-ingestor" role "read-write"
+  usedBy service "inca-serving" role "read"
+}
+
+data_asset "hp-eats_store-menu_entity_update_v4" {
+  type event-stream
+  description "Heatpipe topic from the eats_store system notifying INCA of external menu entity updates requiring catalog synchronization"
+  producedBy service "eats-store"
+  consumedBy service "inca-serving-ingestor"
+}
+
+data_asset "inca.core.entity_change" {
+  type event-stream
+  description "Heatpipe (Kafka) topic emitting entity change events whenever catalog entities are created, updated, or deleted in inca-core"
+  producedBy service "inca-core"
+  consumedBy service "inca-serving-ingestor"
+}
+
+data_asset "inca.regression.stats" {
+  type event-stream
+  description "Kafka topic carrying per-catalog statistical measurements for regression baseline tracking"
+  producedBy service "inca-regression-detector"
+  consumedBy service "inca-realtime-stats"
+}
+
+data_asset "inca.regressions" {
+  type event-stream
+  description "Kafka topic carrying regression events detected by regression-detector for alerting and monitoring consumers"
+  producedBy service "inca-regression-detector"
+  consumedBy service "inca-realtime-stats"
+}
+
+data_asset "inca_backref_v1" {
+  type database
+  description "Docstore collection storing back-reference relationships between catalog entities"
+  usedBy service "inca-core" role "read-write"
+}
+
+data_asset "inca_entity_metadata_v1" {
+  type database
+  description "Docstore collection storing entity metadata (touched_at, provided_at) for change tracking"
+  usedBy service "inca-core" role "read-write"
+}
+
+data_asset "inca_entity_v2" {
+  type database
+  description "Primary Docstore collection storing all catalog entity records — the authoritative source of truth for INCA"
+  usedBy service "inca-core" role "read-write"
+}
+
+data_asset "inca_extension_v2" {
+  type database
+  description "Docstore collection storing flexible schema extension attributes for catalog entities"
+  usedBy service "inca-core" role "read-write"
+}
+
+data_asset "inca_external_id_v2" {
+  type database
+  description "Docstore collection mapping external source identifiers to INCA entity UUIDs"
+  usedBy service "inca-core" role "read-write"
+}
+
+data_asset "rawdata_user.kafka_hp_inca_core_entity_change_nodedup" {
+  type event-stream
+  description "Deduplication-free Kafka topic of INCA core entity change events; consumed by inca-serverless enrichers to find entities with PEF metadata that need enrichment"
+  producedBy service "inca-core"
+  consumedBy service "inca-serverless"
+}
+
+# ─── External Dependencies ────────────────────────────────────────────────────
+
+external_dependency "cadence" {
+  description "Uber's Cadence workflow orchestration platform"
+}
+
+external_dependency "concord" {
+  description "Uber's OAuth and identity service"
+}
+
+external_dependency "customer-gateway" {
+  description "Uber's customer profile and identity platform"
+}
+
+external_dependency "docstore" {
+  description "Uber's Docstore (Safe DB) providing schemaless MySQL-backed document storage"
+}
+
+external_dependency "eats-store" {
+  description "Uber Eats store platform; also produces hp-eats_store-menu_entity_update_v4 Kafka events"
+}
+
+external_dependency "flipr" {
+  description "Uber's feature flag and dynamic configuration platform"
+}
+
+external_dependency "kms-gateway" {
+  description "Key management service providing encryption keys"
+}
+
+external_dependency "restaurant-gateway" {
+  description "Restaurant data platform providing store and restaurant information"
+}
+
+external_dependency "terrablob" {
+  description "Uber's distributed blob storage system"
+}
+
+external_dependency "winterfell" {
+  description "Uber Eats pricing service"
+}
