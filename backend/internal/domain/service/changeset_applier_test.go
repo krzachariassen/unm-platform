@@ -833,7 +833,7 @@ func TestAddNeed(t *testing.T) {
 	need, exists := result.Needs["need-two"]
 	require.True(t, exists)
 	assert.Equal(t, "need-two", need.Name)
-	assert.Equal(t, "merchant", need.ActorName)
+	assert.Equal(t, []string{"merchant"}, need.ActorNames)
 	assert.Equal(t, "better outcome", need.Outcome)
 	assert.Len(t, need.SupportedBy, 2)
 }

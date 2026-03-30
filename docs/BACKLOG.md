@@ -103,8 +103,8 @@ failure. The bottleneck analyzer ignores external dependency fan-in entirely.
 ## Phase 9: DSL v2 — Schema Simplification & Authoring UX
 
 Major refactoring of the UNM YAML/DSL schema to make it dramatically simpler
-for human authoring while preserving full modeling power. Every change is
-backward-compatible — existing files continue to parse.
+for human authoring while preserving full modeling power. No backward
+compatibility required — existing YAML/UNM files will be converted to v2.
 
 **Design decisions** (from user feedback session 2026-03-29):
 - Flat > nested for humans. `parent` field over `children` nesting.
@@ -303,12 +303,47 @@ The YAML serializer (export) must produce v2 format when exporting models.
       → parse → compare models.
       _File: `serializer/yaml_serializer_test.go`_ (#backend)
 
+### 9.11 — Multi-Actor Needs
+
+`actor` field on needs becomes a list. A single need can be shared by multiple
+actors instead of duplicating the entire need block.
+
+```yaml
+needs:
+  - name: "View accurate, up-to-date catalogs"
+    actor: ["Eater / Consumer", "Downstream Platform Team"]
+    outcome: "..."
+    supportedBy: [...]
+```
+
+- [ ] **9.11.1** — Change `Need.ActorName string` to `ActorNames []string`
+      in domain entity. Update all references across domain, use cases, and
+      adapters. _File: `entity/need.go` + all dependents_ (#backend)
+- [ ] **9.11.2** — Parser: `actor` field accepts both a string and a list of
+      strings (flex unmarshaling). Convert singular to `[]string{actor}`.
+      _File: `yaml_parser.go`_ (#backend)
+- [ ] **9.11.3** — DSL parser: support `actor "A", "B"` syntax.
+      _File: `dsl_parser.go`, `dsl/grammar.go`_ (#backend)
+- [ ] **9.11.4** — Need View API: needs with multiple actors appear in each
+      actor's group (not duplicated in the model, but rendered under each).
+      _File: `handler/view_enriched.go`_ (#backend)
+- [ ] **9.11.5** — Frontend NeedView: handle multi-actor needs in grouping
+      and display. _File: `NeedView.tsx`_ (#frontend)
+- [ ] **9.11.6** — Realization View: `capToSvcTeam` builder handles
+      multi-actor needs. _File: `RealizationView.tsx`_ (#frontend)
+- [ ] **9.11.7** — Signals/Cognitive Load views: need-span calculations
+      account for multi-actor needs. _File: `signals.go`, `cognitive_load.go`_ (#backend)
+- [ ] **9.11.8** — Parser + domain tests for multi-actor needs.
+      _File: `yaml_parser_test.go`, `need_test.go`_ (#backend)
+- [ ] **9.11.9** — Convert existing example files: deduplicate needs shared
+      across actors. _Files: `examples/*.unm.yaml`_ (#docs)
+
 ### Execution Order
 
-**Wave 1** (parser, no API/UI impact): 9.1, 9.2, 9.6, 9.7
+**Wave 1** (parser, no API/UI impact): 9.1, 9.2, 9.6, 9.7, 9.11
 **Wave 2** (relationship direction changes): 9.3, 9.4, 9.5
 **Wave 3** (examples + docs): 9.8, 9.9, 9.10
-Each wave is independently shippable and backward-compatible.
+Existing YAML/UNM files will be converted to v2 format — no backward compat needed.
 
 ---
 

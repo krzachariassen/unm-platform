@@ -207,7 +207,7 @@ func TestAIAdvisor_30Questions(t *testing.T) {
 		ndr := vcByNeed[n.Name]
 		needs = append(needs, needSummary{
 			Name:                    n.Name,
-			Actor:                   n.ActorName,
+			Actor:                   n.ActorNames[0],
 			SupportedByCapabilities: suppBy,
 			TeamSpan:                ndr.TeamSpan,
 			AtRisk:                  ndr.AtRisk,

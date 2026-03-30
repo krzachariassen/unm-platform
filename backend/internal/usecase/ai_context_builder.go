@@ -198,7 +198,7 @@ func (b *AIContextBuilder) BuildPromptData(m *entity.UNMModel, userQuestion stri
 		ndr := vcByNeed[n.Name]
 		needs = append(needs, aiNeedSummary{
 			Name:                    n.Name,
-			Actor:                   n.ActorName,
+			Actor:                   strings.Join(n.ActorNames, ", "),
 			SupportedByCapabilities: suppBy,
 			TeamSpan:                ndr.TeamSpan,
 			AtRisk:                  ndr.AtRisk,
@@ -255,7 +255,7 @@ func (b *AIContextBuilder) BuildPromptData(m *entity.UNMModel, userQuestion stri
 	}
 	var valueChains []valueChainEntry
 	for _, n := range m.Needs {
-		vc := valueChainEntry{Actor: n.ActorName, Need: n.Name}
+		vc := valueChainEntry{Actor: strings.Join(n.ActorNames, ", "), Need: n.Name}
 		teamSet := make(map[string]bool)
 		for _, rel := range n.SupportedBy {
 			capName := rel.TargetID.String()
@@ -383,7 +383,7 @@ func (b *AIContextBuilder) BuildPromptData(m *entity.UNMModel, userQuestion stri
 	}
 	gaps := aiGapSummary{}
 	for _, n := range gapReport.UnmappedNeeds {
-		gaps.UnmappedNeeds = append(gaps.UnmappedNeeds, n.Name+" (actor: "+n.ActorName+")")
+		gaps.UnmappedNeeds = append(gaps.UnmappedNeeds, n.Name+" (actor: "+strings.Join(n.ActorNames, ", ")+")")
 	}
 	for _, c := range gapReport.UnrealizedCapabilities {
 		gaps.UnrealizedCapabilities = append(gaps.UnrealizedCapabilities, c.Name)

@@ -28,7 +28,7 @@ type yamlActor struct {
 
 type yamlNeed struct {
 	Name        string `yaml:"name"`
-	Actor       string `yaml:"actor"`
+	Actor       any    `yaml:"actor"` // string for single actor, []string for multi-actor
 	Outcome     string `yaml:"outcome,omitempty"`
 	SupportedBy []any  `yaml:"supportedBy,omitempty"`
 }
@@ -139,8 +139,12 @@ func serializeNeeds(m *entity.UNMModel) []yamlNeed {
 	for _, n := range m.Needs {
 		yn := yamlNeed{
 			Name:    n.Name,
-			Actor:   n.ActorName,
 			Outcome: n.Outcome,
+		}
+		if len(n.ActorNames) == 1 {
+			yn.Actor = n.ActorNames[0] // scalar string — backward compat
+		} else if len(n.ActorNames) > 1 {
+			yn.Actor = n.ActorNames // sequence — parser handles both
 		}
 		yn.SupportedBy = serializeRelationships(n.SupportedBy)
 		needs = append(needs, yn)

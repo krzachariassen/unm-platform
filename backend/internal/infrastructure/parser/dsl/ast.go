@@ -48,7 +48,7 @@ type NeedNode struct {
 	Name        string
 	Description string
 	Outcome     string
-	Actor       string
+	Actors      []string
 	SupportedBy []RelationshipNode
 }
 

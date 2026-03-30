@@ -40,7 +40,7 @@ func buildModelForValueChainCogLoad() *entity.UNMModel {
 		"User": {Name: "User"},
 	}
 	m.Needs = map[string]*entity.Need{
-		"NeedA": {Name: "NeedA", ActorName: "User"},
+		"NeedA": {Name: "NeedA", ActorNames: []string{"User"}},
 	}
 	return m
 }

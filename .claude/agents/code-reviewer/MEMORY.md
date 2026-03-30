@@ -26,3 +26,19 @@
 - Any `fetch()` call in frontend that doesn't go through `api.ts`
 - Any `opacity-0` or `opacity: 0` on interactive elements
 - Any floating panel without a backdrop dismiss handler
+
+## Confirmed Safe Patterns (do not re-flag)
+- `httptest.NewServer` in `openai_client_test.go` is used for HTTP error-handling tests (non-200, empty choices, request inspection), NOT for mocking AI responses. These are labeled with comments explaining the distinction and are acceptable per the "no mocking real AI responses" rule. The real-API test is gated on `UNM_AI_TESTS=true`.
+- `fetch(` in `model-context.tsx` is a deliberate exception: the comment "Use a direct fetch (not api.ts) to avoid circular import issues" at line 52 is architecturally necessary for the hydration verification ping.
+- `fetch(` in `runtimeConfig.ts` is used for a one-shot config endpoint `/api/config` before the API module is available — also an acceptable exception.
+- `ChangeAction` in `internal/domain/entity/changeset.go` carries JSON tags (`json:"..."`) because it is deserialized from HTTP request bodies via the changeset handler. This is an intentional crossing of the adapter concern into the domain entity for the changeset action struct; it is a known trade-off in this design.
+- CORS middleware defaults to `"*"` when no origins are configured; this is safe because in production `config/production.yaml` should set `server.cors_origins` to restrict origins. The `DefaultConfig()` already seeds `["http://localhost:5173"]`.
+
+## Patterns Discovered in 2026-03 Full Audit
+- [2026-03-29] api.ts URL inconsistency: `getNeedView` and `getCapabilityView` use hardcoded `/api/models/...` instead of `${API_BASE}`. All other methods use `API_BASE`. This will break if backend is deployed at a non-root path.
+- [2026-03-29] `time.Sleep` in `model_store_test.go` (5ms) is used to test that `LastAccessedAt` is updated — this is the only reliable way to verify monotonic time update and is a narrow acceptable exception.
+- [2026-03-29] `time.Sleep(100ms)` in `ai_advisor_test.go` is inside a real-API test gate (`UNM_AI_TESTS=true`) and is a rate-limit courtesy delay, not a synchronization sleep. Acceptable.
+- [2026-03-29] No presenter layer exists (architecture doc mentions `adapter/presenter/` but no such package is present). View model construction lives in the handler package in `view_*.go` files. This is an informal presenter pattern inside the adapter layer — technically correct layering, but not following the declared architecture layout.
+- [2026-03-29] `insightEntry` type assertion `raw.(insightEntry)` in `insights.go` is unsafe — if the cache is ever written with a different type, this will panic. A checked assertion `raw, ok := ...; if !ok { ... }` would be safer.
+- [2026-03-29] `w.Write(data)` in `model.go:160` ignores the error return from Write. For binary/YAML responses after `WriteHeader(200)` this is a common minor issue.
+- [2026-03-29] `DebugRoutes: true` in `DefaultConfig()` means debug routes are ON by default in all environments that don't have a config file override. Production config must explicitly set `features.debug_routes: false` or it will expose the debug endpoints.

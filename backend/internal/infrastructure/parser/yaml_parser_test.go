@@ -31,7 +31,7 @@ func TestYAMLParser_SimpleModel(t *testing.T) {
 	require.Len(t, model.Needs, 1)
 	need, ok := model.Needs["Do something"]
 	require.True(t, ok, "need 'Do something' should be present")
-	assert.Equal(t, "User", need.ActorName)
+	assert.Equal(t, "User", need.ActorNames[0])
 	assert.Equal(t, "Something is done", need.Outcome)
 	require.Len(t, need.SupportedBy, 1)
 	assert.Equal(t, "Core Capability", need.SupportedBy[0].TargetID.String())
@@ -232,6 +232,57 @@ teams:
 	require.Len(t, model.Needs, 1)
 	need := model.Needs["Do something"]
 	require.NotNil(t, need)
-	assert.Equal(t, "User", need.ActorName)
+	assert.Equal(t, "User", need.ActorNames[0])
 	assert.Equal(t, "Done", need.Outcome)
+}
+
+func TestYAMLParser_MultiActorNeed(t *testing.T) {
+	src := `
+system:
+  name: "Multi Actor Test"
+actors:
+  - name: "Actor A"
+  - name: "Actor B"
+needs:
+  - name: "Shared Need"
+    actor:
+      - "Actor A"
+      - "Actor B"
+    outcome: "Something shared"
+    supportedBy: []
+`
+	p := parser.NewYAMLParser()
+	model, err := p.Parse(strings.NewReader(src))
+	require.NoError(t, err)
+	require.NotNil(t, model)
+
+	need, ok := model.Needs["Shared Need"]
+	require.True(t, ok, "need 'Shared Need' should be present")
+	assert.Len(t, need.ActorNames, 2)
+	assert.Equal(t, "Actor A", need.ActorNames[0])
+	assert.Equal(t, "Actor B", need.ActorNames[1])
+	assert.Equal(t, "Something shared", need.Outcome)
+}
+
+func TestYAMLParser_SingleActorNeedStringForm(t *testing.T) {
+	src := `
+system:
+  name: "Single Actor Test"
+actors:
+  - name: "Merchant"
+needs:
+  - name: "Accept Payment"
+    actor: "Merchant"
+    outcome: "Payment done"
+    supportedBy: []
+`
+	p := parser.NewYAMLParser()
+	model, err := p.Parse(strings.NewReader(src))
+	require.NoError(t, err)
+	require.NotNil(t, model)
+
+	need, ok := model.Needs["Accept Payment"]
+	require.True(t, ok, "need 'Accept Payment' should be present")
+	assert.Len(t, need.ActorNames, 1)
+	assert.Equal(t, "Merchant", need.ActorNames[0])
 }

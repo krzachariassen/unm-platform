@@ -58,7 +58,7 @@ func TestTransform_Need(t *testing.T) {
 		Needs: []*NeedNode{
 			{
 				Name:        "Accept Payments",
-				Actor:       "Merchant",
+				Actors:      []string{"Merchant"},
 				Description: "Payment acceptance",
 				SupportedBy: []RelationshipNode{
 					{Target: "Payment Processing", Description: "Core capability"},
@@ -74,8 +74,8 @@ func TestTransform_Need(t *testing.T) {
 	if !ok {
 		t.Fatal("expected need 'Accept Payments' in model")
 	}
-	if need.ActorName != "Merchant" {
-		t.Errorf("expected actor %q, got %q", "Merchant", need.ActorName)
+	if need.ActorNames[0] != "Merchant" {
+		t.Errorf("expected actor %q, got %q", "Merchant", need.ActorNames[0])
 	}
 	if len(need.SupportedBy) != 1 {
 		t.Fatalf("expected 1 supportedBy, got %d", len(need.SupportedBy))
@@ -413,7 +413,7 @@ func TestTransform_NeedOutcome(t *testing.T) {
 	f := &File{
 		System: &SystemNode{Name: "Test"},
 		Needs: []*NeedNode{
-			{Name: "Fast checkout", Actor: "Shopper", Description: "desc", Outcome: "checkout in 3 clicks"},
+			{Name: "Fast checkout", Actors: []string{"Shopper"}, Description: "desc", Outcome: "checkout in 3 clicks"},
 		},
 	}
 	model, err := Transform(f)
@@ -434,7 +434,7 @@ func TestTransform_NeedOutcomeFallback(t *testing.T) {
 	f := &File{
 		System: &SystemNode{Name: "Test"},
 		Needs: []*NeedNode{
-			{Name: "Fast checkout", Actor: "Shopper", Description: "fallback desc"},
+			{Name: "Fast checkout", Actors: []string{"Shopper"}, Description: "fallback desc"},
 		},
 	}
 	model, err := Transform(f)
@@ -1228,3 +1228,33 @@ transition "Consolidate" {
 	}
 }
 
+
+func TestTransform_NeedMultiActor(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Test"},
+		Needs: []*NeedNode{
+			{
+				Name:   "Shared Need",
+				Actors: []string{"Actor A", "Actor B"},
+				Outcome: "some shared outcome",
+			},
+		},
+	}
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	need, ok := model.Needs["Shared Need"]
+	if !ok {
+		t.Fatal("expected need 'Shared Need' in model")
+	}
+	if len(need.ActorNames) != 2 {
+		t.Fatalf("expected 2 ActorNames, got %d", len(need.ActorNames))
+	}
+	if need.ActorNames[0] != "Actor A" {
+		t.Errorf("expected ActorNames[0] %q, got %q", "Actor A", need.ActorNames[0])
+	}
+	if need.ActorNames[1] != "Actor B" {
+		t.Errorf("expected ActorNames[1] %q, got %q", "Actor B", need.ActorNames[1])
+	}
+}

@@ -487,7 +487,7 @@ func applyAddNeed(m *entity.UNMModel, action entity.ChangeAction) error {
 	need := &entity.Need{
 		ID:          needID,
 		Name:        action.NeedName,
-		ActorName:   action.ActorName,
+		ActorNames:  []string{action.ActorName},
 		Outcome:     action.Outcome,
 		SupportedBy: []entity.Relationship{},
 	}
@@ -528,7 +528,7 @@ func applyRemoveActor(m *entity.UNMModel, action entity.ChangeAction) error {
 		return fmt.Errorf("actor %q not found", action.ActorName)
 	}
 	for _, need := range m.Needs {
-		if need.ActorName == action.ActorName {
+		if need.HasActor(action.ActorName) {
 			return fmt.Errorf("actor %q still referenced by need %q", action.ActorName, need.Name)
 		}
 	}

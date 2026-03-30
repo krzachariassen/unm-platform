@@ -159,10 +159,12 @@ func buildEnrichedNeedView(m *entity.UNMModel, cfg ...entity.AnalysisConfig) enr
 		riskByNeed[nr.NeedName] = nr
 	}
 
-	// Group needs by actor
+	// Group needs by actor — a need with multiple actors appears under each actor group
 	actorNeeds := make(map[string][]*entity.Need)
 	for _, n := range m.Needs {
-		actorNeeds[n.ActorName] = append(actorNeeds[n.ActorName], n)
+		for _, actorName := range n.ActorNames {
+			actorNeeds[actorName] = append(actorNeeds[actorName], n)
+		}
 	}
 
 	// Sort actor names for determinism
@@ -1149,16 +1151,26 @@ func buildUNMMapView(m *entity.UNMModel) unmMapResponse {
 	// Need nodes + actor→need edges
 	for _, n := range m.Needs {
 		needID := "need-" + n.Name
-		actorID := "actor-" + n.ActorName
+		// Use first actor for primary edge; need data includes all actor names.
+		primaryActor := ""
+		if len(n.ActorNames) > 0 {
+			primaryActor = n.ActorNames[0]
+		}
+		actorID := "actor-" + primaryActor
 		nodes = append(nodes, viewNode{
 			ID:    needID,
 			Type:  "need",
 			Label: n.Name,
-			Data:  map[string]any{"actor_name": n.ActorName, "is_mapped": n.IsMapped(), "outcome": n.Outcome},
+			Data:  map[string]any{"actor_names": n.ActorNames, "is_mapped": n.IsMapped(), "outcome": n.Outcome},
 		})
-		edges = append(edges, viewEdge{
-			ID: nextEdgeID(actorID, needID), Source: actorID, Target: needID, Label: "has need",
-		})
+		// Create an edge for each actor the need belongs to
+		for _, actorName := range n.ActorNames {
+			aID := "actor-" + actorName
+			edges = append(edges, viewEdge{
+				ID: nextEdgeID(aID, needID), Source: aID, Target: needID, Label: "has need",
+			})
+		}
+		_ = actorID // primary actor used for backward compat above; edges now done per actor
 		for _, rel := range n.SupportedBy {
 			capID := "cap-" + rel.TargetID.String()
 			edges = append(edges, viewEdge{

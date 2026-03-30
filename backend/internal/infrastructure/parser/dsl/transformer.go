@@ -91,7 +91,15 @@ func transformNeeds(model *entity.UNMModel, nodes []*NeedNode) error {
 		if outcome == "" {
 			outcome = n.Description
 		}
-		need, err := entity.NewNeed(n.Name, n.Name, n.Actor, outcome)
+		var need *entity.Need
+		var err error
+		if len(n.Actors) == 1 {
+			need, err = entity.NewNeed(n.Name, n.Name, n.Actors[0], outcome)
+		} else if len(n.Actors) > 1 {
+			need, err = entity.NewNeedMultiActor(n.Name, n.Name, n.Actors, outcome)
+		} else {
+			return fmt.Errorf("transform: need %q: actor is required", n.Name)
+		}
 		if err != nil {
 			return fmt.Errorf("transform: need %q: %w", n.Name, err)
 		}

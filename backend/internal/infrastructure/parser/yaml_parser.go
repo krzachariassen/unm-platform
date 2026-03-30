@@ -94,12 +94,29 @@ type yamlScenario struct {
 }
 
 type yamlNeed struct {
-	Name  string `yaml:"name"`
-	Actor string `yaml:"actor"`
+	Name  string       `yaml:"name"`
+	Actor stringOrList `yaml:"actor"`
 	// Scenario field is ignored (deprecated in 1.9.1) — kept for backward-compat YAML parsing.
 	Scenario    string             `yaml:"scenario"`
 	Outcome     string             `yaml:"outcome"`
 	SupportedBy []flexRelationship `yaml:"supportedBy"`
+}
+
+// stringOrList accepts either a YAML scalar string or a sequence of strings.
+type stringOrList struct {
+	values []string
+}
+
+func (s *stringOrList) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.SequenceNode {
+		return value.Decode(&s.values)
+	}
+	var single string
+	if err := value.Decode(&single); err != nil {
+		return err
+	}
+	s.values = []string{single}
+	return nil
 }
 
 type yamlCapability struct {
@@ -344,11 +361,18 @@ func addNeeds(model *entity.UNMModel, needs []yamlNeed) error {
 		if n.Name == "" {
 			return fmt.Errorf("parser: need.name is required")
 		}
-		if n.Actor == "" {
+		actors := n.Actor.values
+		if len(actors) == 0 {
 			return fmt.Errorf("parser: need %q: need.actor is required", n.Name)
 		}
 		// n.Scenario is silently ignored (deprecated in 1.9.1).
-		need, err := entity.NewNeed(n.Name, n.Name, n.Actor, n.Outcome)
+		var need *entity.Need
+		var err error
+		if len(actors) == 1 {
+			need, err = entity.NewNeed(n.Name, n.Name, actors[0], n.Outcome)
+		} else {
+			need, err = entity.NewNeedMultiActor(n.Name, n.Name, actors, n.Outcome)
+		}
 		if err != nil {
 			return fmt.Errorf("parser: need %q: %w", n.Name, err)
 		}

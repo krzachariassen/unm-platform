@@ -255,7 +255,17 @@ func (p *parser) parseNeed() (*NeedNode, error) {
 			if err != nil {
 				return nil, p.errorf("need actor: %s", err.Error())
 			}
-			node.Actor = v
+			actors := []string{v}
+			// Support comma-separated actors: actor "A", "B"
+			for p.peekToken() == "," {
+				p.readToken() // consume ","
+				next, err := p.readString()
+				if err != nil {
+					return nil, p.errorf("need actor: %s", err.Error())
+				}
+				actors = append(actors, next)
+			}
+			node.Actors = actors
 		case "supportedBy":
 			p.readToken()
 			rel, err := p.parseRelationship()
