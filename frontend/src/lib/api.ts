@@ -54,7 +54,7 @@ export interface Team {
 
 export interface Need {
   name: string
-  actor_name: string
+  actor_names: string[]
   is_mapped: boolean
 }
 
@@ -209,7 +209,7 @@ export interface CognitiveLoadViewResponse {
 
 export interface SignalsNeedRisk {
   need_name: string
-  actor_name: string
+  actor_names: string[]
   team_span: number
   teams: string[]
 }

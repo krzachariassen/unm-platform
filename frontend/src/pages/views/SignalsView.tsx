@@ -168,10 +168,10 @@ function ExpandableRow({ summary, explanation, suggestion }: {
 function NeedRow({ item, variant }: { item: SignalsNeedRisk; variant: 'cross-team' | 'unbacked' | 'at-risk' }) {
   const explanation =
     variant === 'unbacked'
-      ? `"${item.need_name}" (actor: ${item.actor_name}) has no capability mapped to it. This means there is no part of the system responsible for delivering this user need — it exists in the model but has no implementation path.`
+      ? `"${item.need_name}" (actor: ${item.actor_names?.join(' & ')}) has no capability mapped to it. This means there is no part of the system responsible for delivering this user need — it exists in the model but has no implementation path.`
       : variant === 'cross-team'
-      ? `"${item.need_name}" (actor: ${item.actor_name}) requires ${item.team_span ?? 'multiple'} different teams to coordinate before it can be delivered. Each additional team adds handoff overhead, release coordination risk, and potential for misalignment.`
-      : `"${item.need_name}" (actor: ${item.actor_name}) is flagged at-risk because it spans ${item.team_span ?? 'multiple'} teams${item.teams?.length ? ` (${item.teams.join(', ')})` : ''}, exceeding the recommended threshold.`
+      ? `"${item.need_name}" (actor: ${item.actor_names?.join(' & ')}) requires ${item.team_span ?? 'multiple'} different teams to coordinate before it can be delivered. Each additional team adds handoff overhead, release coordination risk, and potential for misalignment.`
+      : `"${item.need_name}" (actor: ${item.actor_names?.join(' & ')}) is flagged at-risk because it spans ${item.team_span ?? 'multiple'} teams${item.teams?.length ? ` (${item.teams.join(', ')})` : ''}, exceeding the recommended threshold.`
 
   const suggestion =
     variant === 'unbacked'
@@ -182,7 +182,7 @@ function NeedRow({ item, variant }: { item: SignalsNeedRisk; variant: 'cross-tea
     <div className="w-full space-y-2">
       <div>
         <div className="text-sm font-semibold leading-snug" style={{ color: '#1e293b' }}>{item.need_name}</div>
-        <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>actor: {item.actor_name}</div>
+        <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>actor: {item.actor_names?.join(', ')}</div>
       </div>
       <div className="flex items-center gap-1.5 flex-wrap">
         {variant === 'unbacked' && <Tag text="No backing" color="red" />}
