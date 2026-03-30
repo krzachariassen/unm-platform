@@ -159,6 +159,7 @@ Each agent's `MEMORY.md` is subject to these guardrails:
 
 ## What NOT to Do
 
+- **Do not implement code directly** — for any coding task, invoke the appropriate specialist agent via the Skill tool: `/backend`, `/frontend`, `/fullstack`, `/docs`. Use `/run` if you are unsure which agent to route to. You (Claude Code) are the orchestrator — your job is to route and coordinate, not to write source files, tests, or build scripts yourself.
 - Do not add dependencies to `internal/domain/` (must be pure Go)
 - Do not skip writing tests first
 - Do not mock OpenAI in tests (use real API or skip)
