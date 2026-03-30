@@ -178,8 +178,8 @@ func TestValueChainAnalyzer_SingleTeam(t *testing.T) {
 	if nr.NeedName != "upload-menu" {
 		t.Errorf("NeedName: want upload-menu, got %s", nr.NeedName)
 	}
-	if nr.ActorName != "merchant" {
-		t.Errorf("ActorName: want merchant, got %s", nr.ActorName)
+	if nr.ActorNames[0] != "merchant" {
+		t.Errorf("ActorNames[0]: want merchant, got %s", nr.ActorNames[0])
 	}
 	if nr.TeamSpan != 1 {
 		t.Errorf("TeamSpan: want 1, got %d", nr.TeamSpan)

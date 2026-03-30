@@ -72,7 +72,7 @@ func mapToSignalsResponse(r usecase.SignalsResponse) signalsResponse {
 func mapNeedRisks(items []usecase.SignalNeedRisk) []signalNeedRisk {
 	out := make([]signalNeedRisk, len(items))
 	for i, x := range items {
-		out[i] = signalNeedRisk{NeedName: x.NeedName, ActorName: x.ActorName, TeamSpan: x.TeamSpan, Teams: x.Teams}
+		out[i] = signalNeedRisk{NeedName: x.NeedName, ActorNames: x.ActorNames, TeamSpan: x.TeamSpan, Teams: x.Teams}
 	}
 	return out
 }
@@ -130,10 +130,10 @@ type signalHealth struct {
 }
 
 type signalNeedRisk struct {
-	NeedName  string   `json:"need_name"`
-	ActorName string   `json:"actor_name"`
-	TeamSpan  int      `json:"team_span"`
-	Teams     []string `json:"teams"`
+	NeedName   string   `json:"need_name"`
+	ActorNames []string `json:"actor_names"`
+	TeamSpan   int      `json:"team_span"`
+	Teams      []string `json:"teams"`
 }
 
 type signalCapItem struct {

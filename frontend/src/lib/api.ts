@@ -54,7 +54,7 @@ export interface Team {
 
 export interface Need {
   name: string
-  actor_name: string
+  actor_names: string[]
   is_mapped: boolean
 }
 
@@ -209,7 +209,7 @@ export interface CognitiveLoadViewResponse {
 
 export interface SignalsNeedRisk {
   need_name: string
-  actor_name: string
+  actor_names: string[]
   team_span: number
   teams: string[]
 }
@@ -424,13 +424,14 @@ export interface AdvisorResponse {
 }
 
 export const api = {
-  async parseModel(yaml: string, previousModelId?: string): Promise<ParseResponse> {
+  async parseModel(content: string, previousModelId?: string, format?: 'dsl' | 'yaml'): Promise<ParseResponse> {
     const headers: Record<string, string> = { 'Content-Type': 'application/yaml' }
     if (previousModelId) headers['X-Replace-Model'] = previousModelId
-    const res = await fetch(`${API_BASE}/models/parse`, {
+    const url = format === 'dsl' ? `${API_BASE}/models/parse?format=dsl` : `${API_BASE}/models/parse`
+    const res = await fetch(url, {
       method: 'POST',
       headers,
-      body: yaml,
+      body: content,
     })
     if (!res.ok) throw new Error(await extractError(res, 'Parse failed'))
     return res.json()

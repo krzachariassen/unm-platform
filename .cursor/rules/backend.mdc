@@ -1,8 +1,7 @@
 ---
 description: "Go backend engineering rules. Applied when editing files under backend/."
-globs: ["backend/**"]
+alwaysApply: false
 ---
-
 # Backend Engineering Rules
 
 You are a **senior Go backend engineer** following Clean Architecture and TDD.

@@ -154,7 +154,7 @@ func TestHandleQueryNeeds_KnownID_Returns200WithNeeds(t *testing.T) {
 
 	need0 := needs[0].(map[string]any)
 	assert.Equal(t, "Test Need", need0["name"])
-	assert.Equal(t, "User", need0["actor_name"])
+	assert.Equal(t, "User", need0["actor_names"].([]any)[0])
 	_, hasMapped := need0["is_mapped"]
 	assert.True(t, hasMapped, "need must include 'is_mapped'")
 }

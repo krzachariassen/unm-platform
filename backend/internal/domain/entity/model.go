@@ -233,11 +233,11 @@ func (m *UNMModel) GetTeamsForCapability(capabilityName string) []*Team {
 	return result
 }
 
-// GetNeedsForActor returns all Needs whose ActorName matches the given actor name.
+// GetNeedsForActor returns all Needs that have the given actor in their ActorNames.
 func (m *UNMModel) GetNeedsForActor(actorName string) []*Need {
 	var result []*Need
 	for _, need := range m.Needs {
-		if need.ActorName == actorName {
+		if need.HasActor(actorName) {
 			result = append(result, need)
 		}
 	}
@@ -442,25 +442,27 @@ func (m *UNMModel) BuildValueChain() []ValueChainLayer {
 
 // BuildUNMMap returns the actor→need→capability chain for all actors (or filtered by actorFilter).
 // If actorFilter is empty, include all actors.
-// Each Need becomes one UNMMapEntry. Capabilities are the ones referenced in need.SupportedBy.
+// Each Need becomes one UNMMapEntry per actor it belongs to.
 // Entries are sorted by ActorName, then NeedName for determinism.
 func (m *UNMModel) BuildUNMMap(actorFilter string) []UNMMapEntry {
 	var entries []UNMMapEntry
 	for _, need := range m.Needs {
-		if actorFilter != "" && need.ActorName != actorFilter {
-			continue
-		}
 		var caps []*Capability
 		for _, rel := range need.SupportedBy {
 			if cap, found := m.Capabilities[rel.TargetID.String()]; found {
 				caps = append(caps, cap)
 			}
 		}
-		entries = append(entries, UNMMapEntry{
-			ActorName:    need.ActorName,
-			NeedName:     need.Name,
-			Capabilities: caps,
-		})
+		for _, actorName := range need.ActorNames {
+			if actorFilter != "" && actorName != actorFilter {
+				continue
+			}
+			entries = append(entries, UNMMapEntry{
+				ActorName:    actorName,
+				NeedName:     need.Name,
+				Capabilities: caps,
+			})
+		}
 	}
 	sort.Slice(entries, func(i, j int) bool {
 		if entries[i].ActorName != entries[j].ActorName {

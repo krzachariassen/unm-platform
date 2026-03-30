@@ -79,9 +79,9 @@ func (h *Handler) handleQueryTeams(w http.ResponseWriter, r *http.Request) {
 
 // needResponse is the JSON shape for a single need.
 type needResponse struct {
-	Name      string `json:"name"`
-	ActorName string `json:"actor_name"`
-	IsMapped  bool   `json:"is_mapped"`
+	Name       string   `json:"name"`
+	ActorNames []string `json:"actor_names"`
+	IsMapped   bool     `json:"is_mapped"`
 }
 
 // handleQueryNeeds returns all needs in the stored model.
@@ -96,9 +96,9 @@ func (h *Handler) handleQueryNeeds(w http.ResponseWriter, r *http.Request) {
 	needs := make([]needResponse, 0, len(stored.Model.Needs))
 	for _, n := range stored.Model.Needs {
 		needs = append(needs, needResponse{
-			Name:      n.Name,
-			ActorName: n.ActorName,
-			IsMapped:  n.IsMapped(),
+			Name:       n.Name,
+			ActorNames: n.ActorNames,
+			IsMapped:   n.IsMapped(),
 		})
 	}
 

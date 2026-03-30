@@ -9,7 +9,7 @@ import (
 // NeedDeliveryRisk holds the value-chain traversal result for a single need.
 type NeedDeliveryRisk struct {
 	NeedName        string   `json:"need_name"`
-	ActorName       string   `json:"actor_name"`
+	ActorNames      []string `json:"actor_names"`
 	TeamSpan        int      `json:"team_span"`
 	Teams           []string `json:"teams"`
 	CapabilityCount int      `json:"capability_count"`
@@ -131,7 +131,7 @@ func (a *ValueChainAnalyzer) Analyze(m *entity.UNMModel) ValueChainReport {
 
 		risks = append(risks, NeedDeliveryRisk{
 			NeedName:        need.Name,
-			ActorName:       need.ActorName,
+			ActorNames:      need.ActorNames,
 			TeamSpan:        teamSpan,
 			Teams:           teams,
 			CapabilityCount: capCount,

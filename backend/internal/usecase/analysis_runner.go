@@ -123,8 +123,8 @@ type analysisTeamView struct {
 }
 
 type analysisNeedView struct {
-	Name      string `json:"name"`
-	ActorName string `json:"actor_name"`
+	Name       string   `json:"name"`
+	ActorNames []string `json:"actor_names"`
 }
 
 func buildFragmentationResult(report analyzer.FragmentationReport) map[string]any {
@@ -226,7 +226,7 @@ func analysisDepCyclePaths(cycles []analyzer.DependencyCycle) [][]string {
 func buildGapsResult(report analyzer.GapReport) map[string]any {
 	unmappedNeeds := make([]analysisNeedView, 0, len(report.UnmappedNeeds))
 	for _, n := range report.UnmappedNeeds {
-		unmappedNeeds = append(unmappedNeeds, analysisNeedView{Name: n.Name, ActorName: n.ActorName})
+		unmappedNeeds = append(unmappedNeeds, analysisNeedView{Name: n.Name, ActorNames: n.ActorNames})
 	}
 
 	unrealizedCaps := make([]analysisCapabilityView, 0, len(report.UnrealizedCapabilities))

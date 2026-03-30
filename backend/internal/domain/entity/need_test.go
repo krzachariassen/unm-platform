@@ -18,8 +18,12 @@ func TestNewNeed(t *testing.T) {
 		if n.Name != "Accept Payment" {
 			t.Errorf("expected Name %q, got %q", "Accept Payment", n.Name)
 		}
-		if n.ActorName != "Merchant" {
-			t.Errorf("expected ActorName %q, got %q", "Merchant", n.ActorName)
+		// ActorNames stores single actor as slice
+		if len(n.ActorNames) != 1 {
+			t.Fatalf("expected 1 ActorName, got %d", len(n.ActorNames))
+		}
+		if n.ActorNames[0] != "Merchant" {
+			t.Errorf("expected ActorNames[0] %q, got %q", "Merchant", n.ActorNames[0])
 		}
 		if n.Outcome != "Payment processed successfully" {
 			t.Errorf("expected Outcome %q, got %q", "Payment processed successfully", n.Outcome)
@@ -63,6 +67,63 @@ func TestNewNeed(t *testing.T) {
 		}
 		if len(n.SupportedBy) != 1 {
 			t.Errorf("expected 1 SupportedBy, got %d", len(n.SupportedBy))
+		}
+	})
+}
+
+func TestNewNeedMultiActor(t *testing.T) {
+	t.Run("stores multiple actors", func(t *testing.T) {
+		n, err := NewNeedMultiActor("need-1", "Shared Need", []string{"Actor A", "Actor B"}, "some outcome")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(n.ActorNames) != 2 {
+			t.Fatalf("expected 2 ActorNames, got %d", len(n.ActorNames))
+		}
+		if n.ActorNames[0] != "Actor A" {
+			t.Errorf("expected ActorNames[0] %q, got %q", "Actor A", n.ActorNames[0])
+		}
+		if n.ActorNames[1] != "Actor B" {
+			t.Errorf("expected ActorNames[1] %q, got %q", "Actor B", n.ActorNames[1])
+		}
+	})
+
+	t.Run("empty actorNames returns error", func(t *testing.T) {
+		_, err := NewNeedMultiActor("need-1", "Need", []string{}, "outcome")
+		if err == nil {
+			t.Error("expected error for empty actorNames slice")
+		}
+	})
+
+	t.Run("actorNames with empty string returns error", func(t *testing.T) {
+		_, err := NewNeedMultiActor("need-1", "Need", []string{""}, "outcome")
+		if err == nil {
+			t.Error("expected error for empty actor name in slice")
+		}
+	})
+}
+
+func TestNeed_HasActor(t *testing.T) {
+	t.Run("single actor", func(t *testing.T) {
+		n, _ := NewNeed("need-1", "Need", "Merchant", "outcome")
+		if !n.HasActor("Merchant") {
+			t.Error("expected HasActor(Merchant) = true")
+		}
+		if n.HasActor("Driver") {
+			t.Error("expected HasActor(Driver) = false")
+		}
+	})
+
+	t.Run("multi actor", func(t *testing.T) {
+		n, _ := NewNeedMultiActor("need-1", "Need", []string{"Actor A", "Actor B"}, "outcome")
+		if !n.HasActor("Actor A") {
+			t.Error("expected HasActor(Actor A) = true")
+		}
+		if !n.HasActor("Actor B") {
+			t.Error("expected HasActor(Actor B) = true")
+		}
+		if n.HasActor("Actor C") {
+			t.Error("expected HasActor(Actor C) = false")
 		}
 	})
 }

@@ -104,8 +104,8 @@ need "Accept Payments" {
 	if n.Name != "Accept Payments" {
 		t.Errorf("expected name %q, got %q", "Accept Payments", n.Name)
 	}
-	if n.Actor != "Merchant" {
-		t.Errorf("expected actor %q, got %q", "Merchant", n.Actor)
+	if len(n.Actors) != 1 || n.Actors[0] != "Merchant" {
+		t.Errorf("expected actor %q, got %v", "Merchant", n.Actors)
 	}
 	if n.Description != "Merchants need to accept card payments" {
 		t.Errorf("unexpected description %q", n.Description)
@@ -1453,3 +1453,52 @@ team "team-a" {
 	}
 }
 
+
+func TestParse_NeedBlock_MultiActor(t *testing.T) {
+	src := `
+need "Shared Need" {
+  actor "Actor A", "Actor B"
+  outcome "Something shared"
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Needs) != 1 {
+		t.Fatalf("expected 1 need, got %d", len(f.Needs))
+	}
+	n := f.Needs[0]
+	if len(n.Actors) != 2 {
+		t.Fatalf("expected 2 actors, got %d", len(n.Actors))
+	}
+	if n.Actors[0] != "Actor A" {
+		t.Errorf("expected Actors[0] %q, got %q", "Actor A", n.Actors[0])
+	}
+	if n.Actors[1] != "Actor B" {
+		t.Errorf("expected Actors[1] %q, got %q", "Actor B", n.Actors[1])
+	}
+}
+
+func TestParse_NeedBlock_SingleActorStillWorks(t *testing.T) {
+	src := `
+need "Single Actor Need" {
+  actor "Merchant"
+  outcome "outcome here"
+}
+`
+	f, err := Parse(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(f.Needs) != 1 {
+		t.Fatalf("expected 1 need, got %d", len(f.Needs))
+	}
+	n := f.Needs[0]
+	if len(n.Actors) != 1 {
+		t.Fatalf("expected 1 actor, got %d", len(n.Actors))
+	}
+	if n.Actors[0] != "Merchant" {
+		t.Errorf("expected Actors[0] %q, got %q", "Merchant", n.Actors[0])
+	}
+}

@@ -14,10 +14,10 @@ type SignalHealth struct {
 
 // SignalNeedRisk holds per-need risk data.
 type SignalNeedRisk struct {
-	NeedName  string   `json:"need_name"`
-	ActorName string   `json:"actor_name"`
-	TeamSpan  int      `json:"team_span"`
-	Teams     []string `json:"teams"`
+	NeedName   string   `json:"need_name"`
+	ActorNames []string `json:"actor_names"`
+	TeamSpan   int      `json:"team_span"`
+	Teams      []string `json:"teams"`
 }
 
 // SignalCapItem holds per-capability signal data.
@@ -129,10 +129,10 @@ func (s *SignalsService) BuildSignalsData(m *entity.UNMModel) (SignalsResponse, 
 	var needs3Plus, needsUnbacked, needsAtRisk []SignalNeedRisk
 	for _, nr := range vcReport.NeedRisks {
 		item := SignalNeedRisk{
-			NeedName:  nr.NeedName,
-			ActorName: nr.ActorName,
-			TeamSpan:  nr.TeamSpan,
-			Teams:     nr.Teams,
+			NeedName:   nr.NeedName,
+			ActorNames: nr.ActorNames,
+			TeamSpan:   nr.TeamSpan,
+			Teams:      nr.Teams,
 		}
 		switch {
 		case nr.Unbacked:
