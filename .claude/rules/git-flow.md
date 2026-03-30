@@ -34,7 +34,13 @@ git checkout -b <type>/<short-description>
 
 ### 3. After Work is Complete
 
+**MANDATORY — do this before creating the PR:**
+- Update `docs/BACKLOG.md`: mark completed items `[x]` and add a line to Recently Completed
+- This is non-negotiable. Every completed task must be reflected in the backlog.
+
 ```bash
+# 1. Update docs/BACKLOG.md (mark [x], update Recently Completed, update _Last updated_ date)
+git add docs/BACKLOG.md
 git add -A
 git commit -m "<type>(<scope>): <description>"
 git push -u origin HEAD
