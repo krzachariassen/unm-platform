@@ -7,7 +7,7 @@ Use this for vertical slices that touch **both** `backend/` and `frontend/`. For
 ## API Contract
 
 - [ ] Go response struct(s) written with `json` tags — **snake_case** keys
-- [ ] TypeScript interface(s) in `frontend/src/lib/api.ts` mirror the Go shape exactly
+- [ ] TypeScript interface(s) in `frontend/src/types/` mirror the Go shape exactly
 - [ ] Empty slices initialized in Go where the UI expects arrays (`[]` not `null` / omitted)
 - [ ] Enums represented as **strings** in JSON unless there is a strong reason not to
 - [ ] No derived fields left for the frontend when the backend already has the data
@@ -22,7 +22,7 @@ Use this for vertical slices that touch **both** `backend/` and `frontend/`. For
 
 ## Frontend Implementation
 
-- [ ] Types and API function added/updated in `api.ts` (no ad-hoc `fetch` elsewhere)
+- [ ] Types in `types/` and API function in `services/api/` (no ad-hoc `fetch` elsewhere)
 - [ ] Page or component implements loading, error, and empty states
 - [ ] New page: route added in `App.tsx` and nav link in `Sidebar.tsx` if applicable
 - [ ] Page that needs a loaded model wrapped with `<ModelRequired>` (or project equivalent)

@@ -50,7 +50,7 @@ type MyItem struct {
 ```
 
 ```typescript
-// TypeScript mirror (in frontend/src/lib/api.ts)
+// TypeScript mirror (in frontend/src/types/)
 interface MyFeatureResponse {
   items: MyItem[]
   total: number
@@ -85,9 +85,9 @@ Key backend checklist:
 
 Only start the frontend after the backend tests pass.
 
-1. Add/update TypeScript types in `frontend/src/lib/api.ts` to match the Go contract exactly
-2. Add the API function in `api.ts`
-3. Implement the React page/component
+1. Add/update TypeScript types in `frontend/src/types/` to match the Go contract exactly
+2. Add the API function in the appropriate `frontend/src/services/api/` module
+3. Implement the React page/component using TanStack Query for data fetching
 4. Add route in `App.tsx` and nav item in `Sidebar.tsx` if it's a new page
 5. Wrap the page with `<ModelRequired>` if it requires a loaded model
 
@@ -140,7 +140,7 @@ All backend constraints apply:
 
 All frontend constraints apply:
 - ALWAYS validate with `cd frontend && npm run build`
-- NEVER use raw `fetch` — always `@/lib/api.ts`
+- NEVER use raw `fetch` — always `@/services/api/`
 - ALWAYS handle loading, error, and empty states
 - ALWAYS wrap pages with `<ModelRequired>`
 

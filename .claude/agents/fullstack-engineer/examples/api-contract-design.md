@@ -19,7 +19,7 @@ type FeatureItem struct {
 ```
 
 ```typescript
-// TypeScript — frontend/src/lib/api.ts
+// TypeScript — frontend/src/types/
 interface FeatureResponse {
     items: FeatureItem[]
     total: number
