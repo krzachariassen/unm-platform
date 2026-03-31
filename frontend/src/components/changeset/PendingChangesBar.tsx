@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { Loader2, Send, Check, AlertTriangle, ChevronUp, ChevronDown, X, List } from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
+import { Loader2, Send, Check, AlertTriangle, ChevronUp, ChevronDown, X, List, Info } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { ImpactDelta } from '@/lib/api'
 import { useModel } from '@/lib/model-context'
@@ -27,19 +27,42 @@ export function PendingChangesBar() {
   const [changesetId, setChangesetId] = useState<string | null>(null)
   const [impact, setImpact] = useState<ImpactDelta[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<string[] | null>(null)
   const [showList, setShowList] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showImpact, setShowImpact] = useState(true)
+
+  // Proactive warnings: scan pending actions for known validation issues
+  const pendingWarnings = useMemo(() => {
+    const warns: string[] = []
+    const addedCaps = new Set<string>()
+    const servicedCaps = new Set<string>() // caps that will have a service via link or add_service
+
+    for (const a of actions) {
+      const ac = a as unknown as Record<string, unknown>
+      if (a.type === 'add_capability') addedCaps.add(String(ac.capability_name ?? ''))
+      if (a.type === 'link_capability_service') servicedCaps.add(String(ac.capability_name ?? ''))
+      // add_service with an owner team doesn't directly link to a cap, but signals intent
+    }
+
+    for (const cap of addedCaps) {
+      if (!servicedCaps.has(cap)) {
+        warns.push(`"${cap}" has no service linked — it will fail validation. Either link an existing service (via "Link Capability to Service") or add a new service first.`)
+      }
+    }
+
+    return warns
+  }, [actions])
 
   const handlePreview = useCallback(async () => {
     if (!modelId || actions.length === 0) return
     setPhase('previewing')
     setError(null)
+    setValidationErrors(null)
     setImpact(null)
     setChangesetId(null)
     setShowImpact(true)
     try {
-      // Always fresh ID — never reuse a stale changeset
       const csId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
       const cs = await api.createChangeset(modelId, {
         id: csId,
@@ -60,10 +83,10 @@ export function PendingChangesBar() {
     if (!modelId || !changesetId) return
     setPhase('committing')
     setError(null)
+    setValidationErrors(null)
     try {
       const result = await api.commitChangeset(modelId, changesetId)
       if (result.validation.valid) {
-
         if (parseResult) {
           setModel(modelId, {
             ...parseResult,
@@ -78,7 +101,6 @@ export function PendingChangesBar() {
           })
         }
         setPhase('committed')
-        // Give the user a moment to see success, then exit edit mode (triggers map refresh)
         setTimeout(() => {
           exitEditMode()
           setPhase('idle')
@@ -86,10 +108,8 @@ export function PendingChangesBar() {
           setChangesetId(null)
         }, 1500)
       } else {
-        const msgs = result.validation.errors?.length
-          ? result.validation.errors.join(' · ')
-          : 'Validation failed — no details returned'
-        setError(msgs)
+        const errs = result.validation.errors?.length ? result.validation.errors : ['Validation failed — no details returned']
+        setValidationErrors(errs)
         setPhase('previewed')
       }
     } catch (err) {
@@ -105,14 +125,15 @@ export function PendingChangesBar() {
     setImpact(null)
     setChangesetId(null)
     setError(null)
+    setValidationErrors(null)
   }, [actions.length, exitEditMode])
 
-  // Reset phase when actions change (user added/removed)
   const handleReset = useCallback(() => {
     setPhase('idle')
     setImpact(null)
     setChangesetId(null)
     setError(null)
+    setValidationErrors(null)
   }, [])
 
   if (!isEditMode) return null
@@ -147,6 +168,39 @@ export function PendingChangesBar() {
           </div>
         </div>
       )}
+
+      {/* Commit validation errors — shown after a failed commit */}
+      {validationErrors && (
+        <div style={{ background: '#fef2f2', borderTop: '2px solid #f87171', padding: '10px 20px' }}>
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#b91c1c' }} />
+            <div className="flex-1">
+              <p className="text-xs font-semibold mb-1" style={{ color: '#b91c1c' }}>Commit blocked — fix these issues and try again:</p>
+              {validationErrors.map((e, i) => (
+                <p key={i} className="text-xs mb-0.5" style={{ color: '#991b1b' }}>• {e}</p>
+              ))}
+            </div>
+            <button onClick={() => setValidationErrors(null)} className="flex-shrink-0 p-0.5 rounded hover:bg-red-100">
+              <X size={12} style={{ color: '#b91c1c' }} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Proactive warnings — shown while building changes */}
+      {pendingWarnings.length > 0 && !validationErrors && (
+        <div style={{ background: '#fffbeb', borderTop: '1px solid #fbbf24', padding: '8px 20px' }}>
+          <div className="flex items-start gap-2">
+            <Info size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#92400e' }} />
+            <div className="flex-1">
+              {pendingWarnings.map((w, i) => (
+                <p key={i} className="text-xs" style={{ color: '#78350f' }}>⚠ {w}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Impact panel — expands above the bar */}
       {(impact || phase === 'previewing') && showImpact && (
         <div
@@ -253,6 +307,14 @@ export function PendingChangesBar() {
           {actions.length > 0 && (showList ? <ChevronDown size={11} style={{ color: '#9ca3af' }} /> : <ChevronUp size={11} style={{ color: '#9ca3af' }} />)}
         </button>
 
+        {/* Warning badge */}
+        {pendingWarnings.length > 0 && (
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ background: '#92400e', color: '#fef3c7' }}>
+            <AlertTriangle size={10} />
+            {pendingWarnings.length} {pendingWarnings.length === 1 ? 'issue' : 'issues'}
+          </span>
+        )}
+
         {/* Impact toggle (when available) */}
         {impact && !showImpact && (
           <button
@@ -264,7 +326,7 @@ export function PendingChangesBar() {
           </button>
         )}
 
-        {/* Error */}
+        {/* Generic error (network / unexpected) */}
         {error && (
           <div className="flex items-start gap-1.5 flex-1 min-w-0">
             <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#f87171' }} />
@@ -334,3 +396,4 @@ export function PendingChangesBar() {
     </div>
   )
 }
+
