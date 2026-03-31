@@ -1,12 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { ZoomIn, ZoomOut, Maximize2, Pencil } from 'lucide-react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 import { api, type ViewNode, type ViewEdge, type ChangeAction, type UNMMapExtDep } from '@/lib/api'
 import { useRequireModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { usePageInsights } from '@/hooks/usePageInsights'
 import { LoadingState, ErrorState } from '@/components/ViewState'
 import { slug } from '@/lib/slug'
-import { EditPanel } from '@/components/changeset/EditPanel'
+import { useChangeset } from '@/lib/changeset-context'
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 const PAD_X = 60
@@ -246,7 +246,7 @@ function buildLayout(
   const bandMaxH: Record<string, number> = {}
   for (const vis of VIS_ORDER) {
     bandMaxH[vis] = MIN_BAND_H
-    const visCaps = caps.filter(c => ((c.data.visibility as string) ?? 'foundational') === vis)
+    const visCaps = caps.filter(c => ((c.data.visibility as string) || 'domain') === vis)
     for (const cap of visCaps) {
       const svcs = capToSvcs.get(cap.id) ?? []
       const h = capCardHeight(svcs.length, cap.label.length) + CAP_BAND_PAD * 2
@@ -267,7 +267,7 @@ function buildLayout(
   let maxCapRight = needsWidth
   for (const vis of VIS_ORDER) {
     const visCaps = caps
-      .filter(c => ((c.data.visibility as string) ?? 'foundational') === vis)
+      .filter(c => ((c.data.visibility as string) || 'domain') === vis)
       .sort((a, b) => (capCentroid.get(a.id) ?? 0) - (capCentroid.get(b.id) ?? 0))
     let capCursor = PAD_X
     for (const cap of visCaps) {
@@ -299,7 +299,7 @@ function buildLayout(
   for (const cap of caps) {
     const x = capX.get(cap.id)
     if (x === undefined) continue
-    const vis = (cap.data.visibility as string) ?? 'foundational'
+    const vis = (cap.data.visibility as string) || 'domain'
     const band = bandByVis[vis] ?? bandByVis['infrastructure']
     const svcs = capToSvcs.get(cap.id) ?? []
     const cardH = capCardHeight(svcs.length, cap.label.length)
@@ -417,23 +417,74 @@ function buildLayout(
 // ─── Component ────────────────────────────────────────────────────────────────
 export function UNMMapView() {
   const { modelId, isHydrating } = useRequireModel()
+  const { isEditMode, actions, addAction, enterEditMode, refreshKey } = useChangeset()
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
-  const [layout, setLayout]   = useState<ReturnType<typeof buildLayout> | null>(null)
-  const [chainData, setChainData] = useState<ChainData | null>(null)
+
+  // Store raw API data so we can re-derive the layout when pending actions change
+  const [rawMapData, setRawMapData] = useState<{
+    actors: ViewNode[]; needs: ViewNode[]; caps: ViewNode[]
+    actorToNeed: ViewEdge[]; needToCap: ViewEdge[]
+    capDepEdges: Array<{ from: string; to: string; description?: string }>
+    extDeps: UNMMapExtDep[]
+  } | null>(null)
+
+  // Derive layout + chainData from raw data + pending actions — reactive to both
+  const layout = useMemo(() => {
+    if (!rawMapData) return null
+    const pendingCaps: ViewNode[] = actions
+      .filter(a => a.type === 'add_capability')
+      .map(a => {
+        const ac = a as unknown as Record<string, unknown>
+        const name = String(ac.capability_name ?? '')
+        const team = String(ac.owner_team_name ?? '')
+        const vis  = String(ac.visibility || 'domain')
+        return {
+          id: `pending:${name}`, label: name, type: 'capability',
+          data: { visibility: vis, team_label: team, team_type: '', services: [], isPending: true },
+        } satisfies ViewNode
+      })
+    const allCaps = [...rawMapData.caps, ...pendingCaps]
+    return buildLayout(rawMapData.actors, rawMapData.needs, allCaps, rawMapData.actorToNeed, rawMapData.needToCap, rawMapData.capDepEdges, rawMapData.extDeps)
+  }, [rawMapData, actions])
+
+  const chainData = useMemo((): ChainData | null => {
+    if (!rawMapData || !layout) return null
+    const extDepToCapIds = new Map<string, string[]>()
+    const capToExtDepIds = new Map<string, string[]>()
+    for (const conn of layout.extDepConns) {
+      if (!extDepToCapIds.has(conn.targetId)) extDepToCapIds.set(conn.targetId, [])
+      extDepToCapIds.get(conn.targetId)!.push(conn.sourceId)
+      if (!capToExtDepIds.has(conn.sourceId)) capToExtDepIds.set(conn.sourceId, [])
+      capToExtDepIds.get(conn.sourceId)!.push(conn.targetId)
+    }
+    return { actorToNeed: rawMapData.actorToNeed, needToCap: rawMapData.needToCap, capDepEdges: rawMapData.capDepEdges, extDepToCapIds, capToExtDepIds }
+  }, [rawMapData, layout])
+
   const [panel, setPanel]     = useState<PanelItem | null>(null)
   const [highlight, setHighlight] = useState<Set<string> | null>(null)
   const [zoom, setZoom] = useState(1)
-  const [editOpen, setEditOpen] = useState(false)
-  const [editKey, setEditKey] = useState(0)
+  const [stagedCaps, setStagedCaps] = useState<Set<string>>(new Set())
   const [teams, setTeams] = useState<string[]>([])
+  const [apiServices, setApiServices] = useState<string[]>([])
   const [editState, setEditState] = useState<{
     capLabel: string; description: string; visibility: string; teamName: string
     origDescription: string; origVisibility: string; origTeam: string
+    svcs: SvcInfo[]
+    isPendingNode: boolean
+    linkSvcName: string; newSvcName: string
   } | null>(null)
-  const [saving, setSaving] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const { insights } = usePageInsights('dashboard')
+
+  const pendingCapNames = useMemo(() => {
+    const names = new Set<string>()
+    for (const a of actions) {
+      const an = a as unknown as Record<string, unknown>
+      if (typeof an.capability_name === 'string') names.add(an.capability_name)
+    }
+    return names
+  }, [actions])
 
   const isDragging = useRef(false)
   const dragStart = useRef({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 })
@@ -486,27 +537,11 @@ export function UNMMapView() {
         const caps   = data.nodes.filter(n => n.type === 'capability')
         const actorToNeed = data.edges.filter(e => e.label === 'has need')
         const needToCap   = data.edges.filter(e => e.label === 'supportedBy')
-
         const capDepEdges: Array<{ from: string; to: string; description?: string }> = []
         for (const e of data.edges) {
-          if (e.label === 'dependsOn') {
-            capDepEdges.push({ from: e.source, to: e.target, description: e.description })
-          }
+          if (e.label === 'dependsOn') capDepEdges.push({ from: e.source, to: e.target, description: e.description })
         }
-
-        const builtLayout = buildLayout(actors, needs, caps, actorToNeed, needToCap, capDepEdges, data.external_deps ?? [])
-
-        const extDepToCapIds = new Map<string, string[]>()
-        const capToExtDepIds = new Map<string, string[]>()
-        for (const conn of builtLayout.extDepConns) {
-          if (!extDepToCapIds.has(conn.targetId)) extDepToCapIds.set(conn.targetId, [])
-          extDepToCapIds.get(conn.targetId)!.push(conn.sourceId)
-          if (!capToExtDepIds.has(conn.sourceId)) capToExtDepIds.set(conn.sourceId, [])
-          capToExtDepIds.get(conn.sourceId)!.push(conn.targetId)
-        }
-
-        setLayout(builtLayout)
-        setChainData({ actorToNeed, needToCap, capDepEdges, extDepToCapIds, capToExtDepIds })
+        setRawMapData({ actors, needs, caps, actorToNeed, needToCap, capDepEdges, extDeps: data.external_deps ?? [] })
       })
       .catch((e: unknown) => setError((e as Error).message))
       .finally(() => setLoading(false))
@@ -514,42 +549,46 @@ export function UNMMapView() {
 
   useEffect(() => { loadMap() }, [loadMap])
 
-  const handleEditCommitted = useCallback(() => {
-    setEditKey(k => k + 1)
-    loadMap()
-  }, [loadMap])
-
-  const handleEditClose = useCallback(() => {
-    setEditOpen(false)
-  }, [])
-
   useEffect(() => {
     if (!modelId || isHydrating) return
     api.getTeams(modelId).then(r => setTeams(r.teams.map(t => t.name))).catch(() => {})
+    api.getServices(modelId).then(r => setApiServices(r.services.map((s: { name: string }) => s.name))).catch(() => {})
   }, [modelId, isHydrating])
 
-  const handleSaveEdit = useCallback(async () => {
-    if (!editState || !modelId) return
-    setSaving(true)
-    try {
-      const actions: ChangeAction[] = []
-      if (editState.description !== editState.origDescription)
-        actions.push({ type: 'update_description', entity_type: 'capability', entity_name: editState.capLabel, description: editState.description })
-      if (editState.visibility !== editState.origVisibility)
-        actions.push({ type: 'update_capability_visibility', capability_name: editState.capLabel, visibility: editState.visibility })
-      if (editState.teamName !== editState.origTeam)
-        actions.push({ type: 'reassign_capability', capability_name: editState.capLabel, from_team_name: editState.origTeam || undefined, to_team_name: editState.teamName || undefined })
-      if (actions.length === 0) { setSaving(false); return }
-      const cs = await api.createChangeset(modelId, { id: `edit-${Date.now()}`, description: `Edit ${editState.capLabel}`, actions })
-      await api.commitChangeset(modelId, cs.id)
-      setPanel(null); setHighlight(null); setEditState(null)
-      loadMap()
-    } catch (e) {
-      console.error('Save failed:', e)
-    } finally {
-      setSaving(false)
-    }
-  }, [editState, modelId, loadMap])
+  // Merge pending add_service actions into the services list
+  const services = useMemo(() => {
+    const pending = actions
+      .filter(a => a.type === 'add_service')
+      .map(a => String((a as unknown as Record<string, unknown>).service_name ?? ''))
+      .filter(Boolean)
+    return [...new Set([...apiServices, ...pending])].sort((a, b) => a.localeCompare(b))
+  }, [apiServices, actions])
+
+  // Reload map when a changeset is committed (refreshKey bumps in ChangesetContext)
+  useEffect(() => {
+    if (refreshKey > 0) loadMap()
+  }, [refreshKey, loadMap])
+
+  const handleSaveEdit = useCallback(() => {
+    if (!editState) return
+    const actions: ChangeAction[] = []
+    if (editState.description !== editState.origDescription)
+      actions.push({ type: 'update_description', entity_type: 'capability', entity_name: editState.capLabel, description: editState.description })
+    if (editState.visibility !== editState.origVisibility)
+      actions.push({ type: 'update_capability_visibility', capability_name: editState.capLabel, visibility: editState.visibility })
+    if (editState.teamName !== editState.origTeam)
+      actions.push({ type: 'reassign_capability', capability_name: editState.capLabel, from_team_name: editState.origTeam || undefined, to_team_name: editState.teamName || undefined })
+    if (actions.length === 0) return
+    // Batch all actions via global context — commit from the bottom bar
+    if (!isEditMode) enterEditMode()
+    actions.forEach(a => addAction(a))
+    const capName = editState.capLabel
+    setStagedCaps(prev => new Set([...prev, capName]))
+    setTimeout(() => setStagedCaps(prev => { const n = new Set(prev); n.delete(capName); return n }), 2000)
+    setPanel(null)
+    setHighlight(null)
+    setEditState(null)
+  }, [editState, isEditMode, enterEditMode, addAction])
 
   useEffect(() => {
     const el = containerRef.current
@@ -631,28 +670,44 @@ export function UNMMapView() {
           ]
         : []
       const uniqueTeamsForPanel = [...new Set((node.svcs ?? []).map(s => s.teamName).filter(Boolean))]
+      const isPendingNode = node.id.startsWith('pending:')
       setPanel({
-        title: node.label, badge: { text: cfg?.label ?? node.vis ?? '', color: cfg?.border ?? '#94a3b8' },
+        title: node.label, badge: { text: isPendingNode ? 'Pending' : (cfg?.label ?? node.vis ?? ''), color: isPendingNode ? '#f59e0b' : (cfg?.border ?? '#94a3b8') },
         fields: [
+          ...(isPendingNode ? [{ label: '⏳ Status', value: 'This capability is staged but not yet committed. Use "Link Capability to Service" (+ More) to add a service before committing.' }] : []),
           { label: 'Description', value: node.description ?? '' },
           { label: 'Visibility', value: node.vis ?? '' },
           { label: 'Owning Team', value: node.team?.label ?? 'Unowned' },
           { label: 'Team Type', value: node.team?.type ?? '' },
-          { label: 'Realized By', value: svcsText },
+          { label: 'Realized By', value: svcsText || 'No service linked yet' },
           ...(node.crossTeam ? [{ label: '⚠ Multi-team', value: `Services owned by ${uniqueTeamsForPanel.length} different teams: ${uniqueTeamsForPanel.join(', ')}` }] : []),
           ...(node.isFragmented ? [{ label: '⚠ Fragmented', value: 'Multiple teams own services for this capability — consider consolidating ownership' }] : []),
           ...aiFields,
         ],
       })
-      setEditState({
-        capLabel: node.label,
-        description: node.description ?? '',
-        visibility: node.vis ?? 'foundational',
-        teamName: node.team?.label ?? '',
-        origDescription: node.description ?? '',
-        origVisibility: node.vis ?? 'foundational',
-        origTeam: node.team?.label ?? '',
-      })
+      if (!isPendingNode) {
+        setEditState({
+          capLabel: node.label,
+          description: node.description ?? '',
+          visibility: node.vis ?? 'foundational',
+          teamName: node.team?.label ?? '',
+          origDescription: node.description ?? '',
+          origVisibility: node.vis ?? 'foundational',
+          origTeam: node.team?.label ?? '',
+          svcs: node.svcs ?? [],
+          isPendingNode: false,
+          linkSvcName: '', newSvcName: '',
+        })
+      } else {
+        setEditState({
+          capLabel: node.label,
+          description: '', visibility: node.vis ?? 'domain', teamName: node.team?.label ?? '',
+          origDescription: '', origVisibility: node.vis ?? 'domain', origTeam: node.team?.label ?? '',
+          svcs: [],
+          isPendingNode: true,
+          linkSvcName: '', newSvcName: '',
+        })
+      }
     }
 
     setHighlight(computeChain(node.id, node.type, chainData))
@@ -716,19 +771,6 @@ export function UNMMapView() {
           </button>}
         </div>
         <div className="ml-auto flex items-center gap-1">
-          <button
-            onClick={() => { setEditOpen(o => { if (!o) { setPanel(null); setHighlight(null) } return !o }) }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{
-              background: editOpen ? '#111827' : '#f3f4f6',
-              color: editOpen ? '#ffffff' : '#374151',
-              border: editOpen ? '1px solid #111827' : '1px solid #e5e7eb',
-            }}
-            title="Toggle model editor"
-          >
-            <Pencil size={13} />
-            Edit
-          </button>
           <div className="w-px h-5 mx-1" style={{ background: '#e5e7eb' }} />
           <button onClick={() => setZoom(z => Math.min(3, z + 0.15))} className="p-1.5 rounded hover:bg-gray-100" title="Zoom in"><ZoomIn size={15} /></button>
           <button onClick={() => setZoom(z => Math.max(0.3, z - 0.15))} className="p-1.5 rounded hover:bg-gray-100" title="Zoom out"><ZoomOut size={15} /></button>
@@ -738,7 +780,7 @@ export function UNMMapView() {
       </div>
 
       {/* Canvas + optional edit panel */}
-      <div className="flex-1 flex relative rounded-xl overflow-hidden" style={{ border: '1px solid #e5e7eb' }}>
+      <div className="flex-1 flex relative rounded-xl overflow-hidden" style={{ border: isEditMode ? '2px solid #3b82f6' : '1px solid #e5e7eb', transition: 'border-color 0.2s' }}>
         <div className="flex-1 relative overflow-hidden">
         <div
           ref={containerRef}
@@ -915,12 +957,32 @@ export function UNMMapView() {
                 const uniqueTeams = new Set(svcs.map(s => s.teamName).filter(Boolean))
                 const crossTeam = uniqueTeams.size > 1
 
+                const isVirtualPending = node.id.startsWith('pending:')
+                const isPending = pendingCapNames.has(node.label)
+                const justStaged = stagedCaps.has(node.label)
+
                 return (
                   <div key={node.id} className="absolute rounded-lg select-none cursor-pointer"
-                    style={{ left: node.x, top: node.y, width: node.w, height: node.h, zIndex: 10, opacity: op,
-                      background: cfg.nodeBg, overflow: 'hidden', transition: 'opacity 0.15s',
-                      border: `1.5px solid ${(node.isFragmented || crossTeam) ? '#ef4444' : cfg.border}`,
-                      boxShadow: (node.isFragmented || crossTeam) ? '0 0 8px rgba(239,68,68,0.3)' : undefined }}
+                    style={{ left: node.x, top: node.y, width: node.w, height: node.h, zIndex: 10,
+                      opacity: isVirtualPending ? (hl ? 0.6 : 0.85) : op,
+                      background: cfg.nodeBg, overflow: 'hidden', transition: 'opacity 0.15s, border-color 0.2s, box-shadow 0.2s',
+                      border: justStaged
+                        ? '2px solid #059669'
+                        : isVirtualPending
+                        ? `2px dashed ${cfg.border}`
+                        : isPending
+                        ? '2px solid #3b82f6'
+                        : `1.5px solid ${(node.isFragmented || crossTeam) ? '#ef4444' : cfg.border}`,
+                      boxShadow: justStaged
+                        ? '0 0 0 3px rgba(5,150,105,0.15)'
+                        : isVirtualPending
+                        ? `0 0 0 3px ${cfg.border}22`
+                        : isPending
+                        ? '0 0 0 3px rgba(59,130,246,0.15)'
+                        : (node.isFragmented || crossTeam)
+                        ? '0 0 8px rgba(239,68,68,0.3)'
+                        : undefined }}
+                    title={isEditMode ? 'Click to edit' : node.label}
                     onClick={e => { e.stopPropagation(); openNodePanel(node) }}
                   >
                     <div style={{ fontSize: 10, fontWeight: 600, color: cfg.text, padding: '5px 8px 2px', lineHeight: 1.3 }}>
@@ -949,7 +1011,16 @@ export function UNMMapView() {
                     )}
 
                     {(node.isFragmented || crossTeam) && (
-                      <div style={{ position: 'absolute', top: 4, right: 6, fontSize: 9, color: '#ef4444' }}>⚠</div>
+                      <div style={{ position: 'absolute', top: 4, right: isPending ? 18 : 6, fontSize: 9, color: '#ef4444' }}>⚠</div>
+                    )}
+                    {isVirtualPending && (
+                      <div style={{ position: 'absolute', top: 3, right: 5, fontSize: 8, color: cfg.border, fontWeight: 700, background: `${cfg.border}18`, borderRadius: 3, padding: '1px 4px' }}>pending</div>
+                    )}
+                    {justStaged && (
+                      <div style={{ position: 'absolute', top: 3, right: 5, fontSize: 8, color: '#059669', fontWeight: 700, background: 'rgba(5,150,105,0.1)', borderRadius: 3, padding: '1px 3px' }}>✓</div>
+                    )}
+                    {isPending && !justStaged && !isVirtualPending && (
+                      <div style={{ position: 'absolute', top: 4, right: 5, width: 7, height: 7, borderRadius: '50%', background: '#3b82f6' }} />
                     )}
                   </div>
                 )
@@ -969,7 +1040,7 @@ export function UNMMapView() {
             position: 'fixed', right: 0, top: 56, bottom: 0, width: 320,
             background: 'white', borderLeft: '1px solid #e5e7eb',
             overflowY: 'auto', zIndex: 50,
-            transform: (panel && !editOpen) ? 'translateX(0)' : 'translateX(100%)',
+            transform: panel ? 'translateX(0)' : 'translateX(100%)',
             transition: 'transform 0.2s ease',
             boxShadow: '-4px 0 12px rgba(0,0,0,0.08)',
           }}
@@ -1000,76 +1071,183 @@ export function UNMMapView() {
                 </button>
               </div>
               <div style={{ padding: 16 }}>
-                {panel.fields.map((f, i) => (
+
+                {/* Edit form — shown FIRST in edit mode for capabilities */}
+                {editState && (
+                  <div style={{ borderBottom: isEditMode ? '1px solid #e5e7eb' : 'none', marginBottom: isEditMode ? 16 : 0, paddingBottom: isEditMode ? 4 : 0 }}>
+                    {!editState.isPendingNode && (
+                      <>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Edit this capability</div>
+
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Description</div>
+                          <textarea
+                            value={editState.description}
+                            onChange={e => setEditState(s => s && { ...s, description: e.target.value })}
+                            rows={3}
+                            style={{ width: '100%', fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical', minHeight: 56, boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }}
+                          />
+                        </div>
+
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Visibility</div>
+                          <select
+                            value={editState.visibility}
+                            onChange={e => setEditState(s => s && { ...s, visibility: e.target.value })}
+                            style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
+                          >
+                            <option value="user-facing">User-facing</option>
+                            <option value="domain">Domain</option>
+                            <option value="foundational">Foundational</option>
+                            <option value="infrastructure">Infrastructure</option>
+                          </select>
+                        </div>
+
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Owning Team</div>
+                          <select
+                            value={editState.teamName}
+                            onChange={e => setEditState(s => s && { ...s, teamName: e.target.value })}
+                            style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
+                          >
+                            <option value="">— Unowned —</option>
+                            {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </div>
+
+                        <button
+                          onClick={handleSaveEdit}
+                          style={{ width: '100%', padding: '7px', borderRadius: 6, background: '#111827', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', marginBottom: 16 }}
+                        >
+                          Stage changes →
+                        </button>
+                      </>
+                    )}
+
+                    {/* Services section — available for both existing and pending capabilities */}
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Services</div>
+
+                      {/* Existing services: move + unlink */}
+                      {editState.svcs.length > 0 ? editState.svcs.map(svc => (
+                        <div key={svc.id} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, background: '#f9fafb', borderRadius: 5, padding: '4px 6px', border: '1px solid #e5e7eb' }}>
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: teamColor(svc.teamName), flexShrink: 0 }} />
+                          <span style={{ fontSize: 11, color: '#374151', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.label}</span>
+                          <select
+                            defaultValue=""
+                            onChange={e => {
+                              const toTeam = e.target.value
+                              if (!toTeam) return
+                              if (!isEditMode) enterEditMode()
+                              addAction({ type: 'move_service', service_name: svc.label, from_team_name: svc.teamName || undefined, to_team_name: toTeam })
+                              e.target.value = ''
+                            }}
+                            style={{ fontSize: 10, padding: '2px 4px', borderRadius: 4, border: '1px solid #d1d5db', background: '#fff', maxWidth: 90 }}
+                          >
+                            <option value="">Move…</option>
+                            {teams.filter(t => t !== svc.teamName).map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          <button
+                            onClick={() => {
+                              if (!isEditMode) enterEditMode()
+                              addAction({ type: 'unlink_capability_service', capability_name: editState.capLabel, service_name: svc.label })
+                            }}
+                            title="Unlink service from this capability"
+                            style={{ fontSize: 10, padding: '2px 5px', borderRadius: 4, border: '1px solid #fca5a5', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer', flexShrink: 0 }}
+                          >
+                            Unlink
+                          </button>
+                        </div>
+                      )) : (
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, fontStyle: 'italic' }}>No services linked yet</div>
+                      )}
+
+                      {/* Link existing service */}
+                      <div style={{ display: 'flex', gap: 5, marginTop: 8 }}>
+                        <select
+                          value={editState.linkSvcName}
+                          onChange={e => setEditState(s => s && { ...s, linkSvcName: e.target.value })}
+                          style={{ flex: 1, fontSize: 11, padding: '4px 6px', borderRadius: 5, border: '1px solid #d1d5db', background: '#fff' }}
+                        >
+                          <option value="">Link existing service…</option>
+                          {services
+                            .filter(s => !editState.svcs.some(sv => sv.label === s))
+                            .map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <button
+                          onClick={() => {
+                            if (!editState.linkSvcName) return
+                            if (!isEditMode) enterEditMode()
+                            addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: editState.linkSvcName })
+                            setEditState(s => s && { ...s, linkSvcName: '' })
+                          }}
+                          disabled={!editState.linkSvcName}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, border: 'none', background: '#1d4ed8', color: '#fff', cursor: editState.linkSvcName ? 'pointer' : 'default', opacity: editState.linkSvcName ? 1 : 0.35, flexShrink: 0 }}
+                        >
+                          Link
+                        </button>
+                      </div>
+
+                      {/* Add new service + auto-link */}
+                      <div style={{ display: 'flex', gap: 5, marginTop: 6 }}>
+                        <input
+                          type="text"
+                          placeholder="New service name…"
+                          value={editState.newSvcName}
+                          onChange={e => setEditState(s => s && { ...s, newSvcName: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key !== 'Enter' || !editState.newSvcName.trim()) return
+                            const name = editState.newSvcName.trim()
+                            if (!isEditMode) enterEditMode()
+                            addAction({ type: 'add_service', service_name: name, owner_team_name: editState.teamName || undefined })
+                            addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: name })
+                            setEditState(s => s && { ...s, newSvcName: '' })
+                          }}
+                          style={{ flex: 1, fontSize: 11, padding: '4px 6px', borderRadius: 5, border: '1px solid #d1d5db', outline: 'none' }}
+                        />
+                        <button
+                          onClick={() => {
+                            const name = editState.newSvcName.trim()
+                            if (!name) return
+                            if (!isEditMode) enterEditMode()
+                            addAction({ type: 'add_service', service_name: name, owner_team_name: editState.teamName || undefined })
+                            addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: name })
+                            setEditState(s => s && { ...s, newSvcName: '' })
+                          }}
+                          disabled={!editState.newSvcName.trim()}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, border: 'none', background: '#059669', color: '#fff', cursor: editState.newSvcName.trim() ? 'pointer' : 'default', opacity: editState.newSvcName.trim() ? 1 : 0.35, flexShrink: 0, whiteSpace: 'nowrap' }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info fields — below edit form in edit mode; full view in view mode */}
+                {(!isEditMode || !editState) && panel.fields.map((f, i) => (
                   <div key={i} style={{ marginBottom: 12 }}>
                     <div style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: f.label.startsWith('⚠') ? '#ef4444' : '#9ca3af', marginBottom: 4 }}>{f.label}</div>
                     <div style={{ fontSize: 13, lineHeight: 1.5, color: f.label.startsWith('⚠') ? '#dc2626' : '#374151', whiteSpace: 'pre-line' }}>{f.value || '—'}</div>
                   </div>
                 ))}
-
-                {/* Inline edit form — capability only */}
-                {editState && (
-                  <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 8, paddingTop: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Edit Capability</div>
-
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Description</div>
-                      <textarea
-                        value={editState.description}
-                        onChange={e => setEditState(s => s && { ...s, description: e.target.value })}
-                        rows={3}
-                        style={{ width: '100%', fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical', minHeight: 56, boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }}
-                      />
+                {isEditMode && editState && (
+                  <details style={{ marginTop: 4 }}>
+                    <summary style={{ fontSize: 11, color: '#9ca3af', cursor: 'pointer', userSelect: 'none' }}>▸ View details</summary>
+                    <div style={{ marginTop: 8 }}>
+                      {panel.fields.map((f, i) => (
+                        <div key={i} style={{ marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', color: f.label.startsWith('⚠') ? '#ef4444' : '#9ca3af', marginBottom: 4 }}>{f.label}</div>
+                          <div style={{ fontSize: 13, lineHeight: 1.5, color: f.label.startsWith('⚠') ? '#dc2626' : '#374151', whiteSpace: 'pre-line' }}>{f.value || '—'}</div>
+                        </div>
+                      ))}
                     </div>
-
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Visibility</div>
-                      <select
-                        value={editState.visibility}
-                        onChange={e => setEditState(s => s && { ...s, visibility: e.target.value })}
-                        style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
-                      >
-                        <option value="user-facing">User-facing</option>
-                        <option value="domain">Domain</option>
-                        <option value="foundational">Foundational</option>
-                        <option value="infrastructure">Infrastructure</option>
-                      </select>
-                    </div>
-
-                    <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Owning Team</div>
-                      <select
-                        value={editState.teamName}
-                        onChange={e => setEditState(s => s && { ...s, teamName: e.target.value })}
-                        style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
-                      >
-                        <option value="">— Unowned —</option>
-                        {teams.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
-
-                    <button
-                      onClick={handleSaveEdit}
-                      disabled={saving}
-                      style={{ width: '100%', padding: '7px', borderRadius: 6, background: saving ? '#6b7280' : '#111827', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer' }}
-                    >
-                      {saving ? 'Saving…' : 'Save changes'}
-                    </button>
-                  </div>
+                  </details>
                 )}
               </div>
             </>
           )}
         </div>
-
-        {/* Edit panel — slides in from right */}
-        {editOpen && (
-          <div className="flex-shrink-0 z-30"
-            style={{ width: 340, borderLeft: '1px solid #e5e7eb' }}
-            onClick={e => e.stopPropagation()}>
-            <EditPanel key={editKey} onClose={handleEditClose} onCommitted={handleEditCommitted} />
-          </div>
-        )}
       </div>
     </div>
     </ModelRequired>

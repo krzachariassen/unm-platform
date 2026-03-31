@@ -23,12 +23,23 @@ You are NOT invoked for backend API changes, Go code, or anything under `backend
 Before starting any task, read in this order:
 
 1. `.claude/agents/frontend-engineer/MEMORY.md` — past learnings, known gotchas
-2. `.claude/agents/common/architecture.md` — system structure (where files live)
-3. `.claude/agents/common/domain-model.md` — UNM domain concepts (what you're displaying)
-4. `.claude/rules/react-conventions.md` — React/TypeScript conventions (CRITICAL)
-5. `.claude/agents/common/stack.md` — Tailwind v4, shadcn/ui, React Flow, Lucide
+2. `.claude/rules/frontend-architecture.md` — layered architecture, file limits, data fetching rules (CRITICAL)
+3. `.claude/agents/common/architecture.md` — system structure (where files live)
+4. `.claude/agents/common/domain-model.md` — UNM domain concepts (what you're displaying)
+5. `.claude/rules/react-conventions.md` — React/TypeScript conventions
+6. `.claude/agents/common/stack.md` — technology stack
+7. `.claude/agents/frontend-engineer/anti-patterns.md` — what NOT to do
 
 ## Architecture Understanding
+
+### Layered Architecture
+
+```
+Pages  →  Features  →  Components  →  Hooks  →  Services  →  Types
+```
+
+Dependencies flow left-to-right only. See `.claude/rules/frontend-architecture.md` for
+full rules, file size limits, and examples.
 
 ### ModelContext — The Central State
 Every protected page depends on `useModel()` from `@/lib/model-context`:
@@ -55,37 +66,41 @@ export function MyPage() {
 ```
 `ModelRequired` handles: redirect to "/" if no model, render null during hydration, render children when model is available. Do NOT implement your own model guard logic.
 
-### API Layer — Always Use api.ts
-All API calls go through `@/lib/api.ts`. Never use raw `fetch` or `axios` in components:
+### Data Fetching — TanStack Query
+All server state uses TanStack Query. No manual `useEffect` + `useState` for data fetching:
 ```typescript
-import { api } from '@/lib/api'
-const data = await api.getDashboardSummary(modelId)
-```
+import { useQuery } from '@tanstack/react-query'
+import { viewsApi } from '@/services/api'
 
-### Standard View Page Pattern
-Every view page follows this structure:
-```typescript
 export function MyView() {
   const { modelId } = useModel()
-  const [data, setData] = useState<MyDataType | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['myView', modelId],
+    queryFn: () => viewsApi.getMyView(modelId!),
+    enabled: !!modelId,
+  })
 
-  useEffect(() => {
-    if (!modelId) return
-    api.getMyData(modelId)
-      .then(setData)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [modelId])
-
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState message={error} />
+  if (isLoading) return <LoadingState />
+  if (error) return <ErrorState message={error.message} />
   if (!data) return <EmptyState />
 
   return <div>{/* render data */}</div>
 }
 ```
+
+### API Layer — services/api/
+All API calls go through typed service modules in `services/api/`:
+```typescript
+import { viewsApi } from '@/services/api'
+const data = await viewsApi.getNeeds(modelId)
+```
+Never use raw `fetch` in components. Each service module handles one domain.
+
+### Graph Visualization — React Flow
+UNM Map and any graph/diagram views use `@xyflow/react` (React Flow):
+- Custom node types for domain entities
+- Built-in zoom, pan, and edge rendering
+- Layout logic in pure functions with unit tests
 
 ## 4-Phase Workflow
 
@@ -93,24 +108,26 @@ export function MyView() {
 - Read the task description and any referenced backlog items
 - Check MEMORY.md for prior learnings in this area
 - Read the existing component/page being modified (never edit without reading)
-- Check `@/lib/api.ts` for available API functions and types
-- Check `@/components/ui/` for reusable shadcn/ui components before building new ones
-- Check `@/hooks/` for existing hooks before creating new ones
+- Check `services/api/` for available API functions and types
+- Check `types/` for existing type definitions
+- Check `components/ui/` for reusable shadcn/ui components before building new ones
+- Check `hooks/` for existing hooks before creating new ones
 
 ### Phase 2: Implement
-- Start with the TypeScript types (interfaces, props)
+- Start with the TypeScript types (interfaces, props) in `types/`
 - Implement loading/error/empty states before the happy path
 - Use Tailwind utility classes for styling (not inline styles, not CSS files)
-- Use shadcn/ui components (`Button`, `Badge`, etc.) for common UI patterns
+- Use shadcn/ui components (`Button`, `Badge`, `Card`, `Tabs`, etc.) for common UI patterns
 - Use Lucide React icons (already installed — don't add other icon libraries)
-- For graphs/diagrams: use React Flow (already configured)
-- For data viz: use D3.js (already installed)
+- For graphs/diagrams: use React Flow (`@xyflow/react`)
+- Keep pages under 300 lines, components under 200 lines
 
 ### Phase 3: Validate
 ```bash
 cd frontend && npm run build   # tsc -b && vite build (matches CI/Dockerfile)
+cd frontend && npm run test    # vitest
 ```
-Must pass before declaring done.
+Both must pass before declaring done.
 
 ### Phase 4: Update Memory
 Add any non-obvious learnings to MEMORY.md for future agents.
@@ -119,18 +136,23 @@ Add any non-obvious learnings to MEMORY.md for future agents.
 
 ### New Page / View
 - [ ] File in `frontend/src/pages/` (top-level pages) or `frontend/src/pages/views/` (sub-views)
+- [ ] ≤ 300 lines (extract to `features/<name>/` if larger)
 - [ ] Wrapped with `<ModelRequired>` (unless it's the upload/landing page)
 - [ ] Route added in `App.tsx`
-- [ ] Nav item added in `Sidebar.tsx` with appropriate icon
+- [ ] Nav item added in Sidebar with appropriate icon
+- [ ] Uses TanStack Query for data fetching (`useQuery`)
 - [ ] Handles loading, error, and empty states explicitly
 - [ ] `useModel()` used for model ID — never hardcoded
-- [ ] API calls via `api.ts` only
+- [ ] API calls via `services/api/` only
+- [ ] All types imported from `types/`
 
 ### New Shared Component
-- [ ] File in `frontend/src/components/ui/` (generic) or `frontend/src/components/` (domain-specific)
+- [ ] File in `components/ui/` (generic) or `components/<domain>/` (domain-specific)
+- [ ] ≤ 200 lines
 - [ ] Props interface defined and exported
 - [ ] No direct API calls in shared components (receive data as props)
 - [ ] Works with missing/null data without crashing
+- [ ] Styled with Tailwind only (no inline styles)
 
 ### Interactive Element (button, toggle, dropdown)
 - [ ] Has visible hover state
@@ -140,8 +162,8 @@ Add any non-obvious learnings to MEMORY.md for future agents.
 
 ### Data Display
 - [ ] Shows unit/context (e.g., "14 services", not "14")
-- [ ] Numbers consistent with Dashboard (if Dashboard says X services, this view says X too)
-- [ ] Handles zero state gracefully (don't show "0 items" without explanation)
+- [ ] Numbers consistent with Dashboard
+- [ ] Handles zero state gracefully
 - [ ] Tooltip or explanation for any warning icon — no icon-only indicators
 - [ ] Floating panels close on click-outside
 
@@ -149,7 +171,8 @@ Add any non-obvious learnings to MEMORY.md for future agents.
 
 - Tailwind v4 utilities are the primary styling method
 - Use CSS variables (`text-muted-foreground`, `border-border`, `bg-background`) for theme consistency
-- Inline styles only as last resort (e.g., dynamic pixel values from data)
+- `cn()` utility for conditional classes
+- Inline styles only for dynamic computed values (React Flow positions, chart pixel offsets)
 - Do not add new CSS files — Tailwind handles everything
 - Dark mode uses the `dark:` prefix on Tailwind classes
 - Spacing scale: prefer `gap-2`, `gap-4`, `p-4`, `px-6` — avoid arbitrary values
@@ -158,14 +181,18 @@ Add any non-obvious learnings to MEMORY.md for future agents.
 
 ## Critical Constraints
 
-- **ALWAYS** validate with `cd frontend && npm run build`
-- **NEVER** use inline styles when Tailwind classes exist for the same purpose
-- **NEVER** leave interactive elements with opacity 0 or hidden — use `opacity-50` for disabled
-- **NEVER** create floating panels without click-outside-to-dismiss behavior
-- **ALWAYS** handle loading, error, and empty states for every data fetch
-- **ALWAYS** use `@/lib/api.ts` for API calls — never raw `fetch` in components
+- **ALWAYS** validate with `cd frontend && npm run build && npm run test`
+- **ALWAYS** follow the layered architecture (see `frontend-architecture.md`)
+- **ALWAYS** use TanStack Query for data fetching — no manual useEffect fetch patterns
+- **ALWAYS** use `services/api/` for API calls — never raw `fetch` in components
 - **ALWAYS** use `useModel()` for model ID — never hardcode or derive from URL
-- **ALWAYS** provide explanatory text alongside warning icons — no icon-only indicators
+- **ALWAYS** use shared components (`PageHeader`, `StatCard`, etc.) — never reimplement
+- **ALWAYS** keep files under their size limits (300 pages, 200 components, 100 hooks)
+- **NEVER** use inline `style={{}}` when Tailwind classes exist for the same purpose
+- **NEVER** use `as unknown as` type casts — fix the type at the source
+- **NEVER** leave interactive elements with opacity 0 or hidden
+- **NEVER** create floating panels without click-outside-to-dismiss
+- **NEVER** hand-roll SVG graph rendering — use React Flow
 - **NEVER** duplicate the model guard logic — use `<ModelRequired>` exclusively
 
 ## File Ownership

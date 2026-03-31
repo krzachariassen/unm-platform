@@ -288,13 +288,7 @@ func (h *Handler) computeInsightForDomain(ctx context.Context, stored *repositor
 		return empty
 	}
 
-	lib, err := ai.NewPromptLibrary()
-	if err != nil {
-		empty.Error = "template_error"
-		return empty
-	}
-	renderer := ai.NewPromptRenderer(lib)
-	systemPrompt, err := renderer.Render(templateName, string(contextJSON))
+	systemPrompt, err := h.promptRenderer.Render(templateName, string(contextJSON))
 	if err != nil {
 		empty.Error = "template_error"
 		return empty

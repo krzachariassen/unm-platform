@@ -29,7 +29,7 @@ func (h *Handler) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.analysisRunner().RunAnalysis(analyzeType, model)
+	result, err := h.runner.RunAnalysis(analyzeType, model)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -53,26 +53,10 @@ func (h *Handler) handleAnalyzeStored(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.analysisRunner().RunAnalysis(analyzeType, stored.Model)
+	result, err := h.runner.RunAnalysis(analyzeType, stored.Model)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
-}
-
-// analysisRunner builds an AnalysisRunner from the handler's existing analyzer fields.
-func (h *Handler) analysisRunner() *usecase.AnalysisRunner {
-	return usecase.NewAnalysisRunner(
-		h.fragmentation,
-		h.cognitiveLoad,
-		h.dependency,
-		h.gap,
-		h.bottleneck,
-		h.coupling,
-		h.complexity,
-		h.interactions,
-		h.unlinked,
-		h.signalSuggestions,
-	)
 }

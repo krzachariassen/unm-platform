@@ -11,32 +11,32 @@ import (
 // AIContextBuilder assembles all model data and analysis results into a map
 // suitable for rendering AI prompt templates.
 type AIContextBuilder struct {
-	cognitiveLoad *analyzer.CognitiveLoadAnalyzer
-	valueChain    *analyzer.ValueChainAnalyzer
-	fragmentation *analyzer.FragmentationAnalyzer
-	dependency    *analyzer.DependencyAnalyzer
-	gap           *analyzer.GapAnalyzer
-	bottleneck    *analyzer.BottleneckAnalyzer
-	coupling      *analyzer.CouplingAnalyzer
-	complexity    *analyzer.ComplexityAnalyzer
-	interactions  *analyzer.InteractionDiversityAnalyzer
-	unlinked      *analyzer.UnlinkedCapabilityAnalyzer
-	valueStream   *analyzer.ValueStreamAnalyzer
+	cognitiveLoad CognitiveLoader
+	valueChain    ValueChainAnalyzer
+	fragmentation Fragmenter
+	dependency    DependencyAnalyzer
+	gap           GapAnalyzer
+	bottleneck    BottleneckAnalyzer
+	coupling      CouplingAnalyzer
+	complexity    ComplexityAnalyzer
+	interactions  InteractionDiversityAnalyzer
+	unlinked      UnlinkedCapabilityAnalyzer
+	valueStream   ValueStreamAnalyzer
 }
 
 // NewAIContextBuilder constructs an AIContextBuilder.
 func NewAIContextBuilder(
-	cl *analyzer.CognitiveLoadAnalyzer,
-	vc *analyzer.ValueChainAnalyzer,
-	frag *analyzer.FragmentationAnalyzer,
-	dep *analyzer.DependencyAnalyzer,
-	g *analyzer.GapAnalyzer,
-	bn *analyzer.BottleneckAnalyzer,
-	cp *analyzer.CouplingAnalyzer,
-	cx *analyzer.ComplexityAnalyzer,
-	intr *analyzer.InteractionDiversityAnalyzer,
-	unl *analyzer.UnlinkedCapabilityAnalyzer,
-	vs *analyzer.ValueStreamAnalyzer,
+	cl CognitiveLoader,
+	vc ValueChainAnalyzer,
+	frag Fragmenter,
+	dep DependencyAnalyzer,
+	g GapAnalyzer,
+	bn BottleneckAnalyzer,
+	cp CouplingAnalyzer,
+	cx ComplexityAnalyzer,
+	intr InteractionDiversityAnalyzer,
+	unl UnlinkedCapabilityAnalyzer,
+	vs ValueStreamAnalyzer,
 ) *AIContextBuilder {
 	return &AIContextBuilder{
 		cognitiveLoad: cl,

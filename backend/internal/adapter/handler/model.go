@@ -5,9 +5,7 @@ import (
 	"net/http"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
-	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/serializer"
-	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // registerModelRoutes registers POST /api/models/parse and POST /api/models/validate.
@@ -57,7 +55,7 @@ type validationItem struct {
 func (h *Handler) handleParse(w http.ResponseWriter, r *http.Request) {
 	pv := h.parseAndValidate
 	if r.URL.Query().Get("format") == "dsl" {
-		pv = usecase.NewParseAndValidate(parser.NewDSLParser(), service.NewValidationEngine())
+		pv = h.parseAndValidateDSL
 	}
 	model, result, err := pv.Execute(r.Body)
 	if err != nil {
@@ -99,7 +97,7 @@ func (h *Handler) handleParse(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleValidate(w http.ResponseWriter, r *http.Request) {
 	pv := h.parseAndValidate
 	if r.URL.Query().Get("format") == "dsl" {
-		pv = usecase.NewParseAndValidate(parser.NewDSLParser(), service.NewValidationEngine())
+		pv = h.parseAndValidateDSL
 	}
 	_, result, err := pv.Execute(r.Body)
 	if err != nil {

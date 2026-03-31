@@ -4,16 +4,15 @@ import (
 	"fmt"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
-	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
 )
 
 // ChangesetExplainer chains impact analysis and prepares prompt data for AI explanation.
 type ChangesetExplainer struct {
-	impactAnalyzer *analyzer.ImpactAnalyzer
+	impactAnalyzer ImpactRunner
 }
 
 // NewChangesetExplainer constructs a ChangesetExplainer.
-func NewChangesetExplainer(ia *analyzer.ImpactAnalyzer) *ChangesetExplainer {
+func NewChangesetExplainer(ia ImpactRunner) *ChangesetExplainer {
 	return &ChangesetExplainer{impactAnalyzer: ia}
 }
 

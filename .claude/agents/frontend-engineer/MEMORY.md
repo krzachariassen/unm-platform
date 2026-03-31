@@ -26,17 +26,23 @@ Multiple JSX elements returned from `.map()` must be wrapped in a fragment or
 container element. Omitting this causes Vite build failures even if TSC passes.
 
 ### 2026-03 — Shared utility modules (Phase 6.12)
-These shared modules now exist — use them, do not inline:
+These shared modules exist — use them, do not inline:
 - `frontend/src/lib/slug.ts` — `toSlug(name)` for URL/id slugification
 - `frontend/src/lib/team-type-styles.ts` — `getTeamTypeStyle(type)` for team type badge colors
 - `frontend/src/lib/visibility-styles.ts` — `getVisibilityStyle(v)` for capability visibility badges
-- `frontend/src/hooks/useModelView.ts` — `useModelView(fetchFn)` shared loading/error/data hook
 - `frontend/src/components/ViewState.tsx` — unified loading/error/empty state renderer
 
-### 2026-03 — api.ts parallel agent conflict risk
-When two agents both need to modify `frontend/src/lib/api.ts` (e.g., one deleting old methods,
-another adding new ones), they will produce a merge conflict. Assign api.ts ownership to ONE agent
-per wave. If both need it, sequence them rather than parallelizing.
+### 2026-03 — Architecture rewrite (refactor/ui-unification)
+Major architecture overhaul. Key changes:
+- **Data fetching**: `useModelView` and manual `useEffect` patterns replaced by **TanStack Query** (`useQuery`)
+- **API client**: monolith `lib/api.ts` split into `services/api/` modules (client, models, views, changesets, insights, advisor)
+- **Types**: moved from `lib/api.ts` to `types/` directory (model.ts, views.ts, changeset.ts, insights.ts, common.ts)
+- **Graph viz**: UNMMapView rewritten with **React Flow** (`@xyflow/react`) — no more hand-rolled SVG layout engine
+- **Shared components**: PageHeader, StatCard, TabBar, InsightBanner etc. in `components/ui/`
+- **File limits**: Pages ≤ 300 lines, Components ≤ 200 lines, Hooks ≤ 100 lines
+- **Features directory**: `features/<name>/` for domain-specific logic (e.g., `features/unm-map/`)
+- **D3.js is NOT installed** — previous docs were wrong about this
+- See `.claude/rules/frontend-architecture.md` for the full layered architecture rules
 
 ## Known Gotchas
 
