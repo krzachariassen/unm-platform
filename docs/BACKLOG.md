@@ -11,7 +11,7 @@ _Priority: Phase 9 cleanup + data_asset simplification._
 
 ## Recently Completed
 
-- [x] **feat(ux): batch edit mode** — Replace 3-phase-per-batch EditPanel with global ChangesetContext + floating PendingChangesBar; "Edit Model" toggle in TopBar; inline capability edits and service moves batch via context; fix stale changeset commit bug (2026-03-31)
+- [x] **feat(ux): batch edit mode** — Global ChangesetContext + floating PendingChangesBar; "Edit Model" TopBar toggle; real-time pending cap nodes on map; full Services panel (add/link/move/unlink) per capability; proactive validation warnings; specific backend error display on 409; fix visibility bug causing committed capabilities to vanish after reload (2026-03-31)
 - [x] **feat(ai)** — AI IP allowlist: restrict AI features by client IP; supports exact IPs and CIDR ranges; respects X-Forwarded-For (2026-03-30)
 - [x] **BUG-2** — DSL parser did not support `#` hash comments; only `//` was supported. Fix: extend `skipWhitespaceAndComments` to treat `#` as a line comment delimiter. (2026-03-30)
 - [x] **refactor(data-asset)** — Simplify DataAsset: remove ProducedBy/ConsumedBy/Access; UsedBy becomes flat `[]string`; type is free-form. Updated across all parsers, serializer, analyzer, tests, and nexus.unm.yaml (2026-03-30)
