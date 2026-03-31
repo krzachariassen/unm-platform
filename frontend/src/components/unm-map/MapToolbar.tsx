@@ -1,9 +1,79 @@
-import { useState, useRef, useEffect } from 'react'
-import { ZoomIn, ZoomOut, Maximize2, Plus, X, Info } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { ZoomIn, ZoomOut, Maximize2, X, Info, Search, Zap, ArrowRight, Plus, Minus, RefreshCw, Pencil, GitBranch, Link2, Unlink, Users, Layers } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
 import { VIS_ORDER, VIS } from '@/features/unm-map/constants'
 import { useChangeset } from '@/lib/changeset-context'
 import { ActionForm } from '@/components/changeset/ActionForm'
+import type { ChangeAction } from '@/lib/api'
+
+type ActionType = ChangeAction['type']
+
+interface ActionDef {
+  value: ActionType
+  label: string
+  icon: typeof Plus
+  iconColor: string
+}
+
+interface ActionGroup {
+  label: string
+  actions: ActionDef[]
+}
+
+const ACTION_GROUPS: ActionGroup[] = [
+  {
+    label: 'Services',
+    actions: [
+      { value: 'move_service', label: 'Move Service', icon: ArrowRight, iconColor: '#2563eb' },
+      { value: 'add_service', label: 'Add Service', icon: Plus, iconColor: '#059669' },
+      { value: 'remove_service', label: 'Remove Service', icon: Minus, iconColor: '#dc2626' },
+      { value: 'rename_service', label: 'Rename Service', icon: Pencil, iconColor: '#7c3aed' },
+      { value: 'add_service_dependency', label: 'Add Dependency', icon: Link2, iconColor: '#0891b2' },
+      { value: 'remove_service_dependency', label: 'Remove Dependency', icon: Unlink, iconColor: '#dc2626' },
+      { value: 'link_capability_service', label: 'Link to Capability', icon: Link2, iconColor: '#059669' },
+      { value: 'unlink_capability_service', label: 'Unlink from Capability', icon: Unlink, iconColor: '#dc2626' },
+    ],
+  },
+  {
+    label: 'Teams',
+    actions: [
+      { value: 'add_team', label: 'Add Team', icon: Plus, iconColor: '#059669' },
+      { value: 'remove_team', label: 'Remove Team', icon: Minus, iconColor: '#dc2626' },
+      { value: 'update_team_type', label: 'Change Type', icon: RefreshCw, iconColor: '#7c3aed' },
+      { value: 'update_team_size', label: 'Change Size', icon: Users, iconColor: '#2563eb' },
+      { value: 'split_team', label: 'Split Team', icon: GitBranch, iconColor: '#ea580c' },
+      { value: 'merge_teams', label: 'Merge Teams', icon: Layers, iconColor: '#0891b2' },
+    ],
+  },
+  {
+    label: 'Capabilities',
+    actions: [
+      { value: 'add_capability', label: 'Add Capability', icon: Plus, iconColor: '#059669' },
+      { value: 'remove_capability', label: 'Remove', icon: Minus, iconColor: '#dc2626' },
+      { value: 'reassign_capability', label: 'Reassign', icon: ArrowRight, iconColor: '#2563eb' },
+      { value: 'update_capability_visibility', label: 'Change Visibility', icon: Pencil, iconColor: '#7c3aed' },
+    ],
+  },
+  {
+    label: 'Needs & Actors',
+    actions: [
+      { value: 'add_need', label: 'Add Need', icon: Plus, iconColor: '#059669' },
+      { value: 'remove_need', label: 'Remove Need', icon: Minus, iconColor: '#dc2626' },
+      { value: 'link_need_capability', label: 'Link Need → Capability', icon: Link2, iconColor: '#059669' },
+      { value: 'unlink_need_capability', label: 'Unlink Need', icon: Unlink, iconColor: '#dc2626' },
+      { value: 'add_actor', label: 'Add Actor', icon: Plus, iconColor: '#059669' },
+      { value: 'remove_actor', label: 'Remove Actor', icon: Minus, iconColor: '#dc2626' },
+    ],
+  },
+  {
+    label: 'Interactions',
+    actions: [
+      { value: 'add_interaction', label: 'Add Interaction', icon: Plus, iconColor: '#059669' },
+      { value: 'remove_interaction', label: 'Remove Interaction', icon: Minus, iconColor: '#dc2626' },
+      { value: 'update_description', label: 'Update Description', icon: Pencil, iconColor: '#7c3aed' },
+    ],
+  },
+]
 
 interface MapToolbarProps {
   highlighted: boolean
@@ -13,19 +83,30 @@ interface MapToolbarProps {
 export function MapToolbar({ highlighted, onClearHighlight }: MapToolbarProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow()
   const { addAction } = useChangeset()
-  const [showAdd, setShowAdd] = useState(false)
+  const [showActions, setShowActions] = useState(false)
+  const [selectedAction, setSelectedAction] = useState<ActionType | null>(null)
   const [showLegend, setShowLegend] = useState(false)
-  const addRef = useRef<HTMLDivElement>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const actionsRef = useRef<HTMLDivElement>(null)
   const legendRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!showAdd) return
+    if (!showActions) return
     const handler = (e: MouseEvent) => {
-      if (addRef.current && !addRef.current.contains(e.target as Node)) setShowAdd(false)
+      if (actionsRef.current && !actionsRef.current.contains(e.target as Node)) {
+        setShowActions(false); setSelectedAction(null); setSearchQuery('')
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [showAdd])
+  }, [showActions])
+
+  useEffect(() => {
+    if (showActions && !selectedAction && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [showActions, selectedAction])
 
   useEffect(() => {
     if (!showLegend) return
@@ -35,6 +116,25 @@ export function MapToolbar({ highlighted, onClearHighlight }: MapToolbarProps) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showLegend])
+
+  const filteredGroups = useMemo(() => {
+    if (!searchQuery.trim()) return ACTION_GROUPS
+    const q = searchQuery.toLowerCase()
+    return ACTION_GROUPS
+      .map(g => ({
+        ...g,
+        actions: g.actions.filter(a => a.label.toLowerCase().includes(q) || a.value.toLowerCase().includes(q)),
+      }))
+      .filter(g => g.actions.length > 0)
+  }, [searchQuery])
+
+  const handleSelectAction = (type: ActionType) => {
+    setSelectedAction(type); setSearchQuery('')
+  }
+
+  const handleAdd = (action: ChangeAction) => {
+    addAction(action); setShowActions(false); setSelectedAction(null); setSearchQuery('')
+  }
 
   return (
     <div className="mb-2 flex items-center gap-2 flex-shrink-0">
@@ -92,22 +192,95 @@ export function MapToolbar({ highlighted, onClearHighlight }: MapToolbarProps) {
 
         <div className="h-4 w-px bg-border mx-0.5" />
 
-        {/* Add entity */}
-        <div ref={addRef} className="relative">
+        {/* Actions menu */}
+        <div ref={actionsRef} className="relative">
           <button
             type="button"
-            onClick={() => setShowAdd(s => !s)}
-            className="flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            onClick={() => { setShowActions(s => !s); setSelectedAction(null); setSearchQuery('') }}
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors"
+            style={{ background: '#111827', color: '#ffffff' }}
           >
-            <Plus size={12} /> Add
+            <Zap size={12} /> Actions
           </button>
-          {showAdd && (
-            <div className="absolute right-0 top-full mt-1 z-50 w-[340px] max-h-[70vh] overflow-y-auto rounded-lg border p-4 shadow-xl" style={{ background: '#ffffff', borderColor: '#e5e7eb' }}>
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs font-semibold text-foreground">Add Entity</span>
-                <button type="button" onClick={() => setShowAdd(false)} className="rounded p-0.5 hover:bg-muted text-muted-foreground"><X size={12} /></button>
-              </div>
-              <ActionForm onAdd={(action) => { addAction(action); setShowAdd(false) }} compact />
+          {showActions && (
+            <div
+              className="absolute right-0 top-full mt-1 z-50 w-[360px] rounded-xl border overflow-hidden"
+              style={{ background: '#ffffff', borderColor: '#e5e7eb', boxShadow: '0 20px 40px -12px rgba(0,0,0,0.2)' }}
+            >
+              {!selectedAction ? (
+                <>
+                  {/* Search bar */}
+                  <div className="px-3 py-2.5" style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <div className="relative">
+                      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#9ca3af' }} />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        placeholder="Search actions…"
+                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                        style={{ background: '#f9fafb', border: '1px solid #e5e7eb', color: '#111827' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action list */}
+                  <div className="max-h-[400px] overflow-y-auto py-1">
+                    {filteredGroups.length === 0 && (
+                      <p className="text-center py-6 text-xs" style={{ color: '#9ca3af' }}>No matching actions</p>
+                    )}
+                    {filteredGroups.map((group, gi) => (
+                      <div key={group.label}>
+                        {gi > 0 && <div className="mx-3 my-1" style={{ borderTop: '1px solid #f3f4f6' }} />}
+                        <div className="px-3 pt-2 pb-1">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9ca3af' }}>{group.label}</span>
+                        </div>
+                        {group.actions.map(action => {
+                          const Icon = action.icon
+                          return (
+                            <button
+                              key={action.value}
+                              type="button"
+                              onClick={() => handleSelectAction(action.value)}
+                              className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors hover:bg-gray-50"
+                            >
+                              <span className="shrink-0 w-5 h-5 rounded flex items-center justify-center" style={{ background: `${action.iconColor}12` }}>
+                                <Icon size={11} style={{ color: action.iconColor }} />
+                              </span>
+                              <span className="text-xs" style={{ color: '#374151' }}>{action.label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Selected action — show form */}
+                  <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction(null)}
+                      className="text-[11px] transition-colors hover:underline" style={{ color: '#6b7280' }}
+                    >
+                      ← Back
+                    </button>
+                    <button type="button" onClick={() => { setShowActions(false); setSelectedAction(null) }}
+                      className="rounded p-0.5 hover:bg-muted" style={{ color: '#9ca3af' }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                  <div className="px-4 py-3">
+                    <ActionForm
+                      onAdd={handleAdd}
+                      compact
+                      initialAction={{ type: selectedAction } as ChangeAction}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

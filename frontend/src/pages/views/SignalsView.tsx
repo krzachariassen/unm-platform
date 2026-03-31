@@ -3,9 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { Users, Layers, Building2, AlertTriangle, Zap, Link2Off, GitMerge, Server, TrendingDown, Link2 } from 'lucide-react'
 import { ChevronDown, ChevronUp, Info, Lightbulb, CheckCircle, Sparkles, X } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { ModelRequired } from '@/components/ui/ModelRequired'
+import { Prose } from '@/components/ui/prose'
 import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { LoadingState, ErrorState } from '@/components/ViewState'
@@ -139,8 +138,8 @@ function AIModal({ area, answer, onClose }: { area: string; answer: string; onCl
           </div>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-muted text-muted-foreground"><X size={16} /></button>
         </div>
-        <div className="overflow-y-auto flex-1 px-5 py-4 prose prose-sm max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer}</ReactMarkdown>
+        <div className="overflow-y-auto flex-1 px-5 py-4">
+          <Prose>{answer}</Prose>
         </div>
       </div>
     </div>

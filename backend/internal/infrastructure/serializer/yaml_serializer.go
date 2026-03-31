@@ -3,6 +3,7 @@ package serializer
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -17,8 +18,11 @@ type yamlRelationship struct {
 }
 
 type yamlSystem struct {
-	Name         string `yaml:"name"`
-	Description  string `yaml:"description,omitempty"`
+	Name        string `yaml:"name"`
+	Description string `yaml:"description,omitempty"`
+}
+
+type yamlMeta struct {
 	Version      string `yaml:"version,omitempty"`
 	LastModified string `yaml:"lastModified,omitempty"`
 	Author       string `yaml:"author,omitempty"`
@@ -31,7 +35,7 @@ type yamlActor struct {
 
 type yamlNeed struct {
 	Name        string `yaml:"name"`
-	Actor       any    `yaml:"actor"` // string for single actor, []string for multi-actor
+	Actor       string `yaml:"actor"`
 	Outcome     string `yaml:"outcome,omitempty"`
 	SupportedBy []any  `yaml:"supportedBy,omitempty"`
 }
@@ -90,6 +94,7 @@ type yamlExternalDependency struct {
 
 type yamlDocument struct {
 	System               yamlSystem              `yaml:"system"`
+	Meta                 *yamlMeta               `yaml:"meta,omitempty"`
 	Actors               []yamlActor             `yaml:"actors,omitempty"`
 	Needs                []yamlNeed              `yaml:"needs,omitempty"`
 	Capabilities         []yamlCapability        `yaml:"capabilities,omitempty"`
@@ -104,12 +109,16 @@ type yamlDocument struct {
 func MarshalYAML(m *entity.UNMModel) ([]byte, error) {
 	doc := yamlDocument{
 		System: yamlSystem{
-			Name:         m.System.Name,
-			Description:  m.System.Description,
+			Name:        m.System.Name,
+			Description: m.System.Description,
+		},
+	}
+	if m.Meta.Version != "" || m.Meta.Author != "" || m.Meta.LastModified != "" {
+		doc.Meta = &yamlMeta{
 			Version:      m.Meta.Version,
 			LastModified: m.Meta.LastModified,
 			Author:       m.Meta.Author,
-		},
+		}
 	}
 
 	doc.Actors = serializeActors(m)
@@ -138,12 +147,8 @@ func serializeNeeds(m *entity.UNMModel) []yamlNeed {
 	for _, n := range m.Needs {
 		yn := yamlNeed{
 			Name:    n.Name,
+			Actor:   strings.Join(n.ActorNames, ", "),
 			Outcome: n.Outcome,
-		}
-		if len(n.ActorNames) == 1 {
-			yn.Actor = n.ActorNames[0] // scalar string — backward compat
-		} else if len(n.ActorNames) > 1 {
-			yn.Actor = n.ActorNames // sequence — parser handles both
 		}
 		yn.SupportedBy = serializeRelationships(n.SupportedBy)
 		needs = append(needs, yn)

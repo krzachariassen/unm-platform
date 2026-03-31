@@ -1,4 +1,5 @@
 import { User, Bot } from 'lucide-react'
+import { Prose } from '@/components/ui/prose'
 
 export interface ChatEntry {
   question: string
@@ -55,11 +56,8 @@ export function ChatMessage({ entry }: { entry: ChatEntry }) {
               {entry.category}
             </span>
           </div>
-          <div
-            className="text-sm leading-relaxed pl-0.5"
-            style={{ color: '#475569', whiteSpace: 'pre-wrap' }}
-          >
-            {entry.answer}
+          <div className="pl-0.5">
+            <Prose>{entry.answer}</Prose>
           </div>
         </div>
       </div>

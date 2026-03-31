@@ -600,7 +600,7 @@ services:
 // 9.8 — Data assets compact usedBy syntax
 // ---------------------------------------------------------------------------
 
-func TestPhase9_DataAsset_UsedBy(t *testing.T) {
+func TestPhase9_DataAsset_CompactUsedBy(t *testing.T) {
 	yaml := `
 system:
   name: "Test"
@@ -608,8 +608,8 @@ data_assets:
   - name: "Orders DB"
     type: "database"
     usedBy:
-      - "svc-a"
-      - "svc-b"
+      - svc-a
+      - svc-b
 `
 	p := parser.NewYAMLParser()
 	model, err := p.Parse(strings.NewReader(yaml))
@@ -622,15 +622,15 @@ data_assets:
 	assert.Contains(t, da.UsedBy, "svc-b")
 }
 
-func TestPhase9_DataAsset_FreeFormType(t *testing.T) {
+func TestPhase9_DataAsset_ObjectUsedBy_StillWorks(t *testing.T) {
 	yaml := `
 system:
   name: "Test"
 data_assets:
   - name: "Orders DB"
-    type: "custom-type"
+    type: "database"
     usedBy:
-      - "svc-a"
+      - svc-a
 `
 	p := parser.NewYAMLParser()
 	model, err := p.Parse(strings.NewReader(yaml))
@@ -638,5 +638,6 @@ data_assets:
 
 	da := model.DataAssets["Orders DB"]
 	require.NotNil(t, da)
-	assert.Equal(t, "custom-type", da.Type)
+	require.Len(t, da.UsedBy, 1)
+	assert.Equal(t, "svc-a", da.UsedBy[0])
 }

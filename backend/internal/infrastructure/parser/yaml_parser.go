@@ -77,11 +77,8 @@ type yamlDocument struct {
 }
 
 type yamlSystem struct {
-	Name         string `yaml:"name"`
-	Description  string `yaml:"description"`
-	Version      string `yaml:"version"`
-	LastModified string `yaml:"lastModified"`
-	Author       string `yaml:"author"`
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
 }
 
 type yamlActor struct {
@@ -96,30 +93,32 @@ type yamlScenario struct {
 	Description string `yaml:"description"`
 }
 
+// flexActors handles both a single string and a list of strings for the actor/actors field.
+type flexActors struct {
+	names []string
+}
+
+func (f *flexActors) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.ScalarNode {
+		f.names = []string{value.Value}
+		return nil
+	}
+	if value.Kind == yaml.SequenceNode {
+		for _, n := range value.Content {
+			f.names = append(f.names, n.Value)
+		}
+		return nil
+	}
+	return fmt.Errorf("parser: need.actor must be a string or list of strings")
+}
+
 type yamlNeed struct {
-	Name  string       `yaml:"name"`
-	Actor stringOrList `yaml:"actor"`
+	Name  string     `yaml:"name"`
+	Actor flexActors `yaml:"actor"`
 	// Scenario field is ignored (deprecated in 1.9.1) — kept for backward-compat YAML parsing.
 	Scenario    string             `yaml:"scenario"`
 	Outcome     string             `yaml:"outcome"`
 	SupportedBy []flexRelationship `yaml:"supportedBy"`
-}
-
-// stringOrList accepts either a YAML scalar string or a sequence of strings.
-type stringOrList struct {
-	values []string
-}
-
-func (s *stringOrList) UnmarshalYAML(value *yaml.Node) error {
-	if value.Kind == yaml.SequenceNode {
-		return value.Decode(&s.values)
-	}
-	var single string
-	if err := value.Decode(&single); err != nil {
-		return err
-	}
-	s.values = []string{single}
-	return nil
 }
 
 type yamlCapability struct {
@@ -143,17 +142,22 @@ type yamlService struct {
 	Supports          []flexRelationship `yaml:"supports"`
 	DependsOn         []flexRelationship `yaml:"dependsOn"`
 	ExternalDependsOn []flexRelationship `yaml:"externalDependsOn"`
-	DataAssets        []string           `yaml:"dataAssets"`
+	DataAssets        []yamlDataAssetRef `yaml:"dataAssets"`
 	Realizes          []flexRelationship `yaml:"realizes"`    // 9.3: service declares what it realizes
 	ExternalDeps      []string           `yaml:"externalDeps"` // 9.4: service declares its external deps
 }
 
-// yamlDataAssetFlex wraps yamlDataAsset to use a simple string list for usedBy
+// yamlDataAssetFlex wraps yamlDataAsset to use flexDataAssetUsedBy
 type yamlDataAssetFlex struct {
 	Name        string   `yaml:"name"`
 	Type        string   `yaml:"type"`
 	Description string   `yaml:"description"`
 	UsedBy      []string `yaml:"usedBy"`
+}
+
+type yamlDataAssetRef struct {
+	Target string `yaml:"target"`
+	Access string `yaml:"access"`
 }
 
 type yamlTeam struct {
@@ -225,11 +229,6 @@ func buildModel(raw *yamlDocument) (*entity.UNMModel, error) {
 	}
 
 	model := entity.NewUNMModel(raw.System.Name, raw.System.Description)
-	model.Meta = entity.ModelMeta{
-		Version:      raw.System.Version,
-		LastModified: raw.System.LastModified,
-		Author:       raw.System.Author,
-	}
 	var warnings []string
 
 	if err := addActors(model, raw.Actors); err != nil {
@@ -327,17 +326,16 @@ func addNeeds(model *entity.UNMModel, needs []yamlNeed) error {
 		if n.Name == "" {
 			return fmt.Errorf("parser: need.name is required")
 		}
-		actors := n.Actor.values
-		if len(actors) == 0 {
+		if len(n.Actor.names) == 0 {
 			return fmt.Errorf("parser: need %q: need.actor is required", n.Name)
 		}
 		// n.Scenario is silently ignored (deprecated in 1.9.1).
 		var need *entity.Need
 		var err error
-		if len(actors) == 1 {
-			need, err = entity.NewNeed(n.Name, n.Name, actors[0], n.Outcome)
+		if len(n.Actor.names) == 1 {
+			need, err = entity.NewNeed(n.Name, n.Name, n.Actor.names[0], n.Outcome)
 		} else {
-			need, err = entity.NewNeedMultiActor(n.Name, n.Name, actors, n.Outcome)
+			need, err = entity.NewNeedMultiActor(n.Name, n.Name, n.Actor.names, n.Outcome)
 		}
 		if err != nil {
 			return fmt.Errorf("parser: need %q: %w", n.Name, err)
@@ -724,8 +722,8 @@ func addDataAssetsFromFlex(model *entity.UNMModel, assets []yamlDataAssetFlex) (
 		if err != nil {
 			return nil, fmt.Errorf("parser: data_asset %q: %w", a.Name, err)
 		}
-		for _, svcName := range a.UsedBy {
-			da.AddUsedBy(svcName)
+		for _, u := range a.UsedBy {
+			da.AddUsedBy(u)
 		}
 		if err := model.AddDataAsset(da); err != nil {
 			return nil, fmt.Errorf("parser: %w", err)

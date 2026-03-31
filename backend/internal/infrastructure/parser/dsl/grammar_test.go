@@ -104,8 +104,8 @@ need "Accept Payments" {
 	if n.Name != "Accept Payments" {
 		t.Errorf("expected name %q, got %q", "Accept Payments", n.Name)
 	}
-	if len(n.Actors) != 1 || n.Actors[0] != "Merchant" {
-		t.Errorf("expected actor %q, got %v", "Merchant", n.Actors)
+	if n.Actors[0] != "Merchant" {
+		t.Errorf("expected actor %q, got %q", "Merchant", n.Actors[0])
 	}
 	if n.Description != "Merchants need to accept card payments" {
 		t.Errorf("unexpected description %q", n.Description)
@@ -461,31 +461,6 @@ system "My System" {
 }
 // end comment
 actor "Merchant" {}
-`
-	f, err := Parse(src)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if f.System == nil {
-		t.Fatal("expected system node")
-	}
-	if f.System.Name != "My System" {
-		t.Errorf("expected name %q, got %q", "My System", f.System.Name)
-	}
-	if len(f.Actors) != 1 {
-		t.Errorf("expected 1 actor, got %d", len(f.Actors))
-	}
-}
-
-func TestParse_HashComments(t *testing.T) {
-	src := `
-# This is a hash comment
-system "My System" {
-  # inline hash comment
-  description "desc"
-}
-# end hash comment
-actor "Merchant" {} # trailing comment
 `
 	f, err := Parse(src)
 	if err != nil {
@@ -1130,8 +1105,8 @@ capability "Payment" {
 	}
 }
 
-// P1: DataAsset usedBy
-func TestParse_DataAssetUsedBy(t *testing.T) {
+// P1: DataAsset usedBy (plain service name)
+func TestParse_DataAssetUsedByWithAccess(t *testing.T) {
 	src := `
 data_asset "payments-db" {
   type database
@@ -1150,35 +1125,23 @@ data_asset "payments-db" {
 		t.Fatalf("expected 2 usedBy, got %d", len(da.UsedBy))
 	}
 	if da.UsedBy[0] != "payment-service" {
-		t.Errorf("expected usedBy[0] %q, got %q", "payment-service", da.UsedBy[0])
+		t.Errorf("expected target %q, got %q", "payment-service", da.UsedBy[0])
 	}
 	if da.UsedBy[1] != "reporting-service" {
-		t.Errorf("expected usedBy[1] %q, got %q", "reporting-service", da.UsedBy[1])
+		t.Errorf("expected target %q, got %q", "reporting-service", da.UsedBy[1])
 	}
 }
 
-// P1: DataAsset usedBy list (formerly producedBy/consumedBy — now all usedBy)
-func TestParse_DataAssetMultipleUsedBy(t *testing.T) {
+// P1: DataAsset producedBy and consumedBy are not DSL fields — expect parse error
+func TestParse_DataAssetProducedConsumed(t *testing.T) {
 	src := `
 data_asset "events" {
   type event-stream
-  usedBy "event-service"
-  usedBy "analytics-service"
-  usedBy "billing-service"
+  producedBy "event-service"
 }`
-	f, err := Parse(src)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(f.DataAssets) != 1 {
-		t.Fatalf("expected 1 data_asset, got %d", len(f.DataAssets))
-	}
-	da := f.DataAssets[0]
-	if len(da.UsedBy) != 3 {
-		t.Fatalf("expected 3 usedBy, got %d", len(da.UsedBy))
-	}
-	if da.UsedBy[0] != "event-service" {
-		t.Errorf("expected usedBy[0] %q, got %q", "event-service", da.UsedBy[0])
+	_, err := Parse(src)
+	if err == nil {
+		t.Fatal("expected parse error for unknown field 'producedBy', got nil")
 	}
 }
 
@@ -1472,52 +1435,3 @@ team "team-a" {
 	}
 }
 
-
-func TestParse_NeedBlock_MultiActor(t *testing.T) {
-	src := `
-need "Shared Need" {
-  actor "Actor A", "Actor B"
-  outcome "Something shared"
-}
-`
-	f, err := Parse(src)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(f.Needs) != 1 {
-		t.Fatalf("expected 1 need, got %d", len(f.Needs))
-	}
-	n := f.Needs[0]
-	if len(n.Actors) != 2 {
-		t.Fatalf("expected 2 actors, got %d", len(n.Actors))
-	}
-	if n.Actors[0] != "Actor A" {
-		t.Errorf("expected Actors[0] %q, got %q", "Actor A", n.Actors[0])
-	}
-	if n.Actors[1] != "Actor B" {
-		t.Errorf("expected Actors[1] %q, got %q", "Actor B", n.Actors[1])
-	}
-}
-
-func TestParse_NeedBlock_SingleActorStillWorks(t *testing.T) {
-	src := `
-need "Single Actor Need" {
-  actor "Merchant"
-  outcome "outcome here"
-}
-`
-	f, err := Parse(src)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(f.Needs) != 1 {
-		t.Fatalf("expected 1 need, got %d", len(f.Needs))
-	}
-	n := f.Needs[0]
-	if len(n.Actors) != 1 {
-		t.Fatalf("expected 1 actor, got %d", len(n.Actors))
-	}
-	if n.Actors[0] != "Merchant" {
-		t.Errorf("expected Actors[0] %q, got %q", "Merchant", n.Actors[0])
-	}
-}

@@ -4,8 +4,7 @@ import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { advisorApi } from '@/services/api'
 import { Send, Loader2, Sparkles, RotateCcw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { Prose } from '@/components/ui/prose'
 
 interface ConversationEntry { role: 'user' | 'ai'; content: string }
 
@@ -86,9 +85,7 @@ export function AIWhatIfTab({ modelId }: { modelId: string }) {
               {entry.role === 'user' ? (
                 <p className="text-sm">{entry.content}</p>
               ) : (
-                <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.content}</ReactMarkdown>
-                </div>
+                <Prose>{entry.content}</Prose>
               )}
             </div>
           </div>

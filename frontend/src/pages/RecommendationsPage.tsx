@@ -5,8 +5,7 @@ import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useModel } from '@/lib/model-context'
 import { advisorApi } from '@/services/api'
 import { PageHeader } from '@/components/ui/page-header'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { Prose } from '@/components/ui/prose'
 
 const PHASES = [
   'Analyzing team structure...',
@@ -113,22 +112,8 @@ export function RecommendationsPage() {
         )}
 
         {report && !loading && (
-          <div className="p-8 rounded-lg border border-border bg-card prose prose-sm max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h1: ({ children }) => <h1 className="text-2xl font-extrabold mb-5 pb-3 tracking-tight text-foreground border-b border-border">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-lg font-bold mt-8 mb-3 pb-2 text-primary border-b border-border">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-base font-bold mt-6 mb-2 text-foreground">{children}</h3>,
-                strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
-                li: ({ children }) => <li className="text-sm leading-relaxed text-muted-foreground">{children}</li>,
-                p: ({ children }) => <p className="text-sm leading-relaxed mb-4 text-muted-foreground">{children}</p>,
-                code: ({ children }) => <code className="px-1.5 py-0.5 rounded text-xs font-mono bg-muted text-primary border border-border">{children}</code>,
-                blockquote: ({ children }) => <blockquote className="border-l-4 border-primary/40 pl-4 my-4 italic text-sm text-muted-foreground">{children}</blockquote>,
-              }}
-            >
-              {report}
-            </ReactMarkdown>
+          <div className="p-8 rounded-lg border border-border" style={{ background: '#ffffff' }}>
+            <Prose>{report}</Prose>
           </div>
         )}
       </div></div>
