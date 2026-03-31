@@ -86,23 +86,23 @@ type SignalsResponse struct {
 
 // SignalsService computes the signals view data from a UNM model.
 type SignalsService struct {
-	valueChain    *analyzer.ValueChainAnalyzer
-	valueStream   *analyzer.ValueStreamAnalyzer
-	cognitiveLoad *analyzer.CognitiveLoadAnalyzer
-	bottleneck    *analyzer.BottleneckAnalyzer
-	fragmentation *analyzer.FragmentationAnalyzer
-	unlinked      *analyzer.UnlinkedCapabilityAnalyzer
+	valueChain    ValueChainAnalyzer
+	valueStream   ValueStreamAnalyzer
+	cognitiveLoad CognitiveLoader
+	bottleneck    BottleneckAnalyzer
+	fragmentation Fragmenter
+	unlinked      UnlinkedCapabilityAnalyzer
 	signalsCfg    entity.SignalsConfig
 }
 
 // NewSignalsService constructs a SignalsService.
 func NewSignalsService(
-	vc *analyzer.ValueChainAnalyzer,
-	vs *analyzer.ValueStreamAnalyzer,
-	cl *analyzer.CognitiveLoadAnalyzer,
-	bn *analyzer.BottleneckAnalyzer,
-	frag *analyzer.FragmentationAnalyzer,
-	unl *analyzer.UnlinkedCapabilityAnalyzer,
+	vc ValueChainAnalyzer,
+	vs ValueStreamAnalyzer,
+	cl CognitiveLoader,
+	bn BottleneckAnalyzer,
+	frag Fragmenter,
+	unl UnlinkedCapabilityAnalyzer,
 	signalsCfg entity.SignalsConfig,
 ) *SignalsService {
 	return &SignalsService{
