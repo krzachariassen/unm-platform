@@ -420,8 +420,47 @@ export function UNMMapView() {
   const { isEditMode, actions, addAction, enterEditMode, refreshKey } = useChangeset()
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
-  const [layout, setLayout]   = useState<ReturnType<typeof buildLayout> | null>(null)
-  const [chainData, setChainData] = useState<ChainData | null>(null)
+
+  // Store raw API data so we can re-derive the layout when pending actions change
+  const [rawMapData, setRawMapData] = useState<{
+    actors: ViewNode[]; needs: ViewNode[]; caps: ViewNode[]
+    actorToNeed: ViewEdge[]; needToCap: ViewEdge[]
+    capDepEdges: Array<{ from: string; to: string; description?: string }>
+    extDeps: UNMMapExtDep[]
+  } | null>(null)
+
+  // Derive layout + chainData from raw data + pending actions — reactive to both
+  const layout = useMemo(() => {
+    if (!rawMapData) return null
+    const pendingCaps: ViewNode[] = actions
+      .filter(a => a.type === 'add_capability')
+      .map(a => {
+        const ac = a as unknown as Record<string, unknown>
+        const name = String(ac.capability_name ?? '')
+        const team = String(ac.owner_team_name ?? '')
+        const vis  = String(ac.visibility ?? 'domain')
+        return {
+          id: `pending:${name}`, label: name, type: 'capability',
+          data: { visibility: vis, team_label: team, team_type: '', services: [], isPending: true },
+        } satisfies ViewNode
+      })
+    const allCaps = [...rawMapData.caps, ...pendingCaps]
+    return buildLayout(rawMapData.actors, rawMapData.needs, allCaps, rawMapData.actorToNeed, rawMapData.needToCap, rawMapData.capDepEdges, rawMapData.extDeps)
+  }, [rawMapData, actions])
+
+  const chainData = useMemo((): ChainData | null => {
+    if (!rawMapData || !layout) return null
+    const extDepToCapIds = new Map<string, string[]>()
+    const capToExtDepIds = new Map<string, string[]>()
+    for (const conn of layout.extDepConns) {
+      if (!extDepToCapIds.has(conn.targetId)) extDepToCapIds.set(conn.targetId, [])
+      extDepToCapIds.get(conn.targetId)!.push(conn.sourceId)
+      if (!capToExtDepIds.has(conn.sourceId)) capToExtDepIds.set(conn.sourceId, [])
+      capToExtDepIds.get(conn.sourceId)!.push(conn.targetId)
+    }
+    return { actorToNeed: rawMapData.actorToNeed, needToCap: rawMapData.needToCap, capDepEdges: rawMapData.capDepEdges, extDepToCapIds, capToExtDepIds }
+  }, [rawMapData, layout])
+
   const [panel, setPanel]     = useState<PanelItem | null>(null)
   const [highlight, setHighlight] = useState<Set<string> | null>(null)
   const [zoom, setZoom] = useState(1)
@@ -495,27 +534,11 @@ export function UNMMapView() {
         const caps   = data.nodes.filter(n => n.type === 'capability')
         const actorToNeed = data.edges.filter(e => e.label === 'has need')
         const needToCap   = data.edges.filter(e => e.label === 'supportedBy')
-
         const capDepEdges: Array<{ from: string; to: string; description?: string }> = []
         for (const e of data.edges) {
-          if (e.label === 'dependsOn') {
-            capDepEdges.push({ from: e.source, to: e.target, description: e.description })
-          }
+          if (e.label === 'dependsOn') capDepEdges.push({ from: e.source, to: e.target, description: e.description })
         }
-
-        const builtLayout = buildLayout(actors, needs, caps, actorToNeed, needToCap, capDepEdges, data.external_deps ?? [])
-
-        const extDepToCapIds = new Map<string, string[]>()
-        const capToExtDepIds = new Map<string, string[]>()
-        for (const conn of builtLayout.extDepConns) {
-          if (!extDepToCapIds.has(conn.targetId)) extDepToCapIds.set(conn.targetId, [])
-          extDepToCapIds.get(conn.targetId)!.push(conn.sourceId)
-          if (!capToExtDepIds.has(conn.sourceId)) capToExtDepIds.set(conn.sourceId, [])
-          capToExtDepIds.get(conn.sourceId)!.push(conn.targetId)
-        }
-
-        setLayout(builtLayout)
-        setChainData({ actorToNeed, needToCap, capDepEdges, extDepToCapIds, capToExtDepIds })
+        setRawMapData({ actors, needs, caps, actorToNeed, needToCap, capDepEdges, extDeps: data.external_deps ?? [] })
       })
       .catch((e: unknown) => setError((e as Error).message))
       .finally(() => setLoading(false))
@@ -906,27 +929,33 @@ export function UNMMapView() {
                 const uniqueTeams = new Set(svcs.map(s => s.teamName).filter(Boolean))
                 const crossTeam = uniqueTeams.size > 1
 
+                const isVirtualPending = node.id.startsWith('pending:')
                 const isPending = pendingCapNames.has(node.label)
                 const justStaged = stagedCaps.has(node.label)
 
                 return (
                   <div key={node.id} className="absolute rounded-lg select-none cursor-pointer"
-                    style={{ left: node.x, top: node.y, width: node.w, height: node.h, zIndex: 10, opacity: op,
+                    style={{ left: node.x, top: node.y, width: node.w, height: node.h, zIndex: 10,
+                      opacity: isVirtualPending ? (hl ? 0.6 : 0.85) : op,
                       background: cfg.nodeBg, overflow: 'hidden', transition: 'opacity 0.15s, border-color 0.2s, box-shadow 0.2s',
                       border: justStaged
                         ? '2px solid #059669'
+                        : isVirtualPending
+                        ? `2px dashed ${cfg.border}`
                         : isPending
                         ? '2px solid #3b82f6'
                         : `1.5px solid ${(node.isFragmented || crossTeam) ? '#ef4444' : cfg.border}`,
                       boxShadow: justStaged
                         ? '0 0 0 3px rgba(5,150,105,0.15)'
+                        : isVirtualPending
+                        ? `0 0 0 3px ${cfg.border}22`
                         : isPending
                         ? '0 0 0 3px rgba(59,130,246,0.15)'
                         : (node.isFragmented || crossTeam)
                         ? '0 0 8px rgba(239,68,68,0.3)'
                         : undefined }}
                     title={isEditMode ? 'Click to edit' : node.label}
-                    onClick={e => { e.stopPropagation(); openNodePanel(node) }}
+                    onClick={e => { e.stopPropagation(); if (!isVirtualPending) openNodePanel(node) }}
                   >
                     <div style={{ fontSize: 10, fontWeight: 600, color: cfg.text, padding: '5px 8px 2px', lineHeight: 1.3 }}>
                       {node.label}
@@ -956,10 +985,13 @@ export function UNMMapView() {
                     {(node.isFragmented || crossTeam) && (
                       <div style={{ position: 'absolute', top: 4, right: isPending ? 18 : 6, fontSize: 9, color: '#ef4444' }}>⚠</div>
                     )}
+                    {isVirtualPending && (
+                      <div style={{ position: 'absolute', top: 3, right: 5, fontSize: 8, color: cfg.border, fontWeight: 700, background: `${cfg.border}18`, borderRadius: 3, padding: '1px 4px' }}>pending</div>
+                    )}
                     {justStaged && (
                       <div style={{ position: 'absolute', top: 3, right: 5, fontSize: 8, color: '#059669', fontWeight: 700, background: 'rgba(5,150,105,0.1)', borderRadius: 3, padding: '1px 3px' }}>✓</div>
                     )}
-                    {isPending && !justStaged && (
+                    {isPending && !justStaged && !isVirtualPending && (
                       <div style={{ position: 'absolute', top: 4, right: 5, width: 7, height: 7, borderRadius: '50%', background: '#3b82f6' }} />
                     )}
                   </div>
