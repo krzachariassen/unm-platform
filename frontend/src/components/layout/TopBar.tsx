@@ -74,7 +74,7 @@ export function TopBar() {
             {isEditMode
               ? actions.length > 0
                 ? `${actions.length} change${actions.length === 1 ? '' : 's'}`
-                : 'Editing…'
+                : 'Edit mode on'
               : 'Edit Model'
             }
             {isEditMode && actions.length > 0 && (

@@ -5,6 +5,7 @@ import type { ImpactDelta, CommitResponse } from '@/lib/api'
 import { useModel } from '@/lib/model-context'
 import { useChangeset } from '@/lib/changeset-context'
 import { ImpactPanel } from './ImpactPanel'
+import { ActionForm } from './ActionForm'
 
 type CommitPhase = 'idle' | 'previewing' | 'previewed' | 'committing' | 'committed'
 
@@ -20,7 +21,7 @@ function actionSummary(a: { type: string; service_name?: string; capability_name
 
 export function PendingChangesBar() {
   const { modelId, parseResult, setModel } = useModel()
-  const { isEditMode, actions, description, exitEditMode, removeAction, clearActions } = useChangeset()
+  const { isEditMode, actions, description, exitEditMode, addAction, removeAction, clearActions } = useChangeset()
 
   const [phase, setPhase] = useState<CommitPhase>('idle')
   const [changesetId, setChangesetId] = useState<string | null>(null)
@@ -28,6 +29,7 @@ export function PendingChangesBar() {
   const [commitResult, setCommitResult] = useState<CommitResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showList, setShowList] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [showImpact, setShowImpact] = useState(true)
 
   const handlePreview = useCallback(async () => {
@@ -121,6 +123,30 @@ export function PendingChangesBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50" style={{ boxShadow: '0 -2px 20px rgba(0,0,0,0.12)' }}>
+      {/* Advanced action modal */}
+      {showAdvanced && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setShowAdvanced(false)}
+        >
+          <div
+            style={{ background: '#ffffff', borderRadius: 12, padding: 24, width: 420, maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <span style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>Add Advanced Action</span>
+              <button onClick={() => setShowAdvanced(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1 }}>✕</button>
+            </div>
+            <ActionForm
+              onAdd={(action) => {
+                addAction(action)
+                setShowAdvanced(false)
+              }}
+              compact
+            />
+          </div>
+        </div>
+      )}
       {/* Impact panel — expands above the bar */}
       {(impact || phase === 'previewing') && showImpact && (
         <div
@@ -272,6 +298,16 @@ export function PendingChangesBar() {
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={() => setShowAdvanced(true)}
+            className="px-2 py-1.5 rounded text-xs transition-colors"
+            style={{ color: '#9ca3af', background: 'transparent', border: '1px solid #374151' }}
+            title="Add advanced action (split team, merge teams, etc.)"
+            onMouseEnter={e => { e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.borderColor = '#6b7280' }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.borderColor = '#374151' }}
+          >
+            + More
+          </button>
           <button
             onClick={handleDiscard}
             className="px-3 py-1.5 rounded text-xs transition-colors"
