@@ -1,20 +1,27 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useModel } from '@/lib/model-context'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { advisorApi } from '@/services/api'
-import { AlertTriangle, Bot } from 'lucide-react'
+import { AlertTriangle, Bot, RotateCcw } from 'lucide-react'
 import { ChatMessage, type ChatEntry } from '@/components/advisor/ChatMessage'
 import { QuickActions } from '@/components/advisor/QuickActions'
 import { AdvisorInput } from '@/components/advisor/AdvisorInput'
 import { PageHeader } from '@/components/ui/page-header'
+
+function buildConversationPrompt(history: ChatEntry[], newQuestion: string): string {
+  if (history.length === 0) return newQuestion
+  const context = history
+    .map(e => `User: ${e.question}\nAdvisor: ${e.answer}`)
+    .join('\n\n')
+  return `Previous conversation:\n${context}\n\nUser: ${newQuestion}\n\nContinue the conversation. Answer the latest question, referencing prior context where relevant.`
+}
 
 export function AdvisorPage() {
   const { modelId, parseResult } = useModel()
   const aiEnabled = useAIEnabled()
   const [history, setHistory] = useState<ChatEntry[]>([])
   const [loading, setLoading] = useState(false)
-  const [category, setCategory] = useState('general')
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -24,20 +31,24 @@ export function AdvisorPage() {
     }
   }, [history, loading])
 
-  const handleAsk = async (question: string, cat: string) => {
+  const handleAsk = useCallback(async (question: string) => {
     if (!modelId) return
-    setCategory(cat)
     setLoading(true)
+    const prompt = buildConversationPrompt(history, question)
     try {
-      const resp = await advisorApi.ask(modelId, question, cat)
+      const resp = await advisorApi.ask(modelId, prompt)
       setAiConfigured(resp.ai_configured)
-      setHistory(prev => [...prev, { question, answer: resp.answer, category: resp.category, aiConfigured: resp.ai_configured }])
+      setHistory(prev => [...prev, { question, answer: resp.answer, aiConfigured: resp.ai_configured }])
     } catch (err) {
-      setHistory(prev => [...prev, { question, answer: `Error: ${err instanceof Error ? err.message : 'Request failed'}`, category: cat, aiConfigured: false }])
+      setHistory(prev => [...prev, { question, answer: `Error: ${err instanceof Error ? err.message : 'Request failed'}`, aiConfigured: false }])
     } finally {
       setLoading(false)
     }
-  }
+  }, [modelId, history])
+
+  const handleNewConversation = useCallback(() => {
+    setHistory([])
+  }, [])
 
   return (
     <ModelRequired>
@@ -46,9 +57,18 @@ export function AdvisorPage() {
         <PageHeader
           title="AI Advisor"
           description="Ask questions about your architecture model"
+          actions={history.length > 0 ? (
+            <button
+              type="button"
+              onClick={handleNewConversation}
+              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors hover:bg-gray-100"
+              style={{ color: '#6b7280', border: '1px solid #e5e7eb' }}
+            >
+              <RotateCcw size={12} /> New conversation
+            </button>
+          ) : undefined}
         />
 
-        {/* Model context & AI status */}
         <div className="flex-shrink-0 mb-4 space-y-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className={`w-2 h-2 rounded-full ${modelId ? 'bg-green-500' : 'bg-gray-300'}`} />
@@ -71,9 +91,11 @@ export function AdvisorPage() {
           )}
         </div>
 
-        <div className="flex-shrink-0 mb-4">
-          <QuickActions onSelect={handleAsk} disabled={!modelId || loading || !aiEnabled} />
-        </div>
+        {history.length === 0 && (
+          <div className="flex-shrink-0 mb-4">
+            <QuickActions onSelect={handleAsk} disabled={!modelId || loading || !aiEnabled} />
+          </div>
+        )}
 
         <div ref={scrollRef} className="flex-1 overflow-auto space-y-6 mb-4 min-h-0">
           {history.length === 0 && !loading && (
@@ -86,15 +108,26 @@ export function AdvisorPage() {
           )}
           {history.map((entry, i) => <ChatMessage key={i} entry={entry} />)}
           {loading && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              Thinking...
+            <div className="flex justify-start gap-2">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)' }}>
+                  <Bot size={14} className="animate-pulse" style={{ color: '#6366f1' }} />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Thinking</span>
+                  <span className="flex gap-0.5 ml-0.5">
+                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '0ms', animationDuration: '1.2s' }} />
+                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '200ms', animationDuration: '1.2s' }} />
+                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '400ms', animationDuration: '1.2s' }} />
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         <div className="flex-shrink-0 pt-3 border-t border-border">
-          <AdvisorInput onSend={handleAsk} disabled={!modelId || !aiEnabled} loading={loading} category={category} onCategoryChange={setCategory} />
+          <AdvisorInput onSend={handleAsk} disabled={!modelId || !aiEnabled} loading={loading} />
         </div>
         </div>
       </div>

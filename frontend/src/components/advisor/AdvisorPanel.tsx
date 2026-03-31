@@ -1,132 +1,129 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Bot, X, Send, AlertTriangle, Sparkles } from 'lucide-react'
+import { Bot, X, Send, AlertTriangle, Sparkles, RotateCcw } from 'lucide-react'
 import { useModel } from '@/lib/model-context'
 import { api } from '@/lib/api'
+import { Prose } from '@/components/ui/prose'
 import { type ChatEntry } from './ChatMessage'
+
+function buildConversationPrompt(history: ChatEntry[], newQuestion: string): string {
+  if (history.length === 0) return newQuestion
+  const context = history
+    .map(e => `User: ${e.question}\nAdvisor: ${e.answer}`)
+    .join('\n\n')
+  return `Previous conversation:\n${context}\n\nUser: ${newQuestion}\n\nContinue the conversation. Answer the latest question, referencing prior context where relevant.`
+}
 
 interface SuggestedPrompt {
   label: string
   question: string
-  category: string
 }
 
 interface PageConfig {
   title: string
   description: string
   prompts: SuggestedPrompt[]
-  defaultCategory: string
 }
 
 const PAGE_CONFIGS: Record<string, PageConfig> = {
   '/need': {
     title: 'Need Analysis',
     description: 'Ask about user needs, value delivery and delivery risks',
-    defaultCategory: 'need-delivery-risk',
     prompts: [
-      { label: 'Which needs span many teams?', question: 'Which user needs span the most teams and are at highest delivery risk?', category: 'need-delivery-risk' },
-      { label: 'Unbacked needs?', question: 'Which user needs have no capability backing them?', category: 'need-delivery-risk' },
-      { label: 'Value stream health', question: 'How healthy is our value delivery from user needs to capabilities to services?', category: 'value-stream' },
-      { label: 'Actor coverage', question: 'Are all actors well-served by capabilities or are some underserved?', category: 'need-delivery-risk' },
+      { label: 'Which needs span many teams?', question: 'Which user needs span the most teams and are at highest delivery risk?' },
+      { label: 'Unbacked needs?', question: 'Which user needs have no capability backing them?' },
+      { label: 'Value stream health', question: 'How healthy is our value delivery from user needs to capabilities to services?' },
+      { label: 'Actor coverage', question: 'Are all actors well-served by capabilities or are some underserved?' },
     ],
   },
   '/capability': {
     title: 'Capability Analysis',
     description: 'Ask about capability ownership, fragmentation and gaps',
-    defaultCategory: 'fragmentation',
     prompts: [
-      { label: 'Fragmented capabilities?', question: 'Which capabilities are fragmented across too many teams?', category: 'fragmentation' },
-      { label: 'Optimal service placement', question: 'Are services placed in the right capabilities or should any be moved?', category: 'service-placement' },
-      { label: 'Capability hierarchy issues', question: 'Are there issues with how capabilities are decomposed or nested?', category: 'fragmentation' },
-      { label: 'Unowned capabilities', question: 'Are there capabilities with no clear team ownership?', category: 'team-boundary' },
+      { label: 'Fragmented capabilities?', question: 'Which capabilities are fragmented across too many teams?' },
+      { label: 'Optimal service placement', question: 'Are services placed in the right capabilities or should any be moved?' },
+      { label: 'Capability hierarchy issues', question: 'Are there issues with how capabilities are decomposed or nested?' },
+      { label: 'Unowned capabilities', question: 'Are there capabilities with no clear team ownership?' },
     ],
   },
   '/ownership': {
     title: 'Ownership Analysis',
     description: 'Ask about team ownership, boundaries and responsibilities',
-    defaultCategory: 'team-boundary',
     prompts: [
-      { label: 'Team boundary issues', question: 'Which teams have unclear or overlapping ownership boundaries?', category: 'team-boundary' },
-      { label: 'Cross-team services', question: 'Are there services that should move to a different team?', category: 'service-placement' },
-      { label: 'Overloaded teams', question: 'Which teams own too many capabilities or responsibilities?', category: 'structural-load' },
-      { label: 'Ownership gaps', question: 'Are there capabilities or services with no clear owner?', category: 'team-boundary' },
+      { label: 'Team boundary issues', question: 'Which teams have unclear or overlapping ownership boundaries?' },
+      { label: 'Cross-team services', question: 'Are there services that should move to a different team?' },
+      { label: 'Overloaded teams', question: 'Which teams own too many capabilities or responsibilities?' },
+      { label: 'Ownership gaps', question: 'Are there capabilities or services with no clear owner?' },
     ],
   },
   '/team-topology': {
     title: 'Team Topology Analysis',
     description: 'Ask about team types, interactions and collaboration patterns',
-    defaultCategory: 'interaction-mode',
     prompts: [
-      { label: 'Interaction anti-patterns', question: 'Are there team interactions that should be changed to a different mode?', category: 'interaction-mode' },
-      { label: 'Platform team effectiveness', question: 'Are platform teams effectively reducing cognitive load for stream-aligned teams?', category: 'structural-load' },
-      { label: 'Team coupling', question: 'Which teams are too tightly coupled and need more independence?', category: 'coupling' },
-      { label: 'Missing interactions', question: 'Are there teams that should be interacting but are not?', category: 'interaction-mode' },
+      { label: 'Interaction anti-patterns', question: 'Are there team interactions that should be changed to a different mode?' },
+      { label: 'Platform team effectiveness', question: 'Are platform teams effectively reducing cognitive load for stream-aligned teams?' },
+      { label: 'Team coupling', question: 'Which teams are too tightly coupled and need more independence?' },
+      { label: 'Missing interactions', question: 'Are there teams that should be interacting but are not?' },
     ],
   },
   '/cognitive-load': {
     title: 'Cognitive Load Analysis',
     description: 'Ask about team overload, domain spread and service load',
-    defaultCategory: 'structural-load',
     prompts: [
-      { label: 'Most overloaded teams', question: 'Which teams have the highest cognitive load and why?', category: 'structural-load' },
-      { label: 'Domain spread issues', question: 'Which teams own capabilities across too many domains?', category: 'structural-load' },
-      { label: 'How to reduce load', question: 'What structural changes would most reduce cognitive load?', category: 'structural-load' },
-      { label: 'Team size vs load', question: 'Are team sizes appropriate for their cognitive load levels?', category: 'structural-load' },
+      { label: 'Most overloaded teams', question: 'Which teams have the highest cognitive load and why?' },
+      { label: 'Domain spread issues', question: 'Which teams own capabilities across too many domains?' },
+      { label: 'How to reduce load', question: 'What structural changes would most reduce cognitive load?' },
+      { label: 'Team size vs load', question: 'Are team sizes appropriate for their cognitive load levels?' },
     ],
   },
   '/signals': {
     title: 'Architecture Signals',
     description: 'Ask about architectural health, risks and patterns detected',
-    defaultCategory: 'health-summary',
     prompts: [
-      { label: 'Overall health summary', question: "What is the overall architectural health and what are the top risks?", category: 'health-summary' },
-      { label: 'Critical bottlenecks', question: 'What are the most critical bottleneck services and what should we do about them?', category: 'bottleneck' },
-      { label: 'UX risk drivers', question: 'What is driving the UX risk signals and how can we improve them?', category: 'need-delivery-risk' },
-      { label: 'Where to start improving', question: 'If we could only fix one thing, what would have the most impact on architecture health?', category: 'health-summary' },
+      { label: 'Overall health summary', question: "What is the overall architectural health and what are the top risks?" },
+      { label: 'Critical bottlenecks', question: 'What are the most critical bottleneck services and what should we do about them?' },
+      { label: 'UX risk drivers', question: 'What is driving the UX risk signals and how can we improve them?' },
+      { label: 'Where to start improving', question: 'If we could only fix one thing, what would have the most impact on architecture health?' },
     ],
   },
   '/dashboard': {
     title: 'Architecture Overview',
     description: 'Ask for an overview, summary or strategic insights',
-    defaultCategory: 'model-summary',
     prompts: [
-      { label: 'Architecture summary', question: 'Summarize this architecture — what is it, how is it structured, and what stands out?', category: 'model-summary' },
-      { label: 'Biggest risks', question: "What are this architecture's biggest structural risks right now?", category: 'health-summary' },
-      { label: 'Strategic recommendations', question: 'What are the top 3 structural changes that would have the most impact?', category: 'health-summary' },
-      { label: 'How mature is it', question: 'How mature and well-structured is this architecture compared to Team Topologies best practices?', category: 'model-summary' },
+      { label: 'Architecture summary', question: 'Summarize this architecture — what is it, how is it structured, and what stands out?' },
+      { label: 'Biggest risks', question: "What are this architecture's biggest structural risks right now?" },
+      { label: 'Strategic recommendations', question: 'What are the top 3 structural changes that would have the most impact?' },
+      { label: 'How mature is it', question: 'How mature and well-structured is this architecture compared to Team Topologies best practices?' },
     ],
   },
   '/what-if': {
     title: 'What-If Analysis',
     description: 'Ask about the impact and risks of proposed changes',
-    defaultCategory: 'value-stream',
     prompts: [
-      { label: 'Impact of changes', question: 'What is the overall impact of the changes I am considering?', category: 'value-stream' },
-      { label: 'Risks of reorganization', question: 'What are the risks of this team reorganization?', category: 'coupling' },
-      { label: 'Better alternatives', question: 'Are there better ways to achieve the same outcome with fewer disruptions?', category: 'service-placement' },
-      { label: 'Transition complexity', question: 'How complex would this transition be and what are the key dependencies?', category: 'coupling' },
+      { label: 'Impact of changes', question: 'What is the overall impact of the changes I am considering?' },
+      { label: 'Risks of reorganization', question: 'What are the risks of this team reorganization?' },
+      { label: 'Better alternatives', question: 'Are there better ways to achieve the same outcome with fewer disruptions?' },
+      { label: 'Transition complexity', question: 'How complex would this transition be and what are the key dependencies?' },
     ],
   },
   '/unm-map': {
     title: 'UNM Map Analysis',
     description: 'Ask about the end-to-end value chain from needs to services',
-    defaultCategory: 'value-stream',
     prompts: [
-      { label: 'Value chain integrity', question: 'Is the value chain intact from user needs through capabilities to services?', category: 'value-stream' },
-      { label: 'Missing links', question: 'Where are there gaps or missing links in the value chain?', category: 'need-delivery-risk' },
-      { label: 'Longest chains', question: 'Which value chains span the most teams and have the highest delivery risk?', category: 'need-delivery-risk' },
-      { label: 'Simplify the map', question: 'How could we simplify this UNM map to reduce complexity?', category: 'model-summary' },
+      { label: 'Value chain integrity', question: 'Is the value chain intact from user needs through capabilities to services?' },
+      { label: 'Missing links', question: 'Where are there gaps or missing links in the value chain?' },
+      { label: 'Longest chains', question: 'Which value chains span the most teams and have the highest delivery risk?' },
+      { label: 'Simplify the map', question: 'How could we simplify this UNM map to reduce complexity?' },
     ],
   },
   '/realization': {
     title: 'Realization Analysis',
     description: 'Ask about how services realize capabilities',
-    defaultCategory: 'service-placement',
     prompts: [
-      { label: 'Multi-capability services', question: 'Which services realize too many capabilities and should be split?', category: 'service-placement' },
-      { label: 'Unowned services', question: 'Are there services with no clear team owner?', category: 'team-boundary' },
-      { label: 'Service-capability fit', question: 'Are services well-matched to the capabilities they realize?', category: 'service-placement' },
-      { label: 'Realization gaps', question: 'Which capabilities have no services realizing them?', category: 'fragmentation' },
+      { label: 'Multi-capability services', question: 'Which services realize too many capabilities and should be split?' },
+      { label: 'Unowned services', question: 'Are there services with no clear team owner?' },
+      { label: 'Service-capability fit', question: 'Are services well-matched to the capabilities they realize?' },
+      { label: 'Realization gaps', question: 'Which capabilities have no services realizing them?' },
     ],
   },
 }
@@ -134,12 +131,11 @@ const PAGE_CONFIGS: Record<string, PageConfig> = {
 const DEFAULT_CONFIG: PageConfig = {
   title: 'AI Advisor',
   description: 'Ask questions about your architecture model',
-  defaultCategory: 'general',
   prompts: [
-    { label: 'Architecture summary', question: 'Summarize this architecture', category: 'model-summary' },
-    { label: 'Biggest risk', question: "What's the biggest structural risk?", category: 'health-summary' },
-    { label: 'Overloaded teams', question: 'Which teams are overloaded?', category: 'structural-load' },
-    { label: 'Bottlenecks', question: 'Where are the bottlenecks?', category: 'bottleneck' },
+    { label: 'Architecture summary', question: 'Summarize this architecture' },
+    { label: 'Biggest risk', question: "What's the biggest structural risk?" },
+    { label: 'Overloaded teams', question: 'Which teams are overloaded?' },
+    { label: 'Bottlenecks', question: 'Where are the bottlenecks?' },
   ],
 }
 
@@ -167,34 +163,33 @@ export function AdvisorPanel() {
     }
   }, [history, loading])
 
-  const handleAsk = async (q: string, category: string) => {
+  const handleAsk = useCallback(async (q: string) => {
     if (!modelId) return
     const trimmed = q.trim()
     if (!trimmed) return
     setLoading(true)
+    const prompt = buildConversationPrompt(history, trimmed)
     try {
-      const resp = await api.askAdvisor(modelId, trimmed, category)
+      const resp = await api.askAdvisor(modelId, prompt)
       setAiConfigured(resp.ai_configured)
       setHistory(prev => [...prev, {
         question: trimmed,
         answer: resp.answer,
-        category: resp.category,
         aiConfigured: resp.ai_configured,
       }])
     } catch (err) {
       setHistory(prev => [...prev, {
         question: trimmed,
         answer: `Error: ${err instanceof Error ? err.message : 'Request failed'}`,
-        category,
         aiConfigured: false,
       }])
     } finally {
       setLoading(false)
     }
-  }
+  }, [modelId, history])
 
   const handleSend = () => {
-    handleAsk(question, config.defaultCategory)
+    handleAsk(question)
     setQuestion('')
   }
 
@@ -203,11 +198,6 @@ export function AdvisorPanel() {
       e.preventDefault()
       handleSend()
     }
-  }
-
-  const handlePromptClick = (prompt: SuggestedPrompt) => {
-    if (!hasModel || loading) return
-    handleAsk(prompt.question, prompt.category)
   }
 
   return (
@@ -242,6 +232,16 @@ export function AdvisorPanel() {
                 <div className="text-xs truncate" style={{ color: '#9ca3af' }}>{config.description}</div>
               </div>
             </div>
+            {history.length > 0 && (
+              <button
+                onClick={() => setHistory([])}
+                title="New conversation"
+                className="flex-shrink-0 rounded-md p-1.5 transition-colors hover:bg-gray-100"
+                style={{ color: '#9ca3af' }}
+              >
+                <RotateCcw size={13} />
+              </button>
+            )}
             <button
               onClick={() => setOpen(false)}
               className="flex-shrink-0 rounded-md p-1.5 transition-colors hover:bg-gray-100"
@@ -267,7 +267,7 @@ export function AdvisorPanel() {
             )}
           </div>
 
-          {hasModel && (
+          {hasModel && history.length === 0 && (
             <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <div className="flex items-center gap-1.5 mb-2">
                 <Sparkles size={11} style={{ color: '#9ca3af' }} />
@@ -277,7 +277,7 @@ export function AdvisorPanel() {
                 {config.prompts.map((prompt) => (
                   <button
                     key={prompt.label}
-                    onClick={() => handlePromptClick(prompt)}
+                    onClick={() => { if (hasModel && !loading) handleAsk(prompt.question) }}
                     disabled={!hasModel || loading}
                     className="text-left text-xs px-3 py-2 rounded-md transition-colors disabled:opacity-40 disabled:pointer-events-none"
                     style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#374151' }}
@@ -318,26 +318,27 @@ export function AdvisorPanel() {
                     <Bot size={12} style={{ color: '#2563eb' }} />
                   </div>
                   <div
-                    className="flex-1 text-xs px-3 py-2 rounded-lg leading-relaxed"
-                    style={{ background: '#eff6ff', color: '#1e3a5f', border: '1px solid #dbeafe' }}
+                    className="flex-1 px-3 py-2 rounded-lg"
+                    style={{ background: '#eff6ff', border: '1px solid #dbeafe' }}
                   >
-                    {entry.answer}
-                    {entry.category && entry.category !== 'general' && (
-                      <span
-                        className="mt-2 inline-block px-1.5 py-0.5 rounded text-xs"
-                        style={{ background: '#dbeafe', color: '#1d4ed8', fontSize: 10 }}
-                      >
-                        {entry.category}
-                      </span>
-                    )}
+                    <Prose compact>{entry.answer}</Prose>
                   </div>
                 </div>
               </div>
             ))}
             {loading && (
-              <div className="flex items-center gap-2 text-xs" style={{ color: '#9ca3af' }}>
-                <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Thinking...
+              <div className="flex gap-2">
+                <div className="flex-shrink-0 mt-1">
+                  <Bot size={12} className="animate-pulse" style={{ color: '#2563eb' }} />
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#eff6ff', border: '1px solid #dbeafe' }}>
+                  <span className="text-xs" style={{ color: '#6b7280' }}>Thinking</span>
+                  <span className="flex gap-0.5">
+                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '0ms', animationDuration: '1.2s' }} />
+                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '200ms', animationDuration: '1.2s' }} />
+                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '400ms', animationDuration: '1.2s' }} />
+                  </span>
+                </div>
               </div>
             )}
           </div>

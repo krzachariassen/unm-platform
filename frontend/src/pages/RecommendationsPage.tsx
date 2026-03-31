@@ -1,19 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { RefreshCw } from 'lucide-react'
+import { useState, useCallback, useRef } from 'react'
+import { RefreshCw, Sparkles, Loader2, FileText, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { useModel } from '@/lib/model-context'
 import { advisorApi } from '@/services/api'
 import { PageHeader } from '@/components/ui/page-header'
 import { Prose } from '@/components/ui/prose'
-
-const PHASES = [
-  'Analyzing team structure...',
-  'Checking capability coverage...',
-  'Identifying fragmentation patterns...',
-  'Evaluating cognitive load...',
-  'Generating recommendations...',
-]
+import { exportToPdf } from '@/lib/export-pdf'
 
 export function RecommendationsPage() {
   const { modelId, parseResult } = useModel()
@@ -21,16 +14,15 @@ export function RecommendationsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [aiConfigured, setAiConfigured] = useState(true)
-  const [phase, setPhase] = useState(0)
   const cacheRef = useRef<Map<string, string>>(new Map())
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (!loading) return
-    setPhase(0)
-    const interval = setInterval(() => setPhase(p => (p + 1) % 5), 3000)
-    return () => clearInterval(interval)
-  }, [loading])
+    if (!modelId) return
+    if (cacheRef.current.has(modelId)) {
+      setReport(cacheRef.current.get(modelId)!)
+    }
+  }, [modelId])
 
   const generate = useCallback(async (force = false) => {
     if (!modelId) return
@@ -61,27 +53,24 @@ export function RecommendationsPage() {
     }
   }, [modelId])
 
-  useEffect(() => {
-    if (!modelId) return
-    if (cacheRef.current.has(modelId)) {
-      setReport(cacheRef.current.get(modelId)!)
-    } else if (!report && !loading) {
-      generate()
-    }
-  }, [modelId]) // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
     <ModelRequired>
       <div className="max-w-screen-xl mx-auto"><div className="max-w-4xl space-y-4">
         <PageHeader
           title="AI Recommendations"
           description={`Comprehensive restructuring report for ${parseResult?.system_name ?? ''}`}
-          actions={
-            <Button variant="outline" size="sm" onClick={() => generate(true)} disabled={loading} className="gap-2">
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Regenerate
-            </Button>
-          }
+          actions={report && !loading ? (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => exportToPdf(report, `AI Recommendations — ${parseResult?.system_name ?? 'UNM'}`)} className="gap-2">
+                <Download className="w-3.5 h-3.5" />
+                Save as PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => generate(true)} disabled={loading} className="gap-2">
+                <RefreshCw className="w-3.5 h-3.5" />
+                Regenerate
+              </Button>
+            </div>
+          ) : undefined}
         />
 
         {!aiConfigured && (
@@ -90,14 +79,41 @@ export function RecommendationsPage() {
           </div>
         )}
 
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-5 rounded-lg border border-border bg-card">
-            <div className="w-10 h-10 rounded-full animate-spin border-2 border-muted border-t-primary" aria-hidden />
-            <p className="text-sm font-semibold text-primary animate-pulse">{PHASES[phase]}</p>
-            <p className="text-xs text-muted-foreground text-center max-w-sm">This may take up to 2–3 minutes for deep analysis</p>
+        {/* Empty state — explicit generate */}
+        {!report && !loading && !error && (
+          <div className="flex flex-col items-center justify-center py-20 gap-5 rounded-xl border" style={{ background: '#fafafa', borderColor: '#e5e7eb' }}>
+            <div className="rounded-xl p-4" style={{ background: '#eff6ff' }}>
+              <FileText size={28} style={{ color: '#2563eb' }} />
+            </div>
+            <div className="text-center max-w-md">
+              <h3 className="text-sm font-semibold mb-1" style={{ color: '#111827' }}>Generate Restructuring Report</h3>
+              <p className="text-xs leading-relaxed" style={{ color: '#6b7280' }}>
+                AI will analyze your architecture model and produce a comprehensive report with specific service moves, team restructuring suggestions, and a prioritized action roadmap. This may take 1–3 minutes.
+              </p>
+            </div>
             <button
+              type="button"
+              onClick={() => generate()}
+              className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-all hover:opacity-90"
+              style={{ background: '#111827' }}
+            >
+              <Sparkles size={15} /> Generate Report
+            </button>
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 rounded-xl border" style={{ background: '#fafafa', borderColor: '#e5e7eb' }}>
+            <Loader2 size={28} className="animate-spin" style={{ color: '#2563eb' }} />
+            <div className="text-center">
+              <p className="text-sm font-semibold" style={{ color: '#111827' }}>Generating the report…</p>
+              <p className="text-[11px] mt-1" style={{ color: '#9ca3af' }}>This may take up to 2–3 minutes</p>
+            </div>
+            <button
+              type="button"
               onClick={() => { abortRef.current?.abort(); setLoading(false) }}
-              className="mt-2 px-3 py-1 text-sm text-muted-foreground border border-border rounded-md hover:bg-muted transition-colors"
+              className="text-xs px-3 py-1.5 rounded-md transition-colors hover:bg-gray-100"
+              style={{ color: '#6b7280', border: '1px solid #e5e7eb' }}
             >
               Cancel
             </button>
@@ -105,9 +121,16 @@ export function RecommendationsPage() {
         )}
 
         {error && !loading && (
-          <div className="rounded-lg p-6 bg-red-50 border border-red-200 space-y-3">
-            <p className="text-sm text-red-700">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => generate(true)}>Retry</Button>
+          <div className="rounded-lg p-6 space-y-3" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+            <p className="text-sm" style={{ color: '#b91c1c' }}>{error}</p>
+            <button
+              type="button"
+              onClick={() => generate(true)}
+              className="text-xs font-medium px-3 py-1.5 rounded-md transition-colors hover:bg-red-100"
+              style={{ color: '#dc2626', border: '1px solid #fca5a5' }}
+            >
+              Retry
+            </button>
           </div>
         )}
 
