@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { Loader2, Send, Check, AlertTriangle, ChevronUp, ChevronDown, X, List, Info } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { ImpactDelta } from '@/lib/api'
+import type { ImpactDelta } from '@/types/changeset'
 import { useModel } from '@/lib/model-context'
 import { useChangeset } from '@/lib/changeset-context'
 import { ImpactPanel } from './ImpactPanel'

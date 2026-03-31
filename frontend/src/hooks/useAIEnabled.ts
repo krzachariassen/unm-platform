@@ -1,18 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { getRuntimeConfig } from '@/lib/runtimeConfig'
 
-let resolved: boolean | null = null
-
 export function useAIEnabled(): boolean {
-  const [enabled, setEnabled] = useState(resolved ?? false)
-
-  useEffect(() => {
-    if (resolved !== null) return
-    getRuntimeConfig().then(cfg => {
-      resolved = cfg.ai?.enabled ?? false
-      setEnabled(resolved)
-    })
-  }, [])
-
-  return enabled
+  const { data } = useQuery({
+    queryKey: ['runtimeConfig'],
+    queryFn: getRuntimeConfig,
+    staleTime: Infinity,
+  })
+  return data?.ai?.enabled ?? false
 }

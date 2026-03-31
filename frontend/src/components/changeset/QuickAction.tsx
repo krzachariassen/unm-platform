@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Pencil } from 'lucide-react'
-import type { ChangeAction } from '@/lib/api'
+import type { ChangeAction } from '@/types/changeset'
 import { useChangeset } from '@/lib/changeset-context'
+import { cn } from '@/lib/utils'
 
 interface QuickActionOption {
   label: string
@@ -11,13 +12,13 @@ interface QuickActionOption {
 interface QuickActionProps {
   options: QuickActionOption[]
   size?: number
-  onOpen?: () => void  // callback to open EditPanel if the caller wants to show it
+  onOpen?: () => void
 }
 
 export function QuickAction({ options, size = 13, onOpen }: QuickActionProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const { addAction, enterEditMode } = useChangeset()
+  const { addAction } = useChangeset()
 
   useEffect(() => {
     if (!open) return
@@ -29,22 +30,19 @@ export function QuickAction({ options, size = 13, onOpen }: QuickActionProps) {
   }, [open])
 
   const handleSelect = useCallback((action: ChangeAction) => {
-    enterEditMode()
     addAction(action)
     setOpen(false)
     onOpen?.()
-  }, [enterEditMode, addAction, onOpen])
+  }, [addAction, onOpen])
 
   if (options.length === 0) return null
 
   if (options.length === 1) {
     return (
       <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); handleSelect(options[0].action) }}
-        className="inline-flex items-center justify-center rounded p-0.5 transition-colors"
-        style={{ color: '#9ca3af' }}
-        onMouseEnter={e => { (e.currentTarget).style.color = '#2563eb' }}
-        onMouseLeave={e => { (e.currentTarget).style.color = '#9ca3af' }}
+        className="inline-flex items-center justify-center rounded p-0.5 text-muted-foreground transition-colors hover:text-primary"
         title={options[0].label}
       >
         <Pencil size={size} />
@@ -55,28 +53,24 @@ export function QuickAction({ options, size = 13, onOpen }: QuickActionProps) {
   return (
     <div ref={ref} className="relative inline-block">
       <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(!open) }}
-        className="inline-flex items-center justify-center rounded p-0.5 transition-colors"
-        style={{ color: '#9ca3af' }}
-        onMouseEnter={e => { (e.currentTarget).style.color = '#2563eb' }}
-        onMouseLeave={e => { if (!open) (e.currentTarget).style.color = '#9ca3af' }}
+        className={cn(
+          'inline-flex items-center justify-center rounded p-0.5 transition-colors',
+          open ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+        )}
         title="Quick edit"
       >
         <Pencil size={size} />
       </button>
 
       {open && (
-        <div
-          className="absolute right-0 top-full mt-1 z-50 min-w-48 rounded-lg py-1 shadow-lg"
-          style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}
-        >
+        <div className="absolute right-0 top-full z-50 mt-1 min-w-48 rounded-lg border border-border bg-white py-1 shadow-lg">
           {options.map((opt, i) => (
             <button
               key={i}
-              className="w-full text-left px-3 py-1.5 text-xs transition-colors"
-              style={{ color: '#374151' }}
-              onMouseEnter={e => { (e.currentTarget).style.background = '#f3f4f6' }}
-              onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+              type="button"
+              className="w-full px-3 py-1.5 text-left text-xs text-foreground transition-colors hover:bg-muted"
               onClick={(e) => { e.stopPropagation(); handleSelect(opt.action) }}
             >
               {opt.label}

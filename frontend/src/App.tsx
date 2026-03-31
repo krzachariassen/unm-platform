@@ -38,15 +38,6 @@ export default function App() {
               <Route path="/what-if" element={<WhatIfPage />} />
               <Route path="/recommendations" element={<RecommendationsPage />} />
               <Route path="/advisor" element={<AdvisorPage />} />
-              {/* Legacy redirects */}
-              <Route path="/views/unm-map" element={<UNMMapView />} />
-              <Route path="/views/need" element={<NeedView />} />
-              <Route path="/views/capability" element={<CapabilityView />} />
-              <Route path="/views/realization" element={<RealizationView />} />
-              <Route path="/views/ownership" element={<OwnershipView />} />
-              <Route path="/views/team-topology" element={<TeamTopologyView />} />
-              <Route path="/views/cognitive-load" element={<CognitiveLoadView />} />
-              <Route path="/views/signals" element={<SignalsView />} />
             </Route>
           </Routes>
         </SearchProvider>

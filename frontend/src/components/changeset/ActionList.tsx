@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { X, Trash2 } from 'lucide-react'
-import type { ChangeAction } from '@/lib/api'
+import type { ChangeAction } from '@/types/changeset'
 
 const TYPE_LABELS: Record<string, string> = {
   move_service: 'Move Service',
@@ -49,9 +49,9 @@ interface ActionListProps {
 export function ActionList({ actions, onRemove, onClear }: ActionListProps) {
   if (actions.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-sm" style={{ color: '#9ca3af' }}>No actions added yet</p>
-        <p className="text-xs mt-1" style={{ color: '#d1d5db' }}>Use the form above to add actions</p>
+      <div className="py-8 text-center">
+        <p className="text-sm text-muted-foreground">No actions added yet</p>
+        <p className="mt-1 text-xs text-muted-foreground/70">Use the form above to add actions</p>
       </div>
     )
   }
@@ -59,7 +59,7 @@ export function ActionList({ actions, onRemove, onClear }: ActionListProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium" style={{ color: '#6b7280' }}>
+        <span className="text-xs font-medium text-muted-foreground">
           {actions.length} action{actions.length !== 1 ? 's' : ''}
         </span>
         <Button variant="ghost" size="sm" onClick={onClear} className="h-6 px-2 text-xs">
@@ -71,22 +71,22 @@ export function ActionList({ actions, onRemove, onClear }: ActionListProps) {
       {actions.map((action, i) => (
         <div
           key={i}
-          className="flex items-start gap-2 rounded-lg p-3"
-          style={{ border: '1px solid #e5e7eb', background: '#fafafa' }}
+          className="flex items-start gap-2 rounded-lg border border-border bg-muted p-3"
         >
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold" style={{ color: '#111827' }}>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-semibold text-foreground">
               {TYPE_LABELS[action.type] ?? action.type}
             </div>
-            <div className="text-xs mt-0.5 truncate" style={{ color: '#6b7280' }}>
+            <div className="mt-0.5 truncate text-xs text-muted-foreground">
               {summarizeAction(action)}
             </div>
           </div>
           <button
-            className="flex-shrink-0 mt-0.5 rounded p-0.5 transition-colors hover:bg-red-50"
+            type="button"
+            className="mt-0.5 shrink-0 rounded p-0.5 transition-colors hover:bg-destructive/10"
             onClick={() => onRemove(i)}
           >
-            <X size={14} style={{ color: '#9ca3af' }} />
+            <X size={14} className="text-muted-foreground" />
           </button>
         </div>
       ))}

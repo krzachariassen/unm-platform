@@ -11,6 +11,8 @@ _Priority: Phase 9 cleanup + data_asset simplification._
 
 ## Recently Completed
 
+- [x] **refactor(ui-unification)** — Complete UI unification refactor (Steps 0–5): TanStack Query for all server state; shared component library (PageHeader, StatCard, etc.); layout shell rewrite; all 12 views rewritten (NeedView, CapabilityView, SignalsView, TeamTopologyView, OwnershipView, etc.); UNMMapView rewritten with @xyflow/react (React Flow) replacing hand-rolled pan/zoom and SVG edges; new `types/`, `services/api/`, `services/transforms/`, `features/unm-map/`, `components/unm-map/` layers; 36 tests passing; `EditModelPage.tsx` deleted (2026-03-31)
+
 - [x] **refactor(clean-arch)** — Fix Clean Architecture violations: define analyzer interfaces in usecase package, build promptRenderer/analysisRunner/parseAndValidateDSL as Handler singletons, add same-name guards to Changeset.Validate() (2026-03-31)
 - [x] **feat(ux): batch edit mode** — Global ChangesetContext + floating PendingChangesBar; "Edit Model" TopBar toggle; real-time pending cap nodes on map; full Services panel (add/link/move/unlink) per capability; proactive validation warnings; specific backend error display on 409; fix visibility bug causing committed capabilities to vanish after reload (2026-03-31)
 - [x] **feat(ai)** — AI IP allowlist: restrict AI features by client IP; supports exact IPs and CIDR ranges; respects X-Forwarded-For (2026-03-30)

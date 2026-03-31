@@ -4,36 +4,50 @@ import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useModel } from '@/lib/model-context'
 import { useChangeset } from '@/lib/changeset-context'
+import { cn } from '@/lib/utils'
 import type { ChangeAction } from '@/lib/api'
 
-// Model entity lists fetched once and cached for dropdown population
 export interface ModelEntities {
   teams: string[]
   services: string[]
   capabilities: string[]
   needs: string[]
   actors: string[]
+  serviceOwner: Map<string, string>
+  capabilityOwner: Map<string, string>
 }
 
 export function useModelEntities(): ModelEntities {
   const { modelId } = useModel()
   const { actions } = useChangeset()
-  const [fetched, setFetched] = useState<ModelEntities>({ teams: [], services: [], capabilities: [], needs: [], actors: [] })
+  const [fetched, setFetched] = useState<{
+    teams: string[]; services: string[]; capabilities: string[]; needs: string[]; actors: string[]
+    serviceOwner: Map<string, string>; capabilityOwner: Map<string, string>
+  }>({ teams: [], services: [], capabilities: [], needs: [], actors: [], serviceOwner: new Map(), capabilityOwner: new Map() })
 
   useEffect(() => {
     if (!modelId) return
     Promise.all([
-      api.getTeams(modelId).then(r => r.teams.map(t => t.name)),
-      api.getServices(modelId).then(r => r.services.map(s => s.name)),
-      api.getCapabilities(modelId).then(r => r.capabilities.map(c => c.name)),
+      api.getTeams(modelId),
+      api.getServices(modelId),
+      api.getCapabilities(modelId),
       api.getNeeds(modelId).then(r => r.needs.map(n => n.name)),
       api.getActors(modelId).then(r => r.actors.map(a => a.name)),
-    ]).then(([teams, services, capabilities, needs, actors]) => {
-      setFetched({ teams, services, capabilities, needs, actors })
+    ]).then(([teamsR, servicesR, capsR, needs, actors]) => {
+      const svcOwner = new Map<string, string>()
+      for (const s of servicesR.services) if (s.owner_team_name) svcOwner.set(s.name, s.owner_team_name)
+      const capOwner = new Map<string, string>()
+      setFetched({
+        teams: teamsR.teams.map(t => t.name),
+        services: servicesR.services.map(s => s.name),
+        capabilities: capsR.capabilities.map(c => c.name),
+        needs, actors,
+        serviceOwner: svcOwner,
+        capabilityOwner: capOwner,
+      })
     }).catch(() => {})
   }, [modelId])
 
-  // Merge pending add_* actions so newly staged entities appear in dropdowns immediately
   return useMemo(() => {
     const pendingCaps: string[] = []
     const pendingTeams: string[] = []
@@ -56,6 +70,8 @@ export function useModelEntities(): ModelEntities {
       capabilities: [...new Set([...fetched.capabilities, ...pendingCaps])],
       needs:        [...new Set([...fetched.needs,        ...pendingNeeds])],
       actors:       [...new Set([...fetched.actors,       ...pendingActors])],
+      serviceOwner: fetched.serviceOwner,
+      capabilityOwner: fetched.capabilityOwner,
     }
   }, [fetched, actions])
 }
@@ -162,14 +178,15 @@ interface FieldDef {
   options?: string[]
   optional?: boolean
   placeholder?: string
+  autoFillFrom?: { field: string; map: 'serviceOwner' | 'capabilityOwner' }
 }
 
 function buildFields(_entities: ModelEntities): Record<ActionType, FieldDef[]> {
   return {
     move_service: [
       { key: 'service_name', label: 'Service', type: 'entity', source: 'services' },
-      { key: 'from_team_name', label: 'From Team', type: 'entity', source: 'teams' },
-      { key: 'to_team_name', label: 'To Team', type: 'entity', source: 'teams' },
+      { key: 'from_team_name', label: 'Current Owner', type: 'entity', source: 'teams', autoFillFrom: { field: 'service_name', map: 'serviceOwner' } },
+      { key: 'to_team_name', label: 'Move To', type: 'entity', source: 'teams' },
     ],
     split_team: [
       { key: 'original_team_name', label: 'Team to Split', type: 'entity', source: 'teams' },
@@ -191,8 +208,8 @@ function buildFields(_entities: ModelEntities): Record<ActionType, FieldDef[]> {
     ],
     reassign_capability: [
       { key: 'capability_name', label: 'Capability', type: 'entity', source: 'capabilities' },
-      { key: 'from_team_name', label: 'From Team', type: 'entity', source: 'teams' },
-      { key: 'to_team_name', label: 'To Team', type: 'entity', source: 'teams' },
+      { key: 'from_team_name', label: 'Current Owner', type: 'entity', source: 'teams', autoFillFrom: { field: 'capability_name', map: 'capabilityOwner' } },
+      { key: 'to_team_name', label: 'Reassign To', type: 'entity', source: 'teams' },
     ],
     add_interaction: [
       { key: 'source_team_name', label: 'Source Team', type: 'entity', source: 'teams' },
@@ -284,12 +301,6 @@ function buildFields(_entities: ModelEntities): Record<ActionType, FieldDef[]> {
   }
 }
 
-const SELECT_STYLE = {
-  borderColor: '#d1d5db', background: '#ffffff', color: '#111827',
-} as const
-
-const INPUT_STYLE = SELECT_STYLE
-
 interface ActionFormProps {
   onAdd: (action: ChangeAction) => void
   entities?: ModelEntities
@@ -359,7 +370,15 @@ export function ActionForm({ onAdd, entities: entityProp, compact, initialAction
   }
 
   const handleFieldChange = (key: string, value: string) => {
-    setFieldValues(p => ({ ...p, [key]: value }))
+    const next = { ...fieldValues, [key]: value }
+    for (const f of fields) {
+      if (f.autoFillFrom && f.autoFillFrom.field === key) {
+        const ownerMap = entities[f.autoFillFrom.map]
+        const owner = ownerMap.get(value)
+        if (owner) next[f.key] = owner
+      }
+    }
+    setFieldValues(next)
     if (fieldErrors[key]) {
       setFieldErrors(p => ({ ...p, [key]: false }))
     }
@@ -384,7 +403,15 @@ export function ActionForm({ onAdd, entities: entityProp, compact, initialAction
 
   const renderField = (field: FieldDef) => {
     const hasError = submitted && fieldErrors[field.key]
-    const errorBorder = hasError ? '#ef4444' : '#d1d5db'
+    const isAutoFilled = field.autoFillFrom && fieldValues[field.key] && fieldValues[field.autoFillFrom.field]
+
+    if (isAutoFilled) {
+      return (
+        <div className="w-full rounded-md border border-input bg-muted px-2.5 py-1.5 text-sm text-muted-foreground">
+          {fieldValues[field.key]}
+        </div>
+      )
+    }
 
     if (field.type === 'entity') {
       const source = resolveSource(field)
@@ -392,15 +419,17 @@ export function ActionForm({ onAdd, entities: entityProp, compact, initialAction
       return (
         <>
           <select
-            className="w-full rounded-md border px-2.5 py-1.5 text-sm"
-            style={{ ...SELECT_STYLE, borderColor: errorBorder }}
+            className={cn(
+              'w-full rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground',
+              hasError ? 'border-destructive' : 'border-input'
+            )}
             value={fieldValues[field.key] ?? ''}
             onChange={e => handleFieldChange(field.key, e.target.value)}
           >
             <option value="">Select {field.label.toLowerCase()}...</option>
             {options.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
-          {hasError && <p className="text-xs mt-0.5" style={{ color: '#ef4444' }}>This field is required</p>}
+          {hasError && <p className="mt-0.5 text-xs text-destructive">This field is required</p>}
         </>
       )
     }
@@ -408,46 +437,47 @@ export function ActionForm({ onAdd, entities: entityProp, compact, initialAction
       return (
         <>
           <select
-            className="w-full rounded-md border px-2.5 py-1.5 text-sm"
-            style={{ ...SELECT_STYLE, borderColor: errorBorder }}
+            className={cn(
+              'w-full rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground',
+              hasError ? 'border-destructive' : 'border-input'
+            )}
             value={fieldValues[field.key] ?? ''}
             onChange={e => handleFieldChange(field.key, e.target.value)}
           >
             <option value="">{field.optional ? '(none)' : 'Select...'}</option>
             {field.options?.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
-          {hasError && <p className="text-xs mt-0.5" style={{ color: '#ef4444' }}>This field is required</p>}
+          {hasError && <p className="mt-0.5 text-xs text-destructive">This field is required</p>}
         </>
       )
     }
     return (
       <>
         <input
-          className="w-full rounded-md border px-2.5 py-1.5 text-sm"
-          style={{ ...INPUT_STYLE, borderColor: errorBorder }}
+          className={cn(
+            'w-full rounded-md border bg-background px-2.5 py-1.5 text-sm text-foreground',
+            hasError ? 'border-destructive' : 'border-input'
+          )}
           type={field.type}
           placeholder={field.placeholder ?? field.label}
           value={fieldValues[field.key] ?? ''}
           onChange={e => handleFieldChange(field.key, e.target.value)}
         />
-        {hasError && <p className="text-xs mt-0.5" style={{ color: '#ef4444' }}>This field is required</p>}
+        {hasError && <p className="mt-0.5 text-xs text-destructive">This field is required</p>}
       </>
     )
   }
 
-  // Find the label for the currently selected action type
-  const selectedLabel = actionType
-    ? ACTION_CATEGORIES.flatMap(c => c.actions).find(a => a.value === actionType)?.label ?? actionType
-    : null
-
   return (
-    <div className="space-y-2.5">
-      {/* Action type: grouped select dropdown */}
+    <div className={cn('space-y-2.5', compact && 'space-y-2')}>
       <div>
-        <label className="text-xs font-medium block mb-1.5" style={{ color: '#6b7280' }}>Action Type</label>
+        {!compact && <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Action Type</label>}
         <select
-          className="w-full rounded-md border px-2.5 py-1.5 text-sm"
-          style={{ ...SELECT_STYLE, color: actionType ? '#111827' : '#9ca3af' }}
+          className={cn(
+            'w-full rounded-md border border-input bg-background text-foreground',
+            compact ? 'px-2 py-1.5 text-xs' : 'px-2.5 py-1.5 text-sm',
+            !actionType && 'text-muted-foreground'
+          )}
           value={actionType ?? ''}
           onChange={e => handleTypeChange(e.target.value as ActionType)}
         >
@@ -462,27 +492,25 @@ export function ActionForm({ onAdd, entities: entityProp, compact, initialAction
         </select>
       </div>
 
-      {/* Action description + form fields */}
       {actionType && (
         <>
-          <div>
-            <p className="text-sm font-medium" style={{ color: '#111827' }}>{selectedLabel}</p>
-            <p className="text-xs" style={{ color: '#9ca3af' }}>{ACTION_DESCRIPTIONS[actionType]}</p>
-          </div>
+          <p className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
+            {ACTION_DESCRIPTIONS[actionType]}
+          </p>
 
           {fields.map(field => (
             <div key={field.key}>
-              <label className="text-xs font-medium block mb-1" style={{ color: '#6b7280' }}>
+              <label className={cn('mb-0.5 block font-medium text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
                 {field.label}
-                {field.optional && <span style={{ color: '#d1d5db', fontWeight: 400 }}> (optional)</span>}
+                {field.optional && <span className="font-normal text-muted-foreground/60"> (optional)</span>}
               </label>
               {renderField(field)}
             </div>
           ))}
 
-          <Button size={compact ? 'sm' : 'default'} disabled={!allFilled} onClick={handleSubmit} className="w-full gap-1.5">
-            <Plus size={14} />
-            Add
+          <Button size="sm" disabled={!allFilled} onClick={handleSubmit} className="w-full gap-1.5 text-xs">
+            <Plus size={12} />
+            Stage
           </Button>
         </>
       )}
