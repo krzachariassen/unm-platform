@@ -20,7 +20,6 @@
 | code-reviewer | | | | |
 | ui-reviewer | | | | |
 | documentation-writer | | | | |
-| code-to-dsl | | | | |
 | backlog-manager | | | | |
 
 ## Validation Failures

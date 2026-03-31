@@ -44,7 +44,6 @@ monolithic context file, specialized agents get focused, composable context.
 │   ├── fullstack-engineer/  # Cross-stack feature developer
 │   ├── ui-reviewer/         # UX review specialist
 │   ├── code-reviewer/       # Code quality reviewer
-│   ├── code-to-dsl/         # Codebase-to-UNM model generator
 │   ├── documentation-writer/# Docs, README, examples, tutorials
 │   └── backlog-manager/     # Backlog maintenance
 ├── commands/                # Orchestrator + direct commands
@@ -153,8 +152,6 @@ Each agent's `MEMORY.md` is subject to these guardrails:
 - `docs/BACKLOG.md` -- Work items, phased roadmap, and Recently Completed
 - `.claude/agents/AGENT_OWNERSHIP.md` -- Agent ownership, curation policy, metrics
 - `docs/UNM_DSL_SPECIFICATION.md` -- DSL syntax and meta-model
-- `docs/AI_ENGINEERING_STRATEGY.md` -- AI Engineering Strategy (updated)
-- `docs/AI_ENGINEERING_VISION.md` -- AI Engineering Vision (updated)
 - `examples/inca.unm.yaml` -- Reference model
 
 ## What NOT to Do
