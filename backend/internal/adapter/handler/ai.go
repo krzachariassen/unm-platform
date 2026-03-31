@@ -124,14 +124,7 @@ func (h *Handler) handleAsk(w http.ResponseWriter, r *http.Request) {
 	m := stored.Model
 	data := buildAIPromptData(m, req.Question, h)
 
-	lib, err := ai.NewPromptLibrary()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load prompt library")
-		return
-	}
-	renderer := ai.NewPromptRenderer(lib)
-
-	rendered, err := renderer.Render(templateName, data)
+	rendered, err := h.promptRenderer.Render(templateName, data)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("prompt rendering failed: %v", err))
 		return
@@ -205,14 +198,7 @@ func (h *Handler) handleExplainChangeset(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	lib, err := ai.NewPromptLibrary()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load prompt library")
-		return
-	}
-	renderer := ai.NewPromptRenderer(lib)
-
-	rendered, err := renderer.Render("whatif/impact-assessment", data)
+	rendered, err := h.promptRenderer.Render("whatif/impact-assessment", data)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("prompt rendering failed: %v", err))
 		return

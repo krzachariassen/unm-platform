@@ -10,30 +10,30 @@ import (
 // AnalysisRunner dispatches analysis requests to the appropriate analyzer
 // and returns the result as a JSON-ready map.
 type AnalysisRunner struct {
-	fragmentation     *analyzer.FragmentationAnalyzer
-	cognitiveLoad     *analyzer.CognitiveLoadAnalyzer
-	dependency        *analyzer.DependencyAnalyzer
-	gap               *analyzer.GapAnalyzer
-	bottleneck        *analyzer.BottleneckAnalyzer
-	coupling          *analyzer.CouplingAnalyzer
-	complexity        *analyzer.ComplexityAnalyzer
-	interactions      *analyzer.InteractionDiversityAnalyzer
-	unlinked          *analyzer.UnlinkedCapabilityAnalyzer
-	signalSuggestions *analyzer.SignalSuggestionGenerator
+	fragmentation     Fragmenter
+	cognitiveLoad     CognitiveLoader
+	dependency        DependencyAnalyzer
+	gap               GapAnalyzer
+	bottleneck        BottleneckAnalyzer
+	coupling          CouplingAnalyzer
+	complexity        ComplexityAnalyzer
+	interactions      InteractionDiversityAnalyzer
+	unlinked          UnlinkedCapabilityAnalyzer
+	signalSuggestions SignalGenerator
 }
 
 // NewAnalysisRunner constructs an AnalysisRunner.
 func NewAnalysisRunner(
-	frag *analyzer.FragmentationAnalyzer,
-	cl *analyzer.CognitiveLoadAnalyzer,
-	dep *analyzer.DependencyAnalyzer,
-	g *analyzer.GapAnalyzer,
-	bn *analyzer.BottleneckAnalyzer,
-	cp *analyzer.CouplingAnalyzer,
-	cx *analyzer.ComplexityAnalyzer,
-	intr *analyzer.InteractionDiversityAnalyzer,
-	unl *analyzer.UnlinkedCapabilityAnalyzer,
-	sg *analyzer.SignalSuggestionGenerator,
+	frag Fragmenter,
+	cl CognitiveLoader,
+	dep DependencyAnalyzer,
+	g GapAnalyzer,
+	bn BottleneckAnalyzer,
+	cp CouplingAnalyzer,
+	cx ComplexityAnalyzer,
+	intr InteractionDiversityAnalyzer,
+	unl UnlinkedCapabilityAnalyzer,
+	sg SignalGenerator,
 ) *AnalysisRunner {
 	return &AnalysisRunner{
 		fragmentation:     frag,

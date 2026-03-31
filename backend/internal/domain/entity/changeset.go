@@ -19,22 +19,29 @@ const (
 	ActionRemoveInteraction  ChangeActionType = "remove_interaction"
 	ActionUpdateTeamSize     ChangeActionType = "update_team_size"
 
-	ActionAddService                 ChangeActionType = "add_service"
-	ActionRemoveService              ChangeActionType = "remove_service"
-	ActionRenameService              ChangeActionType = "rename_service"
-	ActionAddTeam                    ChangeActionType = "add_team"
-	ActionRemoveTeam                 ChangeActionType = "remove_team"
-	ActionUpdateTeamType             ChangeActionType = "update_team_type"
-	ActionAddNeed                    ChangeActionType = "add_need"
-	ActionRemoveNeed                 ChangeActionType = "remove_need"
-	ActionAddActor                   ChangeActionType = "add_actor"
-	ActionRemoveActor                ChangeActionType = "remove_actor"
-	ActionAddServiceDependency       ChangeActionType = "add_service_dependency"
-	ActionRemoveServiceDependency    ChangeActionType = "remove_service_dependency"
-	ActionLinkNeedCapability         ChangeActionType = "link_need_capability"
-	ActionUnlinkNeedCapability       ChangeActionType = "unlink_need_capability"
-	ActionLinkCapabilityService      ChangeActionType = "link_capability_service"
-	ActionUnlinkCapabilityService    ChangeActionType = "unlink_capability_service"
+	ActionAddService    ChangeActionType = "add_service"
+	ActionRemoveService ChangeActionType = "remove_service"
+	ActionRenameService ChangeActionType = "rename_service"
+
+	ActionAddTeam        ChangeActionType = "add_team"
+	ActionRemoveTeam     ChangeActionType = "remove_team"
+	ActionUpdateTeamType ChangeActionType = "update_team_type"
+
+	ActionAddNeed    ChangeActionType = "add_need"
+	ActionRemoveNeed ChangeActionType = "remove_need"
+
+	ActionAddActor    ChangeActionType = "add_actor"
+	ActionRemoveActor ChangeActionType = "remove_actor"
+
+	ActionAddServiceDependency    ChangeActionType = "add_service_dependency"
+	ActionRemoveServiceDependency ChangeActionType = "remove_service_dependency"
+
+	ActionLinkNeedCapability   ChangeActionType = "link_need_capability"
+	ActionUnlinkNeedCapability ChangeActionType = "unlink_need_capability"
+
+	ActionLinkCapabilityService   ChangeActionType = "link_capability_service"
+	ActionUnlinkCapabilityService ChangeActionType = "unlink_capability_service"
+
 	ActionUpdateCapabilityVisibility ChangeActionType = "update_capability_visibility"
 	ActionUpdateDescription          ChangeActionType = "update_description"
 )
@@ -60,54 +67,40 @@ type ChangeAction struct {
 	TeamBName   string `json:"team_b_name,omitempty"`
 	NewTeamName string `json:"new_team_name,omitempty"`
 
-	// AddCapability / RemoveCapability: manage capabilities.
+	// AddCapability / RemoveCapability / ReassignCapability / LinkCapabilityService / UpdateCapabilityVisibility.
 	CapabilityName string `json:"capability_name,omitempty"`
-	OwnerTeamName  string `json:"owner_team_name,omitempty"` // for AddCapability
-
-	// ReassignCapability: move capability ownership between teams.
-	// Uses CapabilityName, FromTeamName, ToTeamName.
+	OwnerTeamName  string `json:"owner_team_name,omitempty"`
+	Visibility     string `json:"visibility,omitempty"`
+	Role           string `json:"role,omitempty"`
 
 	// AddInteraction / RemoveInteraction.
 	SourceTeamName  string `json:"source_team_name,omitempty"`
 	TargetTeamName  string `json:"target_team_name,omitempty"`
 	InteractionMode string `json:"interaction_mode,omitempty"`
 
-	// UpdateTeamSize: change the explicit headcount for a team.
-	TeamName string `json:"team_name,omitempty"`
-	NewSize  int    `json:"new_size,omitempty"`
+	// UpdateTeamSize / AddTeam / RemoveTeam / UpdateTeamType.
+	TeamName    string `json:"team_name,omitempty"`
+	NewSize     int    `json:"new_size,omitempty"`
+	TeamType    string `json:"team_type,omitempty"`
+	Description string `json:"description,omitempty"`
 
-	// AddService / RenameService: manage services.
-	// Uses ServiceName for existing service name.
-	NewServiceName string `json:"new_service_name,omitempty"` // for RenameService
-	Description    string `json:"description,omitempty"`      // for add/update operations
+	// RenameService.
+	NewServiceName string `json:"new_service_name,omitempty"`
 
-	// AddTeam / UpdateTeamType.
-	// Uses TeamName for existing team name.
-	TeamType string `json:"team_type,omitempty"` // for AddTeam / UpdateTeamType
-
-	// AddNeed: create a new need.
+	// AddNeed / RemoveNeed / LinkNeedCapability / UnlinkNeedCapability.
 	NeedName    string   `json:"need_name,omitempty"`
-	ActorName   string   `json:"actor_name,omitempty"`
 	Outcome     string   `json:"outcome,omitempty"`
-	SupportedBy []string `json:"supported_by,omitempty"` // capability names
+	SupportedBy []string `json:"supported_by,omitempty"`
 
-	// AddActor.
-	// Uses ActorName for the actor name.
+	// AddActor / RemoveActor.
+	ActorName string `json:"actor_name,omitempty"`
 
-	// Service dependency management.
+	// AddServiceDependency / RemoveServiceDependency.
 	DependsOnService string `json:"depends_on_service,omitempty"`
 
-	// Capability-service linking.
-	// Uses CapabilityName, ServiceName.
-	Role string `json:"role,omitempty"` // optional: primary/supporting/consuming
-
-	// UpdateCapabilityVisibility.
-	Visibility string `json:"visibility,omitempty"`
-
-	// UpdateDescription.
-	EntityType string `json:"entity_type,omitempty"` // "actor", "need", "capability", "service", "team"
+	// UpdateDescription: generic description update.
+	EntityType string `json:"entity_type,omitempty"`
 	EntityName string `json:"entity_name,omitempty"`
-	// Uses Description field.
 }
 
 // Validate checks that the action has all required fields for its type.
@@ -283,7 +276,7 @@ func (a ChangeAction) Validate() error {
 			return errors.New("add_service_dependency: depends_on_service required")
 		}
 		if a.ServiceName == a.DependsOnService {
-			return errors.New("add_service_dependency: service_name and depends_on_service must differ")
+			return errors.New("add_service_dependency: service cannot depend on itself")
 		}
 
 	case ActionRemoveServiceDependency:
