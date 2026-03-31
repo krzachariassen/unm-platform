@@ -114,8 +114,8 @@ func TestMarshalDSL_RoundTrip_Nexus(t *testing.T) {
 }
 
 func TestMarshalDSL_RoundTrip_DSLFile(t *testing.T) {
-	p := parser.NewParserForPath("nexus.unm")
-	src, err := os.Open("../../../../examples/nexus.unm")
+	p := parser.NewParserForPath("nexus.unm.yaml")
+	src, err := os.Open("../../../../examples/nexus.unm.yaml")
 	require.NoError(t, err)
 	defer src.Close()
 	m, err := p.Parse(src)
