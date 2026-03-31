@@ -1,19 +1,13 @@
-interface QuickAction {
-  label: string
-  question: string
-  category: string
-}
-
-const QUICK_ACTIONS: QuickAction[] = [
-  { label: 'Summarize this architecture', question: 'Summarize this architecture', category: 'model-summary' },
-  { label: "What's the biggest risk?", question: "What's the biggest risk?", category: 'health-summary' },
-  { label: 'Which teams are overloaded?', question: 'Which teams are overloaded?', category: 'structural-load' },
-  { label: 'Where are the bottlenecks?', question: 'Where are the bottlenecks?', category: 'bottleneck' },
-  { label: 'How is our value delivery?', question: 'How is our value delivery?', category: 'value-stream' },
+const QUICK_ACTIONS = [
+  { label: 'Summarize this architecture', question: 'Summarize this architecture' },
+  { label: "What's the biggest risk?", question: "What's the biggest risk?" },
+  { label: 'Which teams are overloaded?', question: 'Which teams are overloaded?' },
+  { label: 'Where are the bottlenecks?', question: 'Where are the bottlenecks?' },
+  { label: 'How is our value delivery?', question: 'How is our value delivery?' },
 ]
 
 interface QuickActionsProps {
-  onSelect: (question: string, category: string) => void
+  onSelect: (question: string) => void
   disabled: boolean
 }
 
@@ -24,7 +18,7 @@ export function QuickActions({ onSelect, disabled }: QuickActionsProps) {
         <button
           key={action.label}
           disabled={disabled}
-          onClick={() => onSelect(action.question, action.category)}
+          onClick={() => onSelect(action.question)}
           type="button"
           className="px-3.5 py-2 font-semibold transition-all disabled:opacity-40 disabled:pointer-events-none"
           style={{

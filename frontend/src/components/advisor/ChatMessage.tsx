@@ -1,10 +1,10 @@
-import { User, Bot } from 'lucide-react'
+import { User, Bot, Download } from 'lucide-react'
 import { Prose } from '@/components/ui/prose'
+import { exportToPdf } from '@/lib/export-pdf'
 
 export interface ChatEntry {
   question: string
   answer: string
-  category: string
   aiConfigured: boolean
 }
 
@@ -49,12 +49,15 @@ export function ChatMessage({ entry }: { entry: ChatEntry }) {
               <Bot size={14} style={{ color: '#6366f1' }} />
             </div>
             <span className="text-xs font-bold" style={{ color: '#6366f1' }}>Advisor</span>
-            <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' }}
+            <button
+              type="button"
+              onClick={() => exportToPdf(entry.answer, `AI Advisor — ${entry.question.slice(0, 60)}`)}
+              title="Save as PDF"
+              className="ml-auto rounded-md p-1.5 transition-colors hover:bg-gray-100"
+              style={{ color: '#9ca3af' }}
             >
-              {entry.category}
-            </span>
+              <Download size={12} />
+            </button>
           </div>
           <div className="pl-0.5">
             <Prose>{entry.answer}</Prose>
