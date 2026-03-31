@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { GitBranch, Layers, Server, AlertTriangle } from 'lucide-react'
 import { ModelRequired } from '@/components/ui/ModelRequired'
+import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatCard } from '@/components/ui/stat-card'
 import { LoadingState, ErrorState } from '@/components/ViewState'
@@ -41,14 +42,14 @@ export function RealizationView() {
 
   return (
     <ModelRequired>
-      <div className="space-y-5">
+      <ContentContainer className="space-y-4">
         <PageHeader
           title="Realization View"
-          description="End-to-end value chain traceability — Need → Capability → Service → Team"
+          description="End-to-end traceability — Need → Capability → Service → Team"
           actions={
-            <div className="flex rounded-lg overflow-hidden border border-border">
-              <button onClick={() => setTab('chain')} className={cn('px-4 py-2 text-sm font-medium transition-colors', tab === 'chain' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50')}>Value Chain</button>
-              <button onClick={() => setTab('service')} className={cn('px-4 py-2 text-sm font-medium border-l border-border transition-colors', tab === 'service' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50')}>By Service</button>
+            <div className="flex rounded-md overflow-hidden border border-border">
+              <button onClick={() => setTab('chain')} className={cn('px-3 py-1.5 text-xs font-medium transition-colors', tab === 'chain' ? 'bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted')}>Value Chain</button>
+              <button onClick={() => setTab('service')} className={cn('px-3 py-1.5 text-xs font-medium border-l border-border transition-colors', tab === 'service' ? 'bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted')}>By Service</button>
             </div>
           }
         />
@@ -61,13 +62,9 @@ export function RealizationView() {
           <StatCard label="Mapped"      value={`${mappedCount} (${groupedNeeds.length > 0 ? Math.round(mappedCount / groupedNeeds.length * 100) : 0}%)`} icon={<Layers className="w-4 h-4 text-green-500" />} />
         </div>
 
-        {tab === 'chain' && (
-          <ValueChainView groupedNeeds={groupedNeeds} capToSvcTeam={capToSvcTeam} query={query} />
-        )}
-        {tab === 'service' && (
-          <ServiceTableView viewData={viewData} query={query} />
-        )}
-      </div>
+        {tab === 'chain' && <ValueChainView groupedNeeds={groupedNeeds} capToSvcTeam={capToSvcTeam} query={query} />}
+        {tab === 'service' && <ServiceTableView viewData={viewData} query={query} />}
+      </ContentContainer>
     </ModelRequired>
   )
 }

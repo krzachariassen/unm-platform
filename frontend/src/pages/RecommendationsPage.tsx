@@ -73,7 +73,7 @@ export function RecommendationsPage() {
 
   return (
     <ModelRequired>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-screen-xl mx-auto"><div className="max-w-4xl space-y-4">
         <PageHeader
           title="AI Recommendations"
           description={`Comprehensive restructuring report for ${parseResult?.system_name ?? ''}`}
@@ -131,7 +131,7 @@ export function RecommendationsPage() {
             </ReactMarkdown>
           </div>
         )}
-      </div>
+      </div></div>
     </ModelRequired>
   )
 }

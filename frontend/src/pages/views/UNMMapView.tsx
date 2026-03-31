@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo } from 'react'
-import { ReactFlow, useNodesState, useEdgesState, type NodeMouseHandler, type EdgeMouseHandler } from '@xyflow/react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import { ReactFlow, ReactFlowProvider, useNodesState, useEdgesState, type NodeMouseHandler, type EdgeMouseHandler } from '@xyflow/react'
 import { useQueryClient, useQueries } from '@tanstack/react-query'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { LoadingState, ErrorState } from '@/components/ViewState'
@@ -28,7 +28,7 @@ const NODE_TYPES = { actor: ActorNode, need: NeedNode, capability: CapabilityNod
 
 export function UNMMapView() {
   const { modelId } = useModel()
-  const { isEditMode, actions, addAction, enterEditMode } = useChangeset()
+  const { actions, addAction } = useChangeset()
   const queryClient = useQueryClient()
   const { insights } = usePageInsights('dashboard')
 
@@ -68,14 +68,36 @@ export function UNMMapView() {
     return [...new Set([...apiServices, ...pending])].sort((a, b) => a.localeCompare(b))
   }, [apiServices, actions])
 
+  const pendingLinkedServices = useMemo(() => {
+    const map = new Map<string, Set<string>>()
+    for (const a of actions) {
+      if (a.type === 'link_capability_service') {
+        const ac = a as unknown as Record<string, unknown>
+        const cap = String(ac.capability_name ?? '')
+        const svc = String(ac.service_name ?? '')
+        if (cap && svc) {
+          if (!map.has(cap)) map.set(cap, new Set())
+          map.get(cap)!.add(svc)
+        }
+      }
+    }
+    return map
+  }, [actions])
+
   const pendingCapNodes = useMemo(() => actions
     .filter(a => a.type === 'add_capability')
     .map(a => {
       const ac = a as unknown as Record<string, unknown>
       const name = String(ac.capability_name ?? '')
       const vis = String(ac.visibility || 'domain')
-      return { id: `pending:${name}`, label: name, type: 'capability', data: { visibility: vis, services: [], isPending: true } }
-    }), [actions])
+      const teamName = String(ac.owner_team_name ?? '')
+      const linkedSvcs = pendingLinkedServices.get(name)
+      const hasService = linkedSvcs ? linkedSvcs.size > 0 : false
+      return {
+        id: `pending:${name}`, label: name, type: 'capability',
+        data: { visibility: vis, services: [], isPending: true, pendingTeam: teamName, hasValidationError: !hasService },
+      }
+    }), [actions, pendingLinkedServices])
 
   const mapResult = useMemo(() => {
     if (!mapData) return null
@@ -92,7 +114,6 @@ export function UNMMapView() {
     )
   }, [mapResult, mapData])
 
-  // Build RF nodes with band backgrounds + highlight state
   const baseNodes = useMemo(() => {
     if (!mapResult) return []
     const canvasWidth = mapResult.canvasWidth
@@ -111,15 +132,13 @@ export function UNMMapView() {
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState(baseNodes)
   const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState(mapResult?.rfEdges ?? [])
 
-  // Sync RF nodes/edges when mapResult changes (refresh after changeset commit)
-  useMemo(() => {
+  useEffect(() => {
     if (!mapResult) return
     setRfNodes(baseNodes)
     setRfEdges(mapResult.rfEdges)
   }, [mapResult, baseNodes]) // eslint-disable-line
 
-  // Apply highlight by setting dimmed on nodes/edges
-  useMemo(() => {
+  useEffect(() => {
     setRfNodes(prev => prev.map(n => {
       if (n.type === 'band') return n
       const dimmed = highlight ? !highlight.has(n.id) : false
@@ -145,15 +164,26 @@ export function UNMMapView() {
     )
     setPanel(panel)
     setHighlight(computeChain(node.id, node.type as 'actor' | 'need' | 'capability' | 'ext-dep', chainData))
-    if (node.type === 'capability' && !node.id.startsWith('pending:')) {
+    if (node.type === 'capability') {
+      const isPending = node.id.startsWith('pending:')
+      let teamName = node.team?.label ?? ''
+      if (isPending) {
+        const addAction = actions.find(a => {
+          const ac = a as unknown as Record<string, unknown>
+          return a.type === 'add_capability' && ac.capability_name === node.label
+        })
+        if (addAction) {
+          teamName = String((addAction as unknown as Record<string, unknown>).owner_team_name ?? '')
+        }
+      }
       setEditState({
         capLabel: node.label, description: node.description ?? '', visibility: node.vis ?? 'foundational',
-        teamName: node.team?.label ?? '', origDescription: node.description ?? '',
-        origVisibility: node.vis ?? 'foundational', origTeam: node.team?.label ?? '',
-        svcs: node.svcs ?? [], isPendingNode: false, linkSvcName: '', newSvcName: '',
+        teamName, origDescription: node.description ?? '',
+        origVisibility: node.vis ?? 'foundational', origTeam: teamName,
+        svcs: node.svcs ?? [], isPendingNode: isPending, linkSvcName: '', newSvcName: '',
       })
     }
-  }, [chainData, mapResult, mapData, insights])
+  }, [chainData, mapResult, mapData, insights, actions])
 
   const handleNodeClick: NodeMouseHandler = useCallback((_evt, rfNode) => {
     if (rfNode.type === 'band') return
@@ -185,16 +215,14 @@ export function UNMMapView() {
     if (editState.teamName !== editState.origTeam)
       changes.push({ type: 'reassign_capability', capability_name: editState.capLabel, from_team_name: editState.origTeam || undefined, to_team_name: editState.teamName || undefined })
     if (changes.length === 0) return
-    if (!isEditMode) enterEditMode()
     changes.forEach(a => addAction(a))
     const capName = editState.capLabel
     setStagedCaps(prev => new Set([...prev, capName]))
     setTimeout(() => setStagedCaps(prev => { const n = new Set(prev); n.delete(capName); return n }), 2000)
     setPanel(null); setHighlight(null); setEditState(null)
-  }, [editState, isEditMode, enterEditMode, addAction])
+  }, [editState, addAction])
 
-  // Invalidate query when changeset is committed (refreshKey bumps via useChangeset)
-  useMemo(() => {
+  useEffect(() => {
     if (!modelId) return
     queryClient.invalidateQueries({ queryKey: ['unmMapView', modelId] })
   }, [stagedCaps.size]) // eslint-disable-line
@@ -205,67 +233,61 @@ export function UNMMapView() {
 
   return (
     <ModelRequired>
-      <div className="h-full flex flex-col">
-        <MapToolbar highlighted={!!highlight} onClearHighlight={clearSelection} />
+      <ReactFlowProvider>
+        <div className="h-full flex flex-col">
+          <MapToolbar highlighted={!!highlight} onClearHighlight={clearSelection} />
 
-        <div
-          className="flex-1 relative rounded-xl overflow-hidden"
-          style={{ border: isEditMode ? '2px solid #3b82f6' : '1px solid #e5e7eb', transition: 'border-color 0.2s' }}
-        >
-          <ReactFlow
-            nodes={rfNodes}
-            edges={rfEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            nodeTypes={NODE_TYPES}
-            onNodeClick={handleNodeClick}
-            onEdgeClick={handleEdgeClick}
-            onPaneClick={clearSelection}
-            fitView
-            fitViewOptions={{ padding: 0.05 }}
-            minZoom={0.1}
-            maxZoom={3}
-            panOnScroll
-            panOnDrag
-            nodesDraggable={false}
-            nodesConnectable={false}
-            elementsSelectable={false}
-            style={{ background: '#f9fafb' }}
-          >
-            {VIS_ORDER.map(_vis => null)}
-          </ReactFlow>
+          <div className="flex-1 relative rounded-lg overflow-hidden border border-border">
+            <ReactFlow
+              nodes={rfNodes}
+              edges={rfEdges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              nodeTypes={NODE_TYPES}
+              onNodeClick={handleNodeClick}
+              onEdgeClick={handleEdgeClick}
+              onPaneClick={clearSelection}
+              fitView
+              fitViewOptions={{ padding: 0.05 }}
+              minZoom={0.1}
+              maxZoom={3}
+              panOnScroll
+              panOnDrag
+              nodesDraggable={false}
+              nodesConnectable={false}
+              elementsSelectable={false}
+              className="bg-muted/30"
+            >
+              {VIS_ORDER.map(_vis => null)}
+            </ReactFlow>
 
-          <DetailDrawer panel={panel} isEditMode={isEditMode} onClose={clearSelection}>
-            {editState && (
-              <CapabilityEditForm
-                editState={editState}
-                teams={teams}
-                services={services}
-                isEditMode={isEditMode}
-                onUpdateState={updater => setEditState(s => s ? updater(s) : s)}
-                onSave={handleSaveEdit}
-                onMoveService={(svc, toTeam) => {
-                  if (!isEditMode) enterEditMode()
-                  addAction({ type: 'move_service', service_name: svc.label, from_team_name: svc.teamName || undefined, to_team_name: toTeam })
-                }}
-                onUnlinkService={svcLabel => {
-                  if (!isEditMode) enterEditMode()
-                  addAction({ type: 'unlink_capability_service', capability_name: editState.capLabel, service_name: svcLabel })
-                }}
-                onLinkService={svcName => {
-                  if (!isEditMode) enterEditMode()
-                  addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: svcName })
-                }}
-                onAddService={svcName => {
-                  if (!isEditMode) enterEditMode()
-                  addAction({ type: 'add_service', service_name: svcName, owner_team_name: editState.teamName || undefined })
-                  addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: svcName })
-                }}
-              />
-            )}
-          </DetailDrawer>
+            <DetailDrawer panel={panel} onClose={clearSelection}>
+              {editState && (
+                <CapabilityEditForm
+                  editState={editState}
+                  teams={teams}
+                  services={services}
+                  onUpdateState={updater => setEditState(s => s ? updater(s) : s)}
+                  onSave={handleSaveEdit}
+                  onMoveService={(svc, toTeam) => {
+                    addAction({ type: 'move_service', service_name: svc.label, from_team_name: svc.teamName || undefined, to_team_name: toTeam })
+                  }}
+                  onUnlinkService={svcLabel => {
+                    addAction({ type: 'unlink_capability_service', capability_name: editState.capLabel, service_name: svcLabel })
+                  }}
+                  onLinkService={svcName => {
+                    addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: svcName })
+                  }}
+                  onAddService={svcName => {
+                    addAction({ type: 'add_service', service_name: svcName, owner_team_name: editState.teamName || undefined })
+                    addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: svcName })
+                  }}
+                />
+              )}
+            </DetailDrawer>
+          </div>
         </div>
-      </div>
+      </ReactFlowProvider>
     </ModelRequired>
   )
 }

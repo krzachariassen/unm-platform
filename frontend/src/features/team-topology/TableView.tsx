@@ -41,7 +41,7 @@ export function TableView({ teams, interactions, insights }: {
                   const myIx = team.interactions ?? []
                   return (
                     <div key={team.id} onClick={() => setDetailTeam(team)}
-                      className="rounded-2xl border bg-gradient-to-br from-white to-slate-50 cursor-pointer overflow-hidden transition-all"
+                      className="rounded-lg border border-border bg-card cursor-pointer overflow-hidden transition-all"
                       style={{ border: `1.5px solid ${team.is_overloaded ? '#fca5a5' : '#e2e8f0'}`, boxShadow: '0 1px 4px rgba(15,23,42,0.06)' }}
                       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(15,23,42,0.1)' }}
                       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(15,23,42,0.06)' }}
@@ -98,7 +98,7 @@ export function TableView({ teams, interactions, insights }: {
 
         {/* All interactions table */}
         {interactions.length > 0 && (
-          <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="rounded-lg border border-border overflow-hidden">
             <div style={{ height: 4, background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)' }} />
             <div className="px-5 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">All Interactions ({interactions.length})</span>

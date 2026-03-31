@@ -94,7 +94,7 @@ export function GraphView({ teams, interactions, insights, filterOverloaded }: {
       </div>
 
       {/* Graph canvas */}
-      <div className="relative overflow-x-auto rounded-2xl border border-slate-200 shadow-sm"
+      <div className="relative overflow-x-auto rounded-lg border border-border"
         style={{ background: 'linear-gradient(135deg, #fafbff 0%, #f8fafc 100%)' }}>
         {/* Column zone backgrounds */}
         {COLUMNS.map(col => (

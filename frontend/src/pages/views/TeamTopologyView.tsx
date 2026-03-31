@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Users, ArrowRight, Zap, Layers } from 'lucide-react'
 import { ModelRequired } from '@/components/ui/ModelRequired'
+import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatCard } from '@/components/ui/stat-card'
 import { LoadingState, ErrorState } from '@/components/ViewState'
@@ -58,7 +59,7 @@ export function TeamTopologyView() {
 
   return (
     <ModelRequired>
-      <div className="space-y-6">
+      <ContentContainer className="space-y-4">
         <PageHeader
           title="Team Topology"
           description={`${viewData.teams.length} teams · ${viewData.interactions.length} interactions${overloadedCount > 0 ? ` · ${overloadedCount} overloaded` : ''}`}
@@ -66,18 +67,17 @@ export function TeamTopologyView() {
             <div className="flex gap-2 items-center">
               {overloadedCount > 0 && (
                 <button onClick={() => setFilterOverloaded(f => !f)}
-                  className={cn('px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors',
-                    filterOverloaded ? 'bg-amber-300 text-amber-900 border-amber-400' : 'bg-orange-50 text-orange-800 border-orange-200 hover:bg-orange-100'
-                  )}
-                  title="Toggle overloaded team filter">
+                  className={cn('px-2.5 py-1 rounded text-xs font-medium border transition-colors',
+                    filterOverloaded ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                  )}>
                   {overloadedCount} overloaded
                 </button>
               )}
-              <div className="flex rounded-lg overflow-hidden border border-border">
+              <div className="flex rounded-md overflow-hidden border border-border">
                 {(['graph', 'table'] as const).map(m => (
                   <button key={m} onClick={() => setViewMode(m)}
-                    className={cn('px-4 py-2 text-sm font-medium capitalize transition-colors border-l border-border first:border-l-0',
-                      viewMode === m ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                    className={cn('px-3 py-1.5 text-xs font-medium capitalize transition-colors border-l border-border first:border-l-0',
+                      viewMode === m ? 'bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted'
                     )}>
                     {m}
                   </button>
@@ -139,7 +139,7 @@ export function TeamTopologyView() {
         ) : (
           <TableView teams={filteredTeams} interactions={filteredInteractions} insights={insights} />
         )}
-      </div>
+      </ContentContainer>
     </ModelRequired>
   )
 }

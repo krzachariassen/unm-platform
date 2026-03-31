@@ -19,12 +19,12 @@ const trendColor = { up: 'text-green-600', down: 'text-red-600', neutral: 'text-
 export function StatCard({ label, value, description, icon, trend, className }: StatCardProps) {
   const TrendIcon = trend ? trendIcon[trend.direction] : null
   return (
-    <div className={cn('rounded-lg border border-border bg-card p-4 flex flex-col gap-2', className)}>
+    <div className={cn('rounded-lg border border-border bg-card p-3 flex flex-col gap-1.5', className)}>
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
         {icon && <span className="text-muted-foreground">{icon}</span>}
       </div>
-      <span className="text-2xl font-bold text-foreground">{value}</span>
+      <span className="text-xl font-bold text-foreground">{value}</span>
       {description && <span className="text-xs text-muted-foreground">{description}</span>}
       {trend && TrendIcon && (
         <div className={cn('flex items-center gap-1 text-xs', trendColor[trend.direction])}>

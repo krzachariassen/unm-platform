@@ -32,8 +32,8 @@ export function TeamCard({ tl, insight, isExpanded, onToggle }: {
   const dims = DIMENSIONS.map(d => ({ abbr: d.abbr, level: tl[d.key].level, value: tl[d.key].value }))
 
   return (
-    <div className={cn('rounded-2xl overflow-hidden bg-white border transition-all duration-200', isExpanded ? ls.border : 'border-slate-200')}>
-      <div className={cn('h-0.5', tl.overall_level === 'high' ? 'bg-gradient-to-r from-red-400 to-red-600' : tl.overall_level === 'medium' ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-green-400 to-green-500')} />
+    <div className={cn('rounded-lg overflow-hidden bg-card border transition-all duration-200', isExpanded ? ls.border : 'border-border')}>
+      <div className={cn('h-0.5', tl.overall_level === 'high' ? 'bg-red-500' : tl.overall_level === 'medium' ? 'bg-amber-500' : 'bg-green-500')} />
       <div onClick={onToggle} className="p-4 cursor-pointer hover:bg-slate-50 transition-colors">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <h3 className="text-sm font-bold text-slate-800 font-mono truncate">{tl.team.name}</h3>
@@ -51,18 +51,18 @@ export function TeamCard({ tl, insight, isExpanded, onToggle }: {
         <Speedometer level={tl.overall_level} dimensions={dims} />
       </div>
       {isExpanded && (
-        <div className={cn('border-t px-4 py-4 space-y-4 bg-gradient-to-b from-slate-50 to-white', ls.border)}>
+        <div className={cn('border-t px-4 py-4 space-y-4 bg-muted', ls.border)}>
           {insight && (
-            <div className="rounded-xl p-3.5 bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 space-y-2">
+            <div className="rounded-lg p-3.5 bg-card border border-border space-y-2">
               <div className="flex items-center gap-1.5">
-                <Shield className="w-3 h-3 text-sky-600" />
-                <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wide">AI Recommendation</span>
+                <Shield className="w-3 h-3 text-primary" />
+                <span className="text-[10px] font-bold text-primary uppercase tracking-wide">AI Recommendation</span>
               </div>
-              <p className="text-xs text-slate-700 leading-relaxed">{insight.explanation}</p>
+              <p className="text-xs text-foreground leading-relaxed">{insight.explanation}</p>
               {insight.suggestion && (
-                <div className="flex items-start gap-1.5 p-2 rounded-lg bg-white/60 border border-sky-200">
-                  <ArrowRight className="w-3 h-3 text-blue-700 mt-0.5 shrink-0" />
-                  <p className="text-[11px] text-blue-800 leading-snug font-medium">{insight.suggestion}</p>
+                <div className="flex items-start gap-1.5 p-2 rounded-lg bg-muted border border-border">
+                  <ArrowRight className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-foreground leading-snug font-medium">{insight.suggestion}</p>
                 </div>
               )}
             </div>

@@ -41,7 +41,8 @@ export function AdvisorPage() {
 
   return (
     <ModelRequired>
-      <div className="flex flex-col h-full max-w-3xl">
+      <div className="flex flex-col h-full max-w-screen-xl mx-auto">
+        <div className="max-w-3xl flex flex-col h-full w-full">
         <PageHeader
           title="AI Advisor"
           description="Ask questions about your architecture model"
@@ -94,6 +95,7 @@ export function AdvisorPage() {
 
         <div className="flex-shrink-0 pt-3 border-t border-border">
           <AdvisorInput onSend={handleAsk} disabled={!modelId || !aiEnabled} loading={loading} category={category} onCategoryChange={setCategory} />
+        </div>
         </div>
       </div>
     </ModelRequired>

@@ -6,6 +6,7 @@ import { useModel } from '@/lib/model-context'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { getRuntimeConfig } from '@/lib/runtimeConfig'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { cn } from '@/lib/utils'
 import type { ParseResponse } from '@/types/model'
 
@@ -119,11 +120,9 @@ export function UploadPage() {
   const showProgress = processing || stepStatuses.parse !== 'idle'
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Upload Model</h2>
-        <p className="text-muted-foreground mt-1">Upload a .unm.yaml or .unm file to explore your architecture</p>
-      </div>
+    <div className="max-w-screen-xl mx-auto">
+      <div className="max-w-2xl space-y-4">
+      <PageHeader title="Upload Model" description="Upload a .unm.yaml or .unm file to explore your architecture" />
 
       {modelId && loadedParseResult && !showProgress && (
         <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 border border-green-200">
@@ -215,6 +214,7 @@ export function UploadPage() {
           <p className="text-sm text-muted-foreground"><strong className="text-gray-700">Accepted formats:</strong> .unm.yaml, .unm</p>
         </div>
       )}
+      </div>
     </div>
   )
 }

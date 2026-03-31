@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ModelRequired } from '@/components/ui/ModelRequired'
+import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { LoadingState, ErrorState } from '@/components/ViewState'
 import { useModel } from '@/lib/model-context'
@@ -13,10 +14,9 @@ import { DetailPanel } from '@/features/capability/DetailPanel'
 import { VIS_BANDS, TEAM_TYPE_CAP_BADGE } from '@/features/capability/constants'
 import type { CapabilityType } from '@/features/capability/CapabilityCard'
 import { cn } from '@/lib/utils'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 type ViewMode = 'visibility' | 'domain' | 'team'
-
-const CARD_SHELL = 'rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 overflow-hidden shadow-sm'
 
 export function CapabilityView() {
   const { modelId } = useModel()
@@ -30,13 +30,15 @@ export function CapabilityView() {
     queryKey: ['capabilityView', modelId],
     queryFn: () => viewsApi.getCapabilityView(modelId!),
     enabled: !!modelId,
-    select: (data) => {
-      // Pre-expand all groups on first load
-      const groups = new Set(data.parent_groups.map(g => g.id))
-      setExpandedGroups(prev => prev.size === 0 ? groups : prev)
-      return data
-    },
   })
+
+  useEffect(() => {
+    if (!viewData) return
+    setExpandedGroups(prev => {
+      if (prev.size > 0) return prev
+      return new Set(viewData.parent_groups.map(g => g.id))
+    })
+  }, [viewData])
 
   const capById = useMemo(() => new Map(viewData?.capabilities.map(c => [c.id, c]) ?? []), [viewData])
   const capToParent = useMemo(() => {
@@ -62,35 +64,36 @@ export function CapabilityView() {
   const atRiskUserFacing = viewData.capabilities.filter(c => c.visibility === 'user-facing' && c.teams.length > 1)
   const dashInsight = insights['summary'] ?? insights['dashboard']
 
-  const GroupHeader = ({ label, count, fragmented, colorAccent, onClick, isExpanded }: { label: string; count: number; fragmented?: number; colorAccent?: string; onClick: () => void; isExpanded: boolean }) => (
-    <button type="button" onClick={onClick} className="flex items-center gap-2 w-full text-left px-4 py-3.5 hover:bg-slate-50/80 transition-colors"
-      style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none' }}>
-      <div className="w-1 self-stretch rounded-full shrink-0" style={{ background: colorAccent ? `linear-gradient(180deg, ${colorAccent} 0%, ${colorAccent}88 100%)` : 'linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%)', minHeight: 24 }} />
-      <span className="text-sm font-bold text-slate-900">{label}</span>
-      <span className="text-xs text-slate-400">{count}</span>
-      {(fragmented ?? 0) > 0 && <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-red-100 text-red-700">{fragmented} fragmented</span>}
-      <span className="ml-auto text-xs text-slate-400">{isExpanded ? '▾' : '▸'}</span>
-    </button>
-  )
-
   const CapGrid = ({ caps }: { caps: CapabilityType[] }) => (
-    <div className="grid gap-3 p-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 p-3">
       {caps.map(cap => <CapabilityCard key={cap.id} cap={cap} onClick={() => setSelectedCap(cap)} />)}
     </div>
   )
 
+  const GroupToggle = ({ label, count, fragmented, id }: { label: string; count: number; fragmented?: number; id: string }) => {
+    const isExpanded = expandedGroups.has(id)
+    return (
+      <button type="button" onClick={() => toggleGroup(id)} className="flex items-center gap-2 w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors border-b border-border">
+        <span className="text-sm font-semibold text-foreground">{label}</span>
+        <span className="text-xs text-muted-foreground">{count}</span>
+        {(fragmented ?? 0) > 0 && <span className="text-[10px] font-semibold rounded px-1.5 py-0.5 bg-red-100 text-red-700">{fragmented} fragmented</span>}
+        <span className="ml-auto text-muted-foreground">{isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}</span>
+      </button>
+    )
+  }
+
   return (
     <ModelRequired>
-      <div className="space-y-6">
+      <ContentContainer className="space-y-4">
         <PageHeader
           title="Capability View"
           description={`${viewData.parent_groups.length} domain groups · ${viewData.leaf_capability_count} capabilities`}
           actions={
-            <div className="flex rounded-lg overflow-hidden border border-border">
+            <div className="flex rounded-md overflow-hidden border border-border">
               {(['visibility', 'domain', 'team'] as ViewMode[]).map(m => (
                 <button key={m} onClick={() => setViewMode(m)}
-                  className={cn('px-4 py-2 text-sm font-medium capitalize transition-colors border-l border-border first:border-l-0',
-                    viewMode === m ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50')}>
+                  className={cn('px-3 py-1.5 text-xs font-medium capitalize transition-colors border-l border-border first:border-l-0',
+                    viewMode === m ? 'bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted')}>
                   {m === 'visibility' ? 'By Visibility' : m === 'domain' ? 'By Domain' : 'By Team'}
                 </button>
               ))}
@@ -98,23 +101,23 @@ export function CapabilityView() {
           }
         />
 
-        {/* Signals */}
+        {/* Signals summary */}
         {fragmentedCount === 0 && disconnectedCount === 0 && highSpanCount === 0 && atRiskUserFacing.length === 0 ? (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-50 border border-green-200">
-            <span className="text-green-600">✓</span>
-            <span className="text-sm text-green-700 font-medium">No architecture issues detected — capabilities are well-structured</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-green-50 border border-green-200">
+            <span className="text-green-600 text-sm">✓</span>
+            <span className="text-xs text-green-700 font-medium">No architecture issues detected</span>
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { value: fragmentedCount, label: 'Fragmented', alertColor: '#be123c', okColor: '#047857' },
-              { value: disconnectedCount, label: 'Unowned', alertColor: '#c2410c', okColor: '#047857' },
-              { value: highSpanCount, label: 'High-span', alertColor: '#a16207', okColor: '#047857' },
-              { value: atRiskUserFacing.length, label: 'User-facing at risk', alertColor: '#be185d', okColor: '#047857' },
-            ].map(({ value, label, alertColor, okColor }) => (
-              <div key={label} className="rounded-2xl p-4 border border-slate-200" style={{ background: value > 0 ? 'linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%)' : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' }}>
-                <div className="text-2xl font-extrabold tabular-nums" style={{ color: value > 0 ? alertColor : okColor }}>{value}</div>
-                <div className="text-[11px] font-semibold uppercase tracking-wider mt-1" style={{ color: value > 0 ? alertColor : okColor, opacity: 0.7 }}>{label}</div>
+              { value: fragmentedCount, label: 'Fragmented' },
+              { value: disconnectedCount, label: 'Unowned' },
+              { value: highSpanCount, label: 'High-span' },
+              { value: atRiskUserFacing.length, label: 'User-facing at risk' },
+            ].map(({ value, label }) => (
+              <div key={label} className={cn('rounded-lg border p-3', value > 0 ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50')}>
+                <div className={cn('text-xl font-bold tabular-nums', value > 0 ? 'text-red-700' : 'text-green-700')}>{value}</div>
+                <div className={cn('text-[10px] font-semibold uppercase tracking-wide mt-0.5', value > 0 ? 'text-red-600' : 'text-green-600')}>{label}</div>
               </div>
             ))}
           </div>
@@ -122,66 +125,62 @@ export function CapabilityView() {
 
         {/* AI insight */}
         {dashInsight && (
-          <div className="rounded-2xl p-5 bg-gradient-to-br from-indigo-50 to-slate-50 border border-indigo-100">
-            <p className="text-[11px] font-semibold text-indigo-600 uppercase tracking-wider mb-2">AI Capability Analysis</p>
-            <p className="text-sm leading-relaxed text-slate-700">{dashInsight.explanation}</p>
-            {dashInsight.suggestion && <p className="text-sm leading-relaxed text-indigo-800 mt-2 font-medium">{dashInsight.suggestion}</p>}
+          <div className="rounded-lg p-4 bg-sky-50 border border-sky-200">
+            <p className="text-[10px] font-semibold text-sky-600 uppercase tracking-wide mb-1.5">AI Capability Analysis</p>
+            <p className="text-xs leading-relaxed text-foreground">{dashInsight.explanation}</p>
+            {dashInsight.suggestion && <p className="text-xs leading-relaxed text-sky-800 mt-1.5 font-medium">{dashInsight.suggestion}</p>}
           </div>
         )}
 
         {/* At-risk user-facing */}
         {atRiskUserFacing.length > 0 && (
-          <div className="rounded-2xl p-5 bg-gradient-to-br from-red-50 to-white border border-red-200 relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500 to-orange-500" />
-            <div className="pl-3">
-              <h3 className="text-sm font-bold text-rose-800 mb-3">User-Facing Capabilities Served by Multiple Teams</h3>
-              <div className="space-y-3">
-                {atRiskUserFacing.map(cap => (
-                  <div key={cap.id} className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-slate-900">{cap.label}</span>
-                    {cap.teams.map(team => (
-                      <span key={team.id} className="text-[11px] font-semibold rounded-full px-3 py-1 bg-indigo-600 text-white">{team.label}</span>
-                    ))}
-                  </div>
-                ))}
-              </div>
+          <div className="rounded-lg p-3 bg-red-50 border border-red-200">
+            <h3 className="text-xs font-semibold text-red-800 mb-2">User-Facing Capabilities Served by Multiple Teams</h3>
+            <div className="space-y-1.5">
+              {atRiskUserFacing.map(cap => (
+                <div key={cap.id} className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-foreground">{cap.label}</span>
+                  {cap.teams.map(team => (
+                    <span key={team.id} className="text-[10px] font-semibold rounded px-1.5 py-0.5 bg-foreground text-background">{team.label}</span>
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         {/* Fragmented/high-span pills */}
         {(fragmentedCount > 0 || highSpanCount > 0) && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {viewData.fragmented_capabilities.map(fc => (
-              <div key={fc.id} className="flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-3.5 py-1.5 bg-red-100 text-red-700 border border-red-200">
-                <span>{fc.label}</span><span className="text-red-400">· {fc.team_count} teams</span>
-              </div>
+              <span key={fc.id} className="text-[10px] font-semibold rounded px-2 py-1 bg-red-100 text-red-700 border border-red-200">
+                {fc.label} · {fc.team_count} teams
+              </span>
             ))}
             {viewData.high_span_services.map(hs => (
-              <div key={hs.name} className="flex items-center gap-1.5 text-[11px] font-semibold font-mono rounded-full px-3.5 py-1.5 bg-amber-50 text-amber-700 border border-amber-200">
-                <span>{hs.name}</span><span className="text-amber-500">· {hs.capability_count} caps</span>
-              </div>
+              <span key={hs.name} className="text-[10px] font-semibold font-mono rounded px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200">
+                {hs.name} · {hs.capability_count} caps
+              </span>
             ))}
           </div>
         )}
 
         {/* Visibility view */}
         {viewMode === 'visibility' && (
-          <div className="space-y-10">
+          <div className="space-y-6">
             {VIS_BANDS.map(band => {
               const bandCaps = viewData.capabilities.filter(c => c.visibility === band.key && c.is_leaf && matchesCap(c))
               if (bandCaps.length === 0) return null
               return (
                 <div key={band.key}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${band.border}, transparent)` }} />
-                    <span className="text-[11px] font-bold uppercase tracking-wider rounded-full px-3.5 py-1.5 whitespace-nowrap"
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold uppercase tracking-wide px-2 py-0.5 rounded"
                       style={{ background: band.bg, color: band.accent, border: `1px solid ${band.border}` }}>
                       {band.label} · {bandCaps.length}
                     </span>
-                    <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${band.border}, transparent)` }} />
+                    <div className="h-px flex-1 bg-border" />
                   </div>
-                  <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                     {bandCaps.map(cap => <CapabilityCard key={cap.id} cap={cap} onClick={() => setSelectedCap(cap)} />)}
                   </div>
                 </div>
@@ -196,22 +195,20 @@ export function CapabilityView() {
             {viewData.parent_groups.map(pg => {
               const groupCaps = pg.children.map(id => capById.get(id)).filter((c): c is CapabilityType => c != null && c.is_leaf && matchesCap(c))
               if (groupCaps.length === 0) return null
-              const isExpanded = expandedGroups.has(pg.id)
               return (
-                <div key={pg.id} className={CARD_SHELL}>
-                  <GroupHeader label={pg.label} count={groupCaps.length} fragmented={groupCaps.filter(c => c.is_fragmented).length} onClick={() => toggleGroup(pg.id)} isExpanded={isExpanded} />
-                  {isExpanded && <CapGrid caps={groupCaps} />}
+                <div key={pg.id} className="rounded-lg border border-border bg-card overflow-hidden">
+                  <GroupToggle label={pg.label} count={groupCaps.length} fragmented={groupCaps.filter(c => c.is_fragmented).length} id={pg.id} />
+                  {expandedGroups.has(pg.id) && <CapGrid caps={groupCaps} />}
                 </div>
               )
             })}
             {(() => {
               const uncategorized = viewData.capabilities.filter(c => c.is_leaf && !capToParent.has(c.id) && matchesCap(c))
               if (uncategorized.length === 0) return null
-              const isExpanded = expandedGroups.has('__uncategorized__')
               return (
-                <div className={CARD_SHELL}>
-                  <GroupHeader label="Uncategorized" count={uncategorized.length} colorAccent="#94a3b8" onClick={() => toggleGroup('__uncategorized__')} isExpanded={isExpanded} />
-                  {isExpanded && <CapGrid caps={uncategorized} />}
+                <div className="rounded-lg border border-border bg-card overflow-hidden">
+                  <GroupToggle label="Uncategorized" count={uncategorized.length} id="__uncategorized__" />
+                  {expandedGroups.has('__uncategorized__') && <CapGrid caps={uncategorized} />}
                 </div>
               )
             })()}
@@ -235,37 +232,29 @@ export function CapabilityView() {
             <div className="space-y-3">
               {sortedTeams.map(([teamName, { type, caps }]) => {
                 const badge = TEAM_TYPE_CAP_BADGE[type] ?? { bg: '#f1f5f9', text: '#475569', accent: '#6b7280' }
-                const isExpanded = expandedGroups.has(`team:${teamName}`)
                 return (
-                  <div key={teamName} className={CARD_SHELL}>
-                    <button type="button" onClick={() => toggleGroup(`team:${teamName}`)} className="flex items-center gap-2 w-full text-left px-4 py-3.5 hover:bg-slate-50/80 transition-colors"
-                      style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderBottom: isExpanded ? '1px solid #e2e8f0' : 'none' }}>
-                      <div className="w-1 self-stretch rounded-full shrink-0" style={{ background: `linear-gradient(180deg, ${badge.accent} 0%, ${badge.accent}88 100%)`, minHeight: 24 }} />
-                      <span className="text-sm font-bold text-slate-900">{teamName}</span>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: badge.bg, color: badge.text }}>{type}</span>
-                      <span className="text-xs text-slate-400">{caps.length} cap{caps.length !== 1 ? 's' : ''}</span>
-                      {caps.filter(c => c.is_fragmented).length > 0 && <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-red-100 text-red-700">{caps.filter(c => c.is_fragmented).length} fragmented</span>}
-                      <span className="ml-auto text-xs text-slate-400">{isExpanded ? '▾' : '▸'}</span>
+                  <div key={teamName} className="rounded-lg border border-border bg-card overflow-hidden">
+                    <button type="button" onClick={() => toggleGroup(`team:${teamName}`)} className="flex items-center gap-2 w-full text-left px-3 py-2.5 hover:bg-muted/50 transition-colors border-b border-border">
+                      <span className="text-sm font-semibold text-foreground">{teamName}</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: badge.bg, color: badge.text }}>{type}</span>
+                      <span className="text-xs text-muted-foreground">{caps.length} cap{caps.length !== 1 ? 's' : ''}</span>
+                      {caps.filter(c => c.is_fragmented).length > 0 && <span className="text-[10px] font-semibold rounded px-1.5 py-0.5 bg-red-100 text-red-700">{caps.filter(c => c.is_fragmented).length} fragmented</span>}
+                      <span className="ml-auto text-muted-foreground">{expandedGroups.has(`team:${teamName}`) ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}</span>
                     </button>
-                    {isExpanded && <CapGrid caps={caps} />}
+                    {expandedGroups.has(`team:${teamName}`) && <CapGrid caps={caps} />}
                   </div>
                 )
               })}
-              {unowned.length > 0 && (() => {
-                const isExpanded = expandedGroups.has('team:__unowned__')
-                return (
-                  <div className={CARD_SHELL} style={{ border: '1px solid #fecaca' }}>
-                    <button type="button" onClick={() => toggleGroup('team:__unowned__')} className="flex items-center gap-2 w-full text-left px-4 py-3.5 hover:bg-red-50/60 transition-colors"
-                      style={{ background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', borderBottom: isExpanded ? '1px solid #fecaca' : 'none' }}>
-                      <div className="w-1 self-stretch rounded-full shrink-0" style={{ background: 'linear-gradient(180deg, #ef4444, #f87171)', minHeight: 24 }} />
-                      <span className="text-sm font-bold text-rose-800">Unowned</span>
-                      <span className="text-xs text-slate-400">{unowned.length} cap{unowned.length !== 1 ? 's' : ''}</span>
-                      <span className="ml-auto text-xs text-slate-400">{isExpanded ? '▾' : '▸'}</span>
-                    </button>
-                    {isExpanded && <CapGrid caps={unowned} />}
-                  </div>
-                )
-              })()}
+              {unowned.length > 0 && (
+                <div className="rounded-lg border border-red-200 bg-card overflow-hidden">
+                  <button type="button" onClick={() => toggleGroup('team:__unowned__')} className="flex items-center gap-2 w-full text-left px-3 py-2.5 hover:bg-red-50/50 transition-colors border-b border-red-200">
+                    <span className="text-sm font-semibold text-red-800">Unowned</span>
+                    <span className="text-xs text-muted-foreground">{unowned.length} cap{unowned.length !== 1 ? 's' : ''}</span>
+                    <span className="ml-auto text-muted-foreground">{expandedGroups.has('team:__unowned__') ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}</span>
+                  </button>
+                  {expandedGroups.has('team:__unowned__') && <CapGrid caps={unowned} />}
+                </div>
+              )}
             </div>
           )
         })()}
@@ -274,7 +263,7 @@ export function CapabilityView() {
           <DetailPanel cap={selectedCap} allCaps={viewData.capabilities} onClose={() => setSelectedCap(null)}
             insight={insights[`cap:${slug(selectedCap.label)}`]} />
         )}
-      </div>
+      </ContentContainer>
     </ModelRequired>
   )
 }

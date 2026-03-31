@@ -144,7 +144,6 @@ const DEFAULT_CONFIG: PageConfig = {
 }
 
 function getPageConfig(pathname: string): PageConfig {
-  // Strip /views/ prefix for legacy URLs
   const path = pathname.replace(/^\/views/, '')
   return PAGE_CONFIGS[path] ?? DEFAULT_CONFIG
 }
@@ -167,9 +166,6 @@ export function AdvisorPanel() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [history, loading])
-
-  // Reset history when page changes (optional — comment out to persist across pages)
-  // useEffect(() => { setHistory([]) }, [location.pathname])
 
   const handleAsk = async (q: string, category: string) => {
     if (!modelId) return
@@ -216,7 +212,6 @@ export function AdvisorPanel() {
 
   return (
     <>
-      {/* Toggle button — always visible in bottom-right */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -229,13 +224,11 @@ export function AdvisorPanel() {
         </button>
       )}
 
-      {/* Panel */}
       {open && (
         <div
           className="fixed right-0 top-0 bottom-0 z-30 flex flex-col"
           style={{ width: 380, background: '#ffffff', borderLeft: '1px solid #e5e7eb', boxShadow: '-4px 0 24px rgba(0,0,0,0.08)' }}
         >
-          {/* Panel header */}
           <div
             className="flex items-center gap-3 px-4 flex-shrink-0"
             style={{ height: 56, borderBottom: '1px solid #e5e7eb' }}
@@ -258,7 +251,6 @@ export function AdvisorPanel() {
             </button>
           </div>
 
-          {/* Model status */}
           <div className="px-4 py-2 flex-shrink-0" style={{ borderBottom: '1px solid #f3f4f6' }}>
             <div className="flex items-center gap-2 text-xs" style={{ color: hasModel ? '#374151' : '#9ca3af' }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: hasModel ? '#22c55e' : '#d1d5db' }} />
@@ -275,7 +267,6 @@ export function AdvisorPanel() {
             )}
           </div>
 
-          {/* Suggested prompts */}
           {hasModel && (
             <div className="px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #f3f4f6' }}>
               <div className="flex items-center gap-1.5 mb-2">
@@ -300,7 +291,6 @@ export function AdvisorPanel() {
             </div>
           )}
 
-          {/* Chat history */}
           <div ref={scrollRef} className="flex-1 overflow-auto px-4 py-3 space-y-4" style={{ minHeight: 0 }}>
             {history.length === 0 && !loading && (
               <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -315,7 +305,6 @@ export function AdvisorPanel() {
             )}
             {history.map((entry, i) => (
               <div key={i} className="space-y-2">
-                {/* Question */}
                 <div className="flex gap-2">
                   <div
                     className="flex-1 text-xs px-3 py-2 rounded-lg"
@@ -324,7 +313,6 @@ export function AdvisorPanel() {
                     {entry.question}
                   </div>
                 </div>
-                {/* Answer */}
                 <div className="flex gap-2">
                   <div className="flex-shrink-0 mt-1">
                     <Bot size={12} style={{ color: '#2563eb' }} />
@@ -354,7 +342,6 @@ export function AdvisorPanel() {
             )}
           </div>
 
-          {/* Input */}
           <div className="px-4 py-3 flex-shrink-0" style={{ borderTop: '1px solid #e5e7eb' }}>
             <div className="flex gap-2">
               <textarea

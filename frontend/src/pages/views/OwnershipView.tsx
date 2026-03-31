@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useQueries } from '@tanstack/react-query'
 import { ModelRequired } from '@/components/ui/ModelRequired'
+import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { LoadingState, ErrorState } from '@/components/ViewState'
 import { AntiPatternPanel } from '@/components/AntiPatternPanel'
@@ -104,16 +105,16 @@ export function OwnershipView() {
 
   return (
     <ModelRequired>
-      <div className="space-y-5 relative">
+      <ContentContainer className="space-y-4 relative">
         <PageHeader
           title="Ownership View"
           description="Teams, capabilities, and service ownership across the model"
           actions={
-            <div className="flex rounded-lg overflow-hidden border border-border">
+            <div className="flex rounded-md overflow-hidden border border-border">
               {(['team', 'domain'] as const).map(t => (
                 <button key={t} onClick={() => setTab(t)}
-                  className={cn('px-4 py-2 text-sm font-medium capitalize transition-colors border-l border-border first:border-l-0',
-                    tab === t ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-50')}>
+                  className={cn('px-3 py-1.5 text-xs font-medium capitalize transition-colors border-l border-border first:border-l-0',
+                    tab === t ? 'bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted')}>
                   {t === 'team' ? 'By Team' : 'By Domain Area'}
                 </button>
               ))}
@@ -122,7 +123,7 @@ export function OwnershipView() {
         />
 
         {/* Stats + filter bar */}
-        <div className="rounded-2xl p-4 space-y-3 border border-slate-200 bg-gradient-to-br from-white to-slate-50">
+        <div className="rounded-lg p-3 space-y-2.5 border border-border bg-card">
           <div className="flex items-center gap-2 flex-wrap text-sm text-slate-500">
             <span>{viewData.lanes.length} teams</span>
             <span className="text-slate-300">·</span>
@@ -185,14 +186,13 @@ export function OwnershipView() {
               ))}
             </div>
             {viewData.unowned_capabilities.length > 0 && (
-              <div ref={unownedRef} className="rounded-2xl overflow-hidden mt-6 border border-red-200 transition-shadow"
-                style={{ background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 30%, #ffffff 100%)', boxShadow: filterUnowned ? '0 0 0 2px #ef4444, 0 8px 30px rgba(239,68,68,0.12)' : undefined }}>
-                <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #ef4444 0%, #f97316 50%, #fb7185 100%)' }} />
-                <div className="flex items-center gap-2 px-5 py-4 border-b border-red-200">
-                  <span className="text-base font-bold text-rose-900">Unowned Capabilities</span>
-                  <span className="text-xs font-semibold text-red-600">no team assigned</span>
+              <div ref={unownedRef} className="rounded-lg overflow-hidden mt-4 border border-red-200 bg-card transition-shadow"
+                style={filterUnowned ? { boxShadow: '0 0 0 2px #ef4444' } : undefined}>
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-red-200">
+                  <span className="text-sm font-semibold text-red-800">Unowned Capabilities</span>
+                  <span className="text-xs text-red-600">no team assigned</span>
                 </div>
-                <div className="px-5 py-4 flex flex-wrap gap-2">
+                <div className="px-3 py-3 flex flex-wrap gap-1.5">
                   {viewData.unowned_capabilities.filter(c => !query || matchesQuery(c.label, query)).map(c => (
                     <button key={c.id} type="button" onClick={() => setSelectedNode({ id: c.id, label: c.label, nodeType: 'capability', data: { ...c.data, nodeType: 'capability' } })}
                       className="text-[11px] font-semibold rounded-full px-3.5 py-2 bg-white border border-dashed border-red-300 text-rose-700 hover:-translate-y-px transition-transform">
@@ -213,11 +213,12 @@ export function OwnershipView() {
         {/* Service popover */}
         {svcPopover && (
           <>
-            <div style={{ position: 'fixed', inset: 0, zIndex: 39, background: 'rgba(0,0,0,0.1)', backdropFilter: 'blur(2px)' }} onClick={() => setSvcPopover(null)} aria-hidden />
-            <div style={{ position: 'fixed', left: svcPopover.x, top: svcPopover.y, zIndex: 40, minWidth: 240, maxWidth: 340 }}
-              className="rounded-2xl bg-gradient-to-br from-white to-slate-50 border border-slate-200 shadow-2xl p-4 text-xs">
-              <div className="h-0.5 w-full -mt-1.5 mb-3 rounded-full" style={{ background: 'linear-gradient(90deg, #6366f1, #a855f7)' }} />
-              <div className="font-mono font-bold mb-2 text-slate-900 text-sm">{svcPopover.label}</div>
+            <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]" onClick={() => setSvcPopover(null)} aria-hidden />
+            <div
+              className="fixed z-50 min-w-[240px] max-w-[340px] rounded-lg bg-card border border-border shadow-lg p-3 text-xs"
+              style={{ left: svcPopover.x, top: svcPopover.y }}
+            >
+              <div className="font-mono font-bold mb-2 text-foreground text-sm">{svcPopover.label}</div>
               <div className="flex items-center gap-1.5 mb-3 flex-wrap text-slate-500">
                 <span>Owned by:</span>
                 <span className="font-semibold text-slate-700">{svcPopover.teamLabel}</span>
@@ -250,7 +251,7 @@ export function OwnershipView() {
         )}
 
         <AntiPatternPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
-      </div>
+      </ContentContainer>
     </ModelRequired>
   )
 }

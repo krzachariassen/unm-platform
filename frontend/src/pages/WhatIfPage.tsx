@@ -17,28 +17,28 @@ export function WhatIfPage() {
 
   return (
     <ModelRequired>
-      <div className="max-w-6xl space-y-6 h-full flex flex-col">
+      <div className="max-w-screen-xl mx-auto space-y-4 h-full flex flex-col">
         <PageHeader
           title="What-If Explorer"
           description="Explore architectural changes with AI scenarios or manual changesets"
           actions={
-            <div className="flex rounded-lg overflow-hidden border border-border">
+            <div className="flex rounded-md overflow-hidden border border-border">
               {aiEnabled && (
                 <button
                   onClick={() => setTab('ai')}
-                  className={cn('px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors',
-                    tab === 'ai' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50')}
+                  className={cn('px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors',
+                    tab === 'ai' ? 'bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted')}
                 >
-                  <Sparkles className="w-3.5 h-3.5" /> AI Scenarios
+                  <Sparkles className="w-3 h-3" /> AI Scenarios
                 </button>
               )}
               <button
                 onClick={() => setTab('manual')}
-                className={cn('px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors',
+                className={cn('px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors',
                   aiEnabled && 'border-l border-border',
-                  tab === 'manual' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 hover:bg-gray-50')}
+                  tab === 'manual' ? 'bg-foreground text-background' : 'bg-card text-muted-foreground hover:bg-muted')}
               >
-                <Wrench className="w-3.5 h-3.5" /> Manual Mode
+                <Wrench className="w-3 h-3" /> Manual Mode
               </button>
             </div>
           }

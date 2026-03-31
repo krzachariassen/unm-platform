@@ -28,8 +28,8 @@ export function DomainView({ capViewData, viewData, query, onSelectNode, onTabSw
     const filtered = caps.filter(c => !query || matchesQuery(c.label, query))
     if (filtered.length === 0) return null
     return (
-      <div className="rounded-2xl overflow-hidden border border-red-200" style={{ background: 'linear-gradient(135deg, #fff1f2 0%, #ffffff 100%)' }}>
-        <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #ef4444 0%, #fb7185 100%)' }} />
+      <div className="rounded-lg overflow-hidden border border-red-200 bg-red-50/80">
+        <div className="h-1 w-full bg-red-500" />
         <div className="flex items-center gap-2 px-5 py-4 border-b border-red-200">
           <span className="text-base font-bold text-rose-900">Unowned Capabilities</span>
           <span className="text-xs font-semibold text-red-600">{subLabel}</span>
@@ -67,9 +67,9 @@ export function DomainView({ capViewData, viewData, query, onSelectNode, onTabSw
         else if (allOwners.length === 2) groupAccent = '#f59e0b'
 
         return (
-          <div key={group.id} className="rounded-2xl overflow-hidden border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm">
+          <div key={group.id} className="rounded-lg overflow-hidden border border-border bg-card">
             <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${groupAccent} 0%, #6366f1 100%)` }} />
-            <div className="px-5 py-4 flex items-center gap-3 flex-wrap border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+            <div className="px-5 py-4 flex items-center gap-3 flex-wrap border-b border-border bg-muted">
               <span className="font-bold text-base text-slate-900">{group.label}</span>
               <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-slate-100 text-slate-500">{childCaps.length} caps</span>
               <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-slate-100 text-slate-500">{allOwners.length} {allOwners.length === 1 ? 'team' : 'teams'}</span>

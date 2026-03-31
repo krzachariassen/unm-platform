@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Users, AlertTriangle, Gauge, Shield } from 'lucide-react'
 import { ModelRequired } from '@/components/ui/ModelRequired'
+import { ContentContainer } from '@/components/ui/content-container'
 import { useModel } from '@/lib/model-context'
 import { usePageInsights } from '@/hooks/usePageInsights'
 import { viewsApi } from '@/services/api'
@@ -66,14 +67,14 @@ export function CognitiveLoadView() {
 
   return (
     <ModelRequired>
-      <div className="space-y-6">
+      <ContentContainer className="space-y-4">
         <PageHeader
           title="Structural Cognitive Load"
           description="Team Topologies assessment across 4 structural dimensions — worst dimension sets overall load"
         />
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard label="Total Teams" value={counts.total} icon={<Users className="w-4 h-4" />} />
           <StatCard label="High Load"   value={counts.high}   icon={<AlertTriangle className="w-4 h-4" />} />
           <StatCard label="Medium Load" value={counts.medium} icon={<Gauge className="w-4 h-4" />} />
@@ -82,7 +83,7 @@ export function CognitiveLoadView() {
 
         {/* Distribution bar */}
         {counts.total > 0 && (
-          <div className="rounded-xl p-4 bg-white border border-slate-200">
+          <div className="rounded-lg p-3 bg-card border border-border">
             <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2.5">Load Distribution</div>
             <div className="flex h-3.5 rounded-full overflow-hidden bg-slate-100">
               {counts.high > 0   && <div className="bg-gradient-to-r from-red-400 to-red-500 transition-all"    style={{ width: `${(counts.high   / counts.total) * 100}%` }} title={`High: ${counts.high}`} />}
@@ -106,7 +107,7 @@ export function CognitiveLoadView() {
             ⓘ Dimension thresholds {showThresholds ? '▲' : '▼'}
           </button>
           {showThresholds && (
-            <div className="mt-2 rounded-xl p-4 bg-white border border-slate-200 grid grid-cols-2 gap-3">
+            <div className="mt-2 rounded-lg p-3 bg-card border border-border grid grid-cols-2 gap-2">
               {DIMENSIONS_INFO.map(d => (
                 <div key={d.key}>
                   <div className="text-xs font-semibold text-slate-700">{d.label}</div>
@@ -132,7 +133,7 @@ export function CognitiveLoadView() {
             ))}
           </div>
           <div className="flex gap-1.5 flex-wrap">
-            <button onClick={() => setFilterType('')} className={cn('px-3 py-1 rounded-full text-xs font-semibold border transition-colors', !filterType ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>All</button>
+            <button onClick={() => setFilterType('')} className={cn('px-3 py-1 rounded text-xs font-medium border transition-colors', !filterType ? 'bg-foreground text-background border-transparent' : 'bg-card text-muted-foreground border-border hover:bg-muted')}>All</button>
             {TEAM_TYPES.map(t => (
               <button key={t} onClick={() => setFilterType(p => p === t ? '' : t)} className={cn('px-3 py-1 rounded-full text-xs font-semibold border transition-colors', filterType === t ? 'bg-slate-800 text-white border-transparent' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50')}>
                 {t}
@@ -142,7 +143,7 @@ export function CognitiveLoadView() {
         </div>
 
         {/* Team cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {sorted.map(tl => (
             <TeamCard
               key={tl.team.name}
@@ -153,7 +154,7 @@ export function CognitiveLoadView() {
             />
           ))}
         </div>
-      </div>
+      </ContentContainer>
     </ModelRequired>
   )
 }

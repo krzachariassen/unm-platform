@@ -17,7 +17,7 @@ const LAYERS = [
 
 export function HealthCard({ signals }: { signals: SignalsViewResponse }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="text-base font-bold text-slate-800">Platform Health</h2>

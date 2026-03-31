@@ -42,14 +42,14 @@ export function TeamLane({ lane, query, insights, crossTeamCaps, onSelectNode, o
   const totalSvcCount = visibleCaps.reduce((sum, cg) => sum + cg.services.length, 0)
 
   return (
-    <div className="rounded-2xl overflow-hidden flex flex-col border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm transition-all"
+    <div className="rounded-lg overflow-hidden flex flex-col border border-border bg-card transition-all"
       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(15,23,42,0.08)' }}
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = '' }}
     >
       <div className="h-1 w-full shrink-0" style={{ background: topAccent }} />
 
       {/* Team header */}
-      <div className="p-5 pb-3 border-b border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+      <div className="p-5 pb-3 border-b border-border bg-muted">
         <div className="flex items-start gap-2 flex-wrap mb-2"
           onMouseEnter={e => { const btn = e.currentTarget.querySelector('.qa-team') as HTMLElement; if (btn) btn.style.opacity = '1' }}
           onMouseLeave={e => { const btn = e.currentTarget.querySelector('.qa-team') as HTMLElement; if (btn) btn.style.opacity = '0.35' }}>
@@ -77,9 +77,9 @@ export function TeamLane({ lane, query, insights, crossTeamCaps, onSelectNode, o
 
       {/* AI insight */}
       {teamInsight && (
-        <div className="px-5 py-3 bg-gradient-to-r from-indigo-50 to-slate-50 border-b border-slate-200">
-          <p className="text-xs leading-relaxed text-slate-700">{teamInsight.explanation}</p>
-          {teamInsight.suggestion && <p className="text-xs leading-relaxed mt-1.5 font-medium text-indigo-700">{teamInsight.suggestion}</p>}
+        <div className="px-5 py-3 bg-muted border-b border-border">
+          <p className="text-xs leading-relaxed text-foreground">{teamInsight.explanation}</p>
+          {teamInsight.suggestion && <p className="text-xs leading-relaxed mt-1.5 font-medium text-primary">{teamInsight.suggestion}</p>}
         </div>
       )}
 

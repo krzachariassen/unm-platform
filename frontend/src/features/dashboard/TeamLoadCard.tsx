@@ -21,7 +21,7 @@ export function TeamLoadCard({ teams }: { teams: TeamLoad[] }) {
   if (top5.length === 0) return null
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6">
+    <div className="rounded-lg border border-border bg-card p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-bold text-slate-800">Team Load Overview</h2>

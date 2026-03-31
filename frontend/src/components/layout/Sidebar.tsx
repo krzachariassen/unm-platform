@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   Upload, LayoutDashboard, Map, Users, Layers, Flag, Network,
   Activity, GitBranch, AlertCircle, FlaskConical, Bot, FileText,
-  Pencil, ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel } from '@/lib/model-context'
@@ -33,7 +33,6 @@ const NAV_SECTIONS = [
   {
     label: 'Editing',
     items: [
-      { to: '/edit', label: 'Edit Model', icon: Pencil, always: false, ai: false },
       { to: '/what-if', label: 'What-If', icon: FlaskConical, always: false, ai: false },
     ],
   },

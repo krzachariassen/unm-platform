@@ -35,7 +35,7 @@ export function SignalsCard({ signals }: { signals: SignalsViewResponse }) {
   const total = items.reduce((s, i) => s + i.count, 0)
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6">
+    <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-base font-bold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => navigate('/signals')}>

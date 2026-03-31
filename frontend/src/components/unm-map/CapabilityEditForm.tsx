@@ -1,3 +1,4 @@
+import { AlertTriangle } from 'lucide-react'
 import type { EditState, SvcInfo } from '@/features/unm-map/types'
 import { teamColor } from '@/features/unm-map/constants'
 
@@ -5,7 +6,6 @@ interface CapabilityEditFormProps {
   editState: EditState
   teams: string[]
   services: string[]
-  isEditMode: boolean
   onUpdateState: (updater: (s: EditState) => EditState) => void
   onSave: () => void
   onMoveService: (svc: SvcInfo, toTeam: string) => void
@@ -14,105 +14,172 @@ interface CapabilityEditFormProps {
   onAddService: (svcName: string) => void
 }
 
+const inputClass = 'w-full rounded-md border px-2.5 py-1.5 text-xs outline-none focus:ring-1 focus:ring-blue-200'
+const labelClass = 'text-[10px] font-medium mb-0.5 block'
+
 export function CapabilityEditForm({
-  editState, teams, services, isEditMode,
+  editState, teams, services,
   onUpdateState, onSave, onMoveService, onUnlinkService, onLinkService, onAddService,
 }: CapabilityEditFormProps) {
-  if (editState.isPendingNode) return null
+  const hasChanges =
+    editState.description !== editState.origDescription ||
+    editState.visibility !== editState.origVisibility ||
+    editState.teamName !== editState.origTeam
+
+  const noServices = editState.svcs.length === 0
 
   return (
-    <div style={{ borderBottom: isEditMode ? '1px solid #e5e7eb' : 'none', marginBottom: isEditMode ? 16 : 0, paddingBottom: isEditMode ? 4 : 0 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Edit this capability</div>
+    <div className="space-y-4">
+      {/* Pending badge */}
+      {editState.isPendingNode && (
+        <div className="rounded-md px-3 py-2" style={{ background: '#fef3c7', border: '1px solid #fcd34d' }}>
+          <p className="text-[11px] font-medium" style={{ color: '#92400e' }}>Pending — not yet committed</p>
+        </div>
+      )}
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Description</div>
-        <textarea
-          value={editState.description}
-          onChange={e => onUpdateState(s => ({ ...s, description: e.target.value }))}
-          rows={3}
-          style={{ width: '100%', fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical', minHeight: 56, boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }}
-        />
-      </div>
+      {/* Validation warning */}
+      {noServices && (
+        <div className="flex items-start gap-2 rounded-md px-3 py-2" style={{ background: '#fef2f2', border: '1px solid #fca5a5' }}>
+          <AlertTriangle size={12} className="shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
+          <p className="text-[11px]" style={{ color: '#991b1b' }}>
+            No service linked — this will fail validation. Link or create a service below.
+          </p>
+        </div>
+      )}
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Visibility</div>
-        <select
-          value={editState.visibility}
-          onChange={e => onUpdateState(s => ({ ...s, visibility: e.target.value }))}
-          style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
-        >
-          <option value="user-facing">User-facing</option>
-          <option value="domain">Domain</option>
-          <option value="foundational">Foundational</option>
-          <option value="infrastructure">Infrastructure</option>
-        </select>
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Owning Team</div>
-        <select
-          value={editState.teamName}
-          onChange={e => onUpdateState(s => ({ ...s, teamName: e.target.value }))}
-          style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
-        >
-          <option value="">— Unowned —</option>
-          {teams.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </div>
-
-      <button
-        onClick={onSave}
-        style={{ width: '100%', padding: '7px', borderRadius: 6, background: '#111827', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', marginBottom: 16 }}
-      >
-        Stage changes →
-      </button>
-
+      {/* Properties */}
       <div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Services</div>
-        {editState.svcs.length > 0 ? editState.svcs.map(svc => (
-          <div key={svc.id} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, background: '#f9fafb', borderRadius: 5, padding: '4px 6px', border: '1px solid #e5e7eb' }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: teamColor(svc.teamName), flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: '#374151', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.label}</span>
-            <select defaultValue="" onChange={e => { if (e.target.value) { onMoveService(svc, e.target.value); e.target.value = '' } }}
-              style={{ fontSize: 10, padding: '2px 4px', borderRadius: 4, border: '1px solid #d1d5db', background: '#fff', maxWidth: 90 }}>
-              <option value="">Move…</option>
-              {teams.filter(t => t !== svc.teamName).map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <button onClick={() => onUnlinkService(svc.label)}
-              style={{ fontSize: 10, padding: '2px 5px', borderRadius: 4, border: '1px solid #fca5a5', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer', flexShrink: 0 }}>
-              Unlink
-            </button>
+        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: '#9ca3af' }}>Properties</p>
+        <div className="space-y-2.5">
+          <div>
+            <label className={labelClass} style={{ color: '#6b7280' }}>Description</label>
+            <textarea
+              value={editState.description}
+              onChange={e => onUpdateState(s => ({ ...s, description: e.target.value }))}
+              rows={2}
+              className={inputClass}
+              style={{ background: '#ffffff', borderColor: '#e5e7eb', color: '#374151', minHeight: 44, resize: 'vertical' }}
+            />
           </div>
-        )) : (
-          <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, fontStyle: 'italic' }}>No services linked yet</div>
+          <div>
+            <label className={labelClass} style={{ color: '#6b7280' }}>Visibility</label>
+            <select
+              value={editState.visibility}
+              onChange={e => onUpdateState(s => ({ ...s, visibility: e.target.value }))}
+              className={inputClass}
+              style={{ background: '#ffffff', borderColor: '#e5e7eb', color: '#374151' }}
+            >
+              <option value="user-facing">User-facing</option>
+              <option value="domain">Domain</option>
+              <option value="foundational">Foundational</option>
+              <option value="infrastructure">Infrastructure</option>
+            </select>
+          </div>
+          <div>
+            <label className={labelClass} style={{ color: '#6b7280' }}>Owning Team</label>
+            <select
+              value={editState.teamName}
+              onChange={e => onUpdateState(s => ({ ...s, teamName: e.target.value }))}
+              className={inputClass}
+              style={{ background: '#ffffff', borderColor: '#e5e7eb', color: '#374151' }}
+            >
+              <option value="">— Unowned —</option>
+              {teams.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Services */}
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: noServices ? '#dc2626' : '#9ca3af' }}>
+          Services {editState.svcs.length > 0 ? `(${editState.svcs.length})` : '— required'}
+        </p>
+
+        {editState.svcs.length > 0 ? (
+          <div className="space-y-1 mb-2">
+            {editState.svcs.map(svc => (
+              <div key={svc.id} className="flex items-center gap-1.5 rounded-md border px-2 py-1.5" style={{ borderColor: '#e5e7eb', background: '#f9fafb' }}>
+                <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: teamColor(svc.teamName) }} />
+                <span className="min-w-0 flex-1 truncate text-[11px]" style={{ color: '#374151' }}>{svc.label}</span>
+                <select
+                  defaultValue=""
+                  onChange={e => { if (e.target.value) { onMoveService(svc, e.target.value); e.target.value = '' } }}
+                  className="max-w-[72px] shrink-0 rounded border px-1 py-0.5 text-[9px]"
+                  style={{ borderColor: '#e5e7eb', background: '#ffffff', color: '#6b7280' }}
+                >
+                  <option value="">Move…</option>
+                  {teams.filter(t => t !== svc.teamName).map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => onUnlinkService(svc.label)}
+                  className="shrink-0 rounded border px-1.5 py-0.5 text-[9px] transition-colors hover:bg-red-50"
+                  style={{ borderColor: '#fca5a5', color: '#dc2626', background: '#fef2f2' }}
+                >
+                  Unlink
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[11px] italic mb-2" style={{ color: '#dc2626' }}>No services linked</p>
         )}
 
-        <div style={{ display: 'flex', gap: 5, marginTop: 8 }}>
-          <select value={editState.linkSvcName}
+        <div className="flex gap-1 mb-1">
+          <select
+            value={editState.linkSvcName}
             onChange={e => onUpdateState(s => ({ ...s, linkSvcName: e.target.value }))}
-            style={{ flex: 1, fontSize: 11, padding: '4px 6px', borderRadius: 5, border: '1px solid #d1d5db', background: '#fff' }}>
-            <option value="">Link existing service…</option>
+            className="min-w-0 flex-1 rounded-md border px-2 py-1 text-[11px]"
+            style={{ borderColor: '#e5e7eb', background: '#ffffff', color: '#374151' }}
+          >
+            <option value="">Link existing…</option>
             {services.filter(s => !editState.svcs.some(sv => sv.label === s)).map(s => <option key={s} value={s}>{s}</option>)}
           </select>
-          <button onClick={() => { if (editState.linkSvcName) { onLinkService(editState.linkSvcName); onUpdateState(s => ({ ...s, linkSvcName: '' })) } }}
+          <button
+            type="button"
+            onClick={() => { if (editState.linkSvcName) { onLinkService(editState.linkSvcName); onUpdateState(s => ({ ...s, linkSvcName: '' })) } }}
             disabled={!editState.linkSvcName}
-            style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, border: 'none', background: '#1d4ed8', color: '#fff', cursor: editState.linkSvcName ? 'pointer' : 'default', opacity: editState.linkSvcName ? 1 : 0.35, flexShrink: 0 }}>
+            className="shrink-0 rounded-md px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-30"
+            style={{ background: '#2563eb' }}
+          >
             Link
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 5, marginTop: 6 }}>
-          <input type="text" placeholder="New service name…" value={editState.newSvcName}
+        <div className="flex gap-1">
+          <input
+            type="text"
+            placeholder="New service…"
+            value={editState.newSvcName}
             onChange={e => onUpdateState(s => ({ ...s, newSvcName: e.target.value }))}
             onKeyDown={e => { if (e.key === 'Enter' && editState.newSvcName.trim()) { onAddService(editState.newSvcName.trim()); onUpdateState(s => ({ ...s, newSvcName: '' })) } }}
-            style={{ flex: 1, fontSize: 11, padding: '4px 6px', borderRadius: 5, border: '1px solid #d1d5db', outline: 'none' }} />
-          <button onClick={() => { if (editState.newSvcName.trim()) { onAddService(editState.newSvcName.trim()); onUpdateState(s => ({ ...s, newSvcName: '' })) } }}
+            className="min-w-0 flex-1 rounded-md border px-2 py-1 text-[11px] outline-none"
+            style={{ borderColor: '#e5e7eb', background: '#ffffff', color: '#374151' }}
+          />
+          <button
+            type="button"
+            onClick={() => { if (editState.newSvcName.trim()) { onAddService(editState.newSvcName.trim()); onUpdateState(s => ({ ...s, newSvcName: '' })) } }}
             disabled={!editState.newSvcName.trim()}
-            style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, border: 'none', background: '#059669', color: '#fff', cursor: editState.newSvcName.trim() ? 'pointer' : 'default', opacity: editState.newSvcName.trim() ? 1 : 0.35, flexShrink: 0, whiteSpace: 'nowrap' }}>
+            className="shrink-0 rounded-md px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-30"
+            style={{ background: '#059669' }}
+          >
             + Add
           </button>
         </div>
       </div>
+
+      {/* Stage button — only for property changes on non-pending nodes */}
+      {hasChanges && !editState.isPendingNode && (
+        <button
+          type="button"
+          onClick={onSave}
+          className="w-full rounded-md py-2 text-xs font-medium text-white transition-colors"
+          style={{ background: '#111827' }}
+        >
+          Stage changes
+        </button>
+      )}
     </div>
   )
 }

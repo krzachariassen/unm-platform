@@ -5,17 +5,11 @@ import { AlertTriangle } from 'lucide-react'
  */
 export function LoadingState({ message = 'Loading…' }: { message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 h-full min-h-[200px]">
+    <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3">
       <div
-        className="rounded-full animate-spin"
-        style={{
-          width: 36,
-          height: 36,
-          border: '2px solid #e2e8f0',
-          borderTopColor: '#6366f1',
-        }}
+        className="size-9 animate-spin rounded-full border-2 border-muted border-t-primary"
       />
-      <span style={{ fontSize: 14, color: '#94a3b8' }}>{message}</span>
+      <span className="text-sm text-muted-foreground">{message}</span>
     </div>
   )
 }
@@ -25,22 +19,14 @@ export function LoadingState({ message = 'Loading…' }: { message?: string }) {
  */
 export function ErrorState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 h-full min-h-[200px] px-4">
-      <div
-        className="flex items-center gap-3 rounded-2xl px-5 py-4 max-w-md w-full"
-        style={{
-          borderRadius: 20,
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-          border: '1px solid #fecaca',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        }}
-      >
-        <div className="rounded-xl p-2 flex-shrink-0" style={{ background: '#fee2e2' }}>
+    <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 px-4">
+      <div className="flex w-full max-w-md items-center gap-3 rounded-lg border border-destructive/30 bg-card px-5 py-4">
+        <div className="shrink-0 rounded-lg bg-destructive/15 p-2">
           <span title="Error loading view" aria-label="Error">
-            <AlertTriangle size={20} style={{ color: '#dc2626' }} />
+            <AlertTriangle size={20} className="text-destructive" />
           </span>
         </div>
-        <span className="text-sm font-medium" style={{ color: '#b91c1c' }}>{message}</span>
+        <span className="text-sm font-medium text-destructive">{message}</span>
       </div>
     </div>
   )
