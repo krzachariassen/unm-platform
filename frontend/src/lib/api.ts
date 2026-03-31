@@ -531,6 +531,8 @@ export const api = {
     const res = await fetch(`${API_BASE}/models/${modelId}/changesets/${changesetId}/commit`, {
       method: 'POST',
     })
+    // 409 = validation failure — backend returns CommitResponse with valid:false and errors[]
+    if (res.status === 409) return res.json()
     if (!res.ok) throw new Error(await extractError(res, 'Failed to commit changeset'))
     return res.json()
   },

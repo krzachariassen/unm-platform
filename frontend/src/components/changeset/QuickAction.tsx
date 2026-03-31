@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Pencil } from 'lucide-react'
 import type { ChangeAction } from '@/lib/api'
+import { useChangeset } from '@/lib/changeset-context'
 
 interface QuickActionOption {
   label: string
@@ -11,20 +11,13 @@ interface QuickActionOption {
 interface QuickActionProps {
   options: QuickActionOption[]
   size?: number
+  onOpen?: () => void  // callback to open EditPanel if the caller wants to show it
 }
 
-const quickActionStore: { pendingAction: ChangeAction | null } = { pendingAction: null }
-
-export function getAndClearPendingAction(): ChangeAction | null {
-  const action = quickActionStore.pendingAction
-  quickActionStore.pendingAction = null
-  return action
-}
-
-export function QuickAction({ options, size = 13 }: QuickActionProps) {
+export function QuickAction({ options, size = 13, onOpen }: QuickActionProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const navigate = useNavigate()
+  const { addAction, enterEditMode } = useChangeset()
 
   useEffect(() => {
     if (!open) return
@@ -35,11 +28,12 @@ export function QuickAction({ options, size = 13 }: QuickActionProps) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const handleSelect = (action: ChangeAction) => {
-    quickActionStore.pendingAction = action
+  const handleSelect = useCallback((action: ChangeAction) => {
+    enterEditMode()
+    addAction(action)
     setOpen(false)
-    navigate('/edit')
-  }
+    onOpen?.()
+  }, [enterEditMode, addAction, onOpen])
 
   if (options.length === 0) return null
 
@@ -49,8 +43,8 @@ export function QuickAction({ options, size = 13 }: QuickActionProps) {
         onClick={(e) => { e.stopPropagation(); handleSelect(options[0].action) }}
         className="inline-flex items-center justify-center rounded p-0.5 transition-colors"
         style={{ color: '#9ca3af' }}
-        onMouseEnter={e => { (e.target as HTMLElement).style.color = '#2563eb' }}
-        onMouseLeave={e => { (e.target as HTMLElement).style.color = '#9ca3af' }}
+        onMouseEnter={e => { (e.currentTarget).style.color = '#2563eb' }}
+        onMouseLeave={e => { (e.currentTarget).style.color = '#9ca3af' }}
         title={options[0].label}
       >
         <Pencil size={size} />
@@ -64,23 +58,27 @@ export function QuickAction({ options, size = 13 }: QuickActionProps) {
         onClick={(e) => { e.stopPropagation(); setOpen(!open) }}
         className="inline-flex items-center justify-center rounded p-0.5 transition-colors"
         style={{ color: '#9ca3af' }}
-        onMouseEnter={e => { (e.target as HTMLElement).style.color = '#2563eb' }}
-        onMouseLeave={e => { if (!open) (e.target as HTMLElement).style.color = '#9ca3af' }}
+        onMouseEnter={e => { (e.currentTarget).style.color = '#2563eb' }}
+        onMouseLeave={e => { if (!open) (e.currentTarget).style.color = '#9ca3af' }}
         title="Quick edit"
       >
         <Pencil size={size} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 min-w-48 rounded-lg py-1 shadow-lg"
-          style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}>
+        <div
+          className="absolute right-0 top-full mt-1 z-50 min-w-48 rounded-lg py-1 shadow-lg"
+          style={{ background: '#ffffff', border: '1px solid #e5e7eb' }}
+        >
           {options.map((opt, i) => (
-            <button key={i}
+            <button
+              key={i}
               className="w-full text-left px-3 py-1.5 text-xs transition-colors"
               style={{ color: '#374151' }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.background = '#f3f4f6' }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent' }}
-              onClick={(e) => { e.stopPropagation(); handleSelect(opt.action) }}>
+              onMouseEnter={e => { (e.currentTarget).style.background = '#f3f4f6' }}
+              onMouseLeave={e => { (e.currentTarget).style.background = 'transparent' }}
+              onClick={(e) => { e.stopPropagation(); handleSelect(opt.action) }}
+            >
               {opt.label}
             </button>
           ))}
