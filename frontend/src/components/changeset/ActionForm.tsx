@@ -158,6 +158,7 @@ function buildFields(_entities: ModelEntities): Record<ActionType, FieldDef[]> {
     add_capability: [
       { key: 'capability_name', label: 'Name', type: 'text', placeholder: 'Capability name' },
       { key: 'owner_team_name', label: 'Owner Team', type: 'entity', source: 'teams' },
+      { key: 'visibility', label: 'Visibility', type: 'select', options: ['user-facing', 'domain', 'foundational', 'infrastructure'] },
     ],
     remove_capability: [
       { key: 'capability_name', label: 'Capability', type: 'entity', source: 'capabilities' },
