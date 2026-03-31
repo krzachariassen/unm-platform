@@ -51,3 +51,7 @@ Major architecture overhaul. Key changes:
 - Sidebar navigation items must be disabled when no model is loaded
 - Team type values from API are kebab-case (`complicated-subsystem`) — format to
   Title Case for display: `"complicated-subsystem"` → `"Complicated Subsystem"`
+- **Deleted files must be staged explicitly** — `git add <file list>` silently skips
+  deletions. Always run `git status --short` before committing; if any ` D` lines
+  appear, run `git add -A` or `git rm` before committing. Unstaged deletions stay
+  in the git index and break Docker builds in CI even when local `npm run build` passes.

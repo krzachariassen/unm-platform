@@ -111,6 +111,25 @@ git branch -d <type>/<short-description>
 - Always clean up worktrees after the task is done
 - NEVER create worktrees for sequential/dependent tasks — use a single branch
 
+## Staging Rules — Deletions Must Be Explicit
+
+**ALWAYS** verify `git status --short` before committing. Look for ` D` (space + D)
+entries — these are locally deleted files that are NOT staged. They remain in the git
+index and will be included in Docker `COPY` steps, breaking CI even when local builds pass.
+
+```bash
+# WRONG — explicit list silently misses deleted files
+git add src/foo.tsx src/bar.tsx
+
+# CORRECT — stages modifications AND deletions in the directory
+git add -A src/
+
+# Or stage deletions explicitly
+git rm src/deleted-file.tsx
+```
+
+**Never commit if `git status --short` shows any ` D` lines.** Stage them first.
+
 ## Rules
 
 - **NEVER** commit to `main` directly
