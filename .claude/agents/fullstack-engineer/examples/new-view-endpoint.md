@@ -24,7 +24,7 @@ type TeamHealthEntry struct {
 }
 ```
 
-**TypeScript mirror** (`frontend/src/types/views.ts`):
+**TypeScript mirror** (`frontend/src/lib/api.ts`):
 
 ```typescript
 interface TeamHealthResponse {
@@ -52,13 +52,12 @@ Key: initialize slices with `make([]TeamHealthEntry, 0)` to avoid `null` JSON.
 
 ## Phase 3: Frontend
 
-1. Add types in `frontend/src/types/views.ts`
-2. Add API function in `frontend/src/services/api/views.ts`
-3. Create `frontend/src/pages/views/TeamHealthView.tsx` using TanStack Query (`useQuery`)
-4. Add route in `App.tsx`
-5. Add nav item in `Sidebar.tsx`
-6. Wrap page with `<ModelRequired>`
-7. Handle loading, error, and empty states via shared components
+1. Add types and API function in `api.ts`
+2. Create `frontend/src/pages/views/TeamHealthView.tsx`
+3. Add route in `App.tsx`
+4. Add nav item in `Sidebar.tsx`
+5. Wrap page with `<ModelRequired>`
+6. Handle loading, error, and empty states
 
 ## Phase 4: Integration Validation
 
