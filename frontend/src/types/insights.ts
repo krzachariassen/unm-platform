@@ -15,6 +15,13 @@ export interface InsightsResponse {
   ai_configured: boolean
 }
 
+export interface RoutingInfo {
+  tier: 'simple' | 'medium' | 'complex'
+  model: string
+  reasoning: string
+  timeout: string
+}
+
 export interface AdvisorResponse {
   model_id: string
   category: string
@@ -22,4 +29,5 @@ export interface AdvisorResponse {
   answer: string
   finish_reason?: string
   ai_configured: boolean
+  routing?: RoutingInfo
 }

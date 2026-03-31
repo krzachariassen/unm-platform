@@ -11,6 +11,8 @@ _Priority: Phase 9 cleanup + data_asset simplification._
 
 ## Recently Completed
 
+- [x] **feat(export-ui)** — Add Export section to UploadPage: Download .unm.yaml and Download .unm buttons; browser file download via Blob; loading state per format; error display. Also fix AdvisorPage `findLastIndex` TypeScript compat error (2026-03-31)
+
 - [x] **refactor(ui-unification)** — Complete UI unification refactor (Steps 0–5): TanStack Query for all server state; shared component library (PageHeader, StatCard, etc.); layout shell rewrite; all 12 views rewritten (NeedView, CapabilityView, SignalsView, TeamTopologyView, OwnershipView, etc.); UNMMapView rewritten with @xyflow/react (React Flow) replacing hand-rolled pan/zoom and SVG edges; new `types/`, `services/api/`, `services/transforms/`, `features/unm-map/`, `components/unm-map/` layers; 36 tests passing; `EditModelPage.tsx` deleted (2026-03-31)
 
 - [x] **refactor(clean-arch)** — Fix Clean Architecture violations: define analyzer interfaces in usecase package, build promptRenderer/analysisRunner/parseAndValidateDSL as Handler singletons, add same-name guards to Changeset.Validate() (2026-03-31)

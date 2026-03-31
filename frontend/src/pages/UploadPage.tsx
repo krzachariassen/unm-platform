@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Upload, AlertCircle, CheckCircle2, FlaskConical, Loader2, Sparkles } from 'lucide-react'
+import { Upload, AlertCircle, CheckCircle2, FlaskConical, Loader2, Sparkles, Download } from 'lucide-react'
 import { modelsApi, insightsApi } from '@/services/api'
 import { useModel } from '@/lib/model-context'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
@@ -44,6 +44,8 @@ export function UploadPage() {
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null)
   const [parseWarnings, setParseWarnings] = useState<string[]>([])
   const [debugEnabled, setDebugEnabled] = useState(false)
+  const [exportingFormat, setExportingFormat] = useState<'yaml' | 'dsl' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
   const aiEnabled = useAIEnabled()
   const STEPS = aiEnabled ? [...BASE_STEPS, AI_STEP] : BASE_STEPS
   const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus>>({ read: 'idle', parse: 'idle', analyse: 'idle', ai: 'idle' })
@@ -100,8 +102,28 @@ export function UploadPage() {
     aiEnabled ? startPollingInsights(parsed.id) : setTimeout(() => navigate('/dashboard'), 400)
   }, [modelId, setModel, startPollingInsights, aiEnabled, navigate])
 
+  const handleExport = useCallback(async (format: 'yaml' | 'dsl') => {
+    if (!modelId) return
+    setExportingFormat(format)
+    setExportError(null)
+    try {
+      const content = await modelsApi.exportModel(modelId, format)
+      const ext = format === 'dsl' ? '.unm' : '.unm.yaml'
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${modelId}${ext}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : 'Export failed')
+    } finally {
+      setExportingFormat(null)
+    }
+  }, [modelId])
+
   const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setDragging(false)
     const file = e.dataTransfer.files[0]; if (!file) return
     setStep('read', 'active')
     const reader = new FileReader()
@@ -128,6 +150,42 @@ export function UploadPage() {
         <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 border border-green-200">
           <span className="text-sm font-medium text-green-700">Model loaded: {loadedParseResult.system_name}</span>
           <Link to="/dashboard" className="text-sm font-medium text-green-600 hover:text-green-700">Go to Dashboard →</Link>
+        </div>
+      )}
+
+      {modelId && !showProgress && (
+        <div className="rounded-xl border border-border p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Download className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">Export Model</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Download the current model as a file to save or share your architecture.</p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => handleExport('yaml')}
+              disabled={exportingFormat !== null}
+              className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {exportingFormat === 'yaml' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              Download .unm.yaml
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExport('dsl')}
+              disabled={exportingFormat !== null}
+              className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {exportingFormat === 'dsl' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              Download .unm
+            </button>
+          </div>
+          {exportError && (
+            <div className="flex items-center gap-2 text-xs text-red-600">
+              <AlertCircle size={13} />
+              {exportError}
+            </div>
+          )}
         </div>
       )}
 
