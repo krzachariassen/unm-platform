@@ -26,12 +26,21 @@ backend/internal/
 
 ```
 frontend/src/
-├── pages/           # Route pages (UploadPage, DashboardPage, EditModelPage)
+├── pages/           # Route pages (UploadPage, DashboardPage)
 │   └── views/       # View components (UNMMapView, NeedView, CapabilityView, etc.)
-├── components/      # Reusable UI (layout/, changeset/, advisor/, ui/)
-├── hooks/           # useAIEnabled, usePageInsights, etc.
-└── lib/             # api.ts, model-context.tsx, search-context.tsx, config.ts
+├── features/        # Domain-specific logic scoped to one feature (unm-map/, whatif/)
+├── components/      # Reusable UI
+│   ├── ui/          # shadcn/ui + shared components (PageHeader, StatCard, etc.)
+│   ├── layout/      # AppShell, Sidebar, TopBar, SectionTabs
+│   └── <domain>/    # Domain-specific components (changeset/, advisor/, unm-map/)
+├── hooks/           # Shared custom hooks (TanStack Query wrappers)
+├── services/api/    # API client functions split by domain (models, views, changesets)
+├── types/           # Shared TypeScript interfaces, enums
+└── lib/             # model-context.tsx, changeset-context.tsx, search-context.tsx, utils.ts
 ```
+
+Dependencies flow: Pages → Features → Components → Hooks → Services → Types.
+See `.claude/rules/frontend-architecture.md` for full rules.
 
 ## Dependency Rule
 

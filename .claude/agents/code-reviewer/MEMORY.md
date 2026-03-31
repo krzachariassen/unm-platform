@@ -23,9 +23,16 @@
 ## Review Flags (auto-flag these)
 - Any import from `internal/domain/` that references outer layers
 - Any `httptest.NewServer` in AI test files (mocking violation)
-- Any `fetch()` call in frontend that doesn't go through `api.ts`
+- Any `fetch()` call in frontend that doesn't go through `services/api/`
 - Any `opacity-0` or `opacity: 0` on interactive elements
 - Any floating panel without a backdrop dismiss handler
+- Any `useEffect` + `useState` pattern for data fetching (should use TanStack Query)
+- Any `as unknown as` type cast (should fix the type at the source)
+- Any inline `style={{}}` when Tailwind classes exist for the same purpose
+- Any page/view file exceeding 300 lines
+- Any component file exceeding 200 lines
+- Any types defined in component files instead of `types/`
+- Any hand-rolled SVG graph rendering instead of React Flow
 
 ## Confirmed Safe Patterns (do not re-flag)
 - `httptest.NewServer` in `openai_client_test.go` is used for HTTP error-handling tests (non-200, empty choices, request inspection), NOT for mocking AI responses. These are labeled with comments explaining the distinction and are acceptable per the "no mocking real AI responses" rule. The real-API test is gated on `UNM_AI_TESTS=true`.
