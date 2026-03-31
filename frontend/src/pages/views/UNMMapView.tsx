@@ -466,10 +466,13 @@ export function UNMMapView() {
   const [zoom, setZoom] = useState(1)
   const [stagedCaps, setStagedCaps] = useState<Set<string>>(new Set())
   const [teams, setTeams] = useState<string[]>([])
+  const [apiServices, setApiServices] = useState<string[]>([])
   const [editState, setEditState] = useState<{
     capLabel: string; description: string; visibility: string; teamName: string
     origDescription: string; origVisibility: string; origTeam: string
     svcs: SvcInfo[]
+    isPendingNode: boolean
+    linkSvcName: string; newSvcName: string
   } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { insights } = usePageInsights('dashboard')
@@ -549,7 +552,17 @@ export function UNMMapView() {
   useEffect(() => {
     if (!modelId || isHydrating) return
     api.getTeams(modelId).then(r => setTeams(r.teams.map(t => t.name))).catch(() => {})
+    api.getServices(modelId).then(r => setApiServices(r.services.map((s: { name: string }) => s.name))).catch(() => {})
   }, [modelId, isHydrating])
+
+  // Merge pending add_service actions into the services list
+  const services = useMemo(() => {
+    const pending = actions
+      .filter(a => a.type === 'add_service')
+      .map(a => String((a as unknown as Record<string, unknown>).service_name ?? ''))
+      .filter(Boolean)
+    return [...new Set([...apiServices, ...pending])].sort((a, b) => a.localeCompare(b))
+  }, [apiServices, actions])
 
   // Reload map when a changeset is committed (refreshKey bumps in ChangesetContext)
   useEffect(() => {
@@ -682,6 +695,17 @@ export function UNMMapView() {
           origVisibility: node.vis ?? 'foundational',
           origTeam: node.team?.label ?? '',
           svcs: node.svcs ?? [],
+          isPendingNode: false,
+          linkSvcName: '', newSvcName: '',
+        })
+      } else {
+        setEditState({
+          capLabel: node.label,
+          description: '', visibility: node.vis ?? 'domain', teamName: node.team?.label ?? '',
+          origDescription: '', origVisibility: node.vis ?? 'domain', origTeam: node.team?.label ?? '',
+          svcs: [],
+          isPendingNode: true,
+          linkSvcName: '', newSvcName: '',
         })
       }
     }
@@ -1051,77 +1075,152 @@ export function UNMMapView() {
                 {/* Edit form — shown FIRST in edit mode for capabilities */}
                 {editState && (
                   <div style={{ borderBottom: isEditMode ? '1px solid #e5e7eb' : 'none', marginBottom: isEditMode ? 16 : 0, paddingBottom: isEditMode ? 4 : 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Edit this capability</div>
+                    {!editState.isPendingNode && (
+                      <>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 12 }}>Edit this capability</div>
 
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Description</div>
-                      <textarea
-                        value={editState.description}
-                        onChange={e => setEditState(s => s && { ...s, description: e.target.value })}
-                        rows={3}
-                        style={{ width: '100%', fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical', minHeight: 56, boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }}
-                      />
-                    </div>
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Description</div>
+                          <textarea
+                            value={editState.description}
+                            onChange={e => setEditState(s => s && { ...s, description: e.target.value })}
+                            rows={3}
+                            style={{ width: '100%', fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical', minHeight: 56, boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.4 }}
+                          />
+                        </div>
 
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Visibility</div>
-                      <select
-                        value={editState.visibility}
-                        onChange={e => setEditState(s => s && { ...s, visibility: e.target.value })}
-                        style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
-                      >
-                        <option value="user-facing">User-facing</option>
-                        <option value="domain">Domain</option>
-                        <option value="foundational">Foundational</option>
-                        <option value="infrastructure">Infrastructure</option>
-                      </select>
-                    </div>
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Visibility</div>
+                          <select
+                            value={editState.visibility}
+                            onChange={e => setEditState(s => s && { ...s, visibility: e.target.value })}
+                            style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
+                          >
+                            <option value="user-facing">User-facing</option>
+                            <option value="domain">Domain</option>
+                            <option value="foundational">Foundational</option>
+                            <option value="infrastructure">Infrastructure</option>
+                          </select>
+                        </div>
 
-                    <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Owning Team</div>
-                      <select
-                        value={editState.teamName}
-                        onChange={e => setEditState(s => s && { ...s, teamName: e.target.value })}
-                        style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
-                      >
-                        <option value="">— Unowned —</option>
-                        {teams.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
+                        <div style={{ marginBottom: 14 }}>
+                          <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 4 }}>Owning Team</div>
+                          <select
+                            value={editState.teamName}
+                            onChange={e => setEditState(s => s && { ...s, teamName: e.target.value })}
+                            style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff' }}
+                          >
+                            <option value="">— Unowned —</option>
+                            {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </div>
 
-                    {editState.svcs.length > 0 && (
-                      <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 6 }}>Move Service to Team</div>
-                        {editState.svcs.map(svc => (
-                          <div key={svc.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                            <span style={{ fontSize: 11, color: '#374151', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.label}</span>
-                            <select
-                              defaultValue=""
-                              onChange={e => {
-                                const toTeam = e.target.value
-                                if (!toTeam) return
-                                if (!isEditMode) enterEditMode()
-                                addAction({ type: 'move_service', service_name: svc.label, from_team_name: svc.teamName || undefined, to_team_name: toTeam })
-                                e.target.value = ''
-                              }}
-                              style={{ fontSize: 11, padding: '3px 6px', borderRadius: 5, border: '1px solid #d1d5db', background: '#fff', maxWidth: 130 }}
-                            >
-                              <option value="">Move to…</option>
-                              {teams.filter(t => t !== svc.teamName).map(t => (
-                                <option key={t} value={t}>{t}</option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
-                      </div>
+                        <button
+                          onClick={handleSaveEdit}
+                          style={{ width: '100%', padding: '7px', borderRadius: 6, background: '#111827', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer', marginBottom: 16 }}
+                        >
+                          Stage changes →
+                        </button>
+                      </>
                     )}
 
-                    <button
-                      onClick={handleSaveEdit}
-                      style={{ width: '100%', padding: '7px', borderRadius: 6, background: '#111827', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
-                    >
-                      Stage changes →
-                    </button>
+                    {/* Services section — available for both existing and pending capabilities */}
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Services</div>
+
+                      {/* Existing services: move + unlink */}
+                      {editState.svcs.length > 0 ? editState.svcs.map(svc => (
+                        <div key={svc.id} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, background: '#f9fafb', borderRadius: 5, padding: '4px 6px', border: '1px solid #e5e7eb' }}>
+                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: teamColor(svc.teamName), flexShrink: 0 }} />
+                          <span style={{ fontSize: 11, color: '#374151', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.label}</span>
+                          <select
+                            defaultValue=""
+                            onChange={e => {
+                              const toTeam = e.target.value
+                              if (!toTeam) return
+                              if (!isEditMode) enterEditMode()
+                              addAction({ type: 'move_service', service_name: svc.label, from_team_name: svc.teamName || undefined, to_team_name: toTeam })
+                              e.target.value = ''
+                            }}
+                            style={{ fontSize: 10, padding: '2px 4px', borderRadius: 4, border: '1px solid #d1d5db', background: '#fff', maxWidth: 90 }}
+                          >
+                            <option value="">Move…</option>
+                            {teams.filter(t => t !== svc.teamName).map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          <button
+                            onClick={() => {
+                              if (!isEditMode) enterEditMode()
+                              addAction({ type: 'unlink_capability_service', capability_name: editState.capLabel, service_name: svc.label })
+                            }}
+                            title="Unlink service from this capability"
+                            style={{ fontSize: 10, padding: '2px 5px', borderRadius: 4, border: '1px solid #fca5a5', background: '#fef2f2', color: '#b91c1c', cursor: 'pointer', flexShrink: 0 }}
+                          >
+                            Unlink
+                          </button>
+                        </div>
+                      )) : (
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8, fontStyle: 'italic' }}>No services linked yet</div>
+                      )}
+
+                      {/* Link existing service */}
+                      <div style={{ display: 'flex', gap: 5, marginTop: 8 }}>
+                        <select
+                          value={editState.linkSvcName}
+                          onChange={e => setEditState(s => s && { ...s, linkSvcName: e.target.value })}
+                          style={{ flex: 1, fontSize: 11, padding: '4px 6px', borderRadius: 5, border: '1px solid #d1d5db', background: '#fff' }}
+                        >
+                          <option value="">Link existing service…</option>
+                          {services
+                            .filter(s => !editState.svcs.some(sv => sv.label === s))
+                            .map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <button
+                          onClick={() => {
+                            if (!editState.linkSvcName) return
+                            if (!isEditMode) enterEditMode()
+                            addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: editState.linkSvcName })
+                            setEditState(s => s && { ...s, linkSvcName: '' })
+                          }}
+                          disabled={!editState.linkSvcName}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, border: 'none', background: '#1d4ed8', color: '#fff', cursor: editState.linkSvcName ? 'pointer' : 'default', opacity: editState.linkSvcName ? 1 : 0.35, flexShrink: 0 }}
+                        >
+                          Link
+                        </button>
+                      </div>
+
+                      {/* Add new service + auto-link */}
+                      <div style={{ display: 'flex', gap: 5, marginTop: 6 }}>
+                        <input
+                          type="text"
+                          placeholder="New service name…"
+                          value={editState.newSvcName}
+                          onChange={e => setEditState(s => s && { ...s, newSvcName: e.target.value })}
+                          onKeyDown={e => {
+                            if (e.key !== 'Enter' || !editState.newSvcName.trim()) return
+                            const name = editState.newSvcName.trim()
+                            if (!isEditMode) enterEditMode()
+                            addAction({ type: 'add_service', service_name: name, owner_team_name: editState.teamName || undefined })
+                            addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: name })
+                            setEditState(s => s && { ...s, newSvcName: '' })
+                          }}
+                          style={{ flex: 1, fontSize: 11, padding: '4px 6px', borderRadius: 5, border: '1px solid #d1d5db', outline: 'none' }}
+                        />
+                        <button
+                          onClick={() => {
+                            const name = editState.newSvcName.trim()
+                            if (!name) return
+                            if (!isEditMode) enterEditMode()
+                            addAction({ type: 'add_service', service_name: name, owner_team_name: editState.teamName || undefined })
+                            addAction({ type: 'link_capability_service', capability_name: editState.capLabel, service_name: name })
+                            setEditState(s => s && { ...s, newSvcName: '' })
+                          }}
+                          disabled={!editState.newSvcName.trim()}
+                          style={{ fontSize: 11, padding: '4px 10px', borderRadius: 5, border: 'none', background: '#059669', color: '#fff', cursor: editState.newSvcName.trim() ? 'pointer' : 'default', opacity: editState.newSvcName.trim() ? 1 : 0.35, flexShrink: 0, whiteSpace: 'nowrap' }}
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
