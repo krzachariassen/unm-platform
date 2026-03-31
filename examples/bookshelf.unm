@@ -1,0 +1,216 @@
+// BookShelf — Online Bookstore
+// A complete UNM model demonstrating all DSL features.
+
+system "BookShelf" {
+  description "Online bookstore platform for browsing, purchasing, and managing books"
+}
+
+// ─── Actors ───
+
+actor "Reader" {
+  description "End user browsing and purchasing books"
+}
+
+actor "Author" {
+  description "Book author managing listings and tracking sales"
+}
+
+actor "Admin" {
+  description "Platform operator managing catalog quality and promotions"
+}
+
+// ─── Needs ───
+
+need "Find and purchase books easily" {
+  actor "Reader"
+  outcome "I can search for books, see recommendations, and complete a purchase in under a minute"
+  supportedBy "Search & Discovery"
+  supportedBy "Order Processing"
+}
+
+need "Track how my books are selling" {
+  actor "Author"
+  outcome "I can see real-time sales data and reader reviews for my published books"
+  supportedBy "Author Dashboard"
+}
+
+need "Manage the book catalog at scale" {
+  actor "Admin"
+  outcome "I can add, update, and remove books in bulk with quality checks"
+  supportedBy "Catalog Management"
+}
+
+need "Receive personalized book recommendations" {
+  actor "Reader"
+  outcome "The platform suggests books I will enjoy based on my reading history"
+  supportedBy "Search & Discovery"
+}
+
+// ─── Capabilities ───
+
+capability "Search & Discovery" {
+  description "Help readers find books through search, browse, and recommendations"
+  visibility "user-facing"
+  realizedBy "search-service" : "Full-text search across title, author, and description"
+  realizedBy "recommendation-engine" : "Collaborative filtering for personalized suggestions"
+  dependsOn "Catalog Management"
+}
+
+capability "Order Processing" {
+  description "Handle the purchase lifecycle from cart to confirmation"
+  visibility "user-facing"
+  realizedBy "order-service" : "Cart management, checkout, and payment orchestration"
+  dependsOn "Catalog Management"
+  dependsOn "Notification Delivery"
+}
+
+capability "Author Dashboard" {
+  description "Provide authors with sales analytics and review management"
+  visibility "user-facing"
+  realizedBy "author-portal" : "Web dashboard aggregating sales and review data"
+  dependsOn "Catalog Management"
+}
+
+capability "Catalog Management" {
+  description "Maintain the authoritative book catalog with quality enforcement"
+  visibility "domain"
+  realizedBy "catalog-api" : "CRUD operations for book records"
+  dependsOn "Data Persistence"
+}
+
+capability "Notification Delivery" {
+  description "Send transactional notifications across channels"
+  visibility "domain"
+  realizedBy "notification-service" : "Email, push, and SMS dispatch"
+}
+
+capability "Data Persistence" {
+  description "Reliable storage and retrieval of all platform data"
+  visibility "infrastructure"
+  realizedBy "catalog-api" : "Primary data store interface"
+}
+
+// ─── Services ───
+
+service "catalog-api" {
+  description "Authoritative book catalog CRUD service"
+  ownedBy "Storefront"
+  dependsOn "order-service" : "Validates stock availability on order placement"
+}
+
+service "search-service" {
+  description "Full-text search engine for the book catalog"
+  ownedBy "Discovery"
+  dependsOn "catalog-api" : "Indexes book data from the catalog"
+}
+
+service "recommendation-engine" {
+  description "ML-based recommendation service using collaborative filtering"
+  ownedBy "Discovery"
+  dependsOn "catalog-api" : "Reads purchase history and book metadata"
+}
+
+service "order-service" {
+  description "Manages cart, checkout, and payment processing"
+  ownedBy "Fulfillment"
+  dependsOn "catalog-api" : "Reads book details and pricing"
+  dependsOn "notification-service" : "Sends order confirmation emails"
+}
+
+service "author-portal" {
+  description "Web dashboard for authors to view sales and manage listings"
+  ownedBy "Storefront"
+  dependsOn "catalog-api" : "Reads and updates book listings"
+  dependsOn "order-service" : "Reads sales data"
+}
+
+service "notification-service" {
+  description "Multi-channel notification dispatch service"
+  ownedBy "Platform"
+}
+
+// ─── Teams ───
+
+team "Storefront" {
+  type "stream-aligned"
+  description "Owns the catalog browsing experience and author tools"
+  size 6
+  owns "Catalog Management"
+  owns "Author Dashboard"
+}
+
+team "Discovery" {
+  type "stream-aligned"
+  description "Owns search, recommendations, and book discovery"
+  size 4
+  owns "Search & Discovery"
+}
+
+team "Fulfillment" {
+  type "stream-aligned"
+  description "Owns the purchase and delivery pipeline"
+  size 5
+  owns "Order Processing"
+}
+
+team "Platform" {
+  type "platform"
+  description "Provides shared infrastructure services"
+  size 3
+  owns "Notification Delivery"
+  owns "Data Persistence"
+}
+
+// ─── Interactions ───
+
+interaction "Discovery" -> "Storefront" {
+  mode "x-as-a-service"
+  via "Catalog Management"
+  description "Discovery team consumes catalog APIs for indexing"
+}
+
+interaction "Fulfillment" -> "Storefront" {
+  mode "x-as-a-service"
+  via "Catalog Management"
+  description "Fulfillment reads catalog data during checkout"
+}
+
+interaction "Fulfillment" -> "Platform" {
+  mode "x-as-a-service"
+  via "Notification Delivery"
+  description "Fulfillment triggers order notifications via platform APIs"
+}
+
+// ─── Data Assets ───
+
+data_asset "books_db" {
+  type "database"
+  description "Primary relational database storing book catalog and inventory"
+  usedBy "catalog-api"
+  usedBy "search-service"
+}
+
+data_asset "orders_db" {
+  type "database"
+  description "Order and transaction records"
+  usedBy "order-service"
+}
+
+data_asset "book_change_events" {
+  type "event-stream"
+  description "Events emitted when book records are created or updated"
+  usedBy "search-service"
+  usedBy "recommendation-engine"
+}
+
+// ─── External Dependencies ───
+
+external_dependency "Payment Gateway" {
+  description "Third-party payment processing provider"
+  usedBy "order-service" : "Processes credit card and wallet payments"
+}
+
+external_dependency "Email Provider" {
+  description "Transactional email delivery service"
+  usedBy "notification-service" : "Sends order confirmations and author notifications"
+}
