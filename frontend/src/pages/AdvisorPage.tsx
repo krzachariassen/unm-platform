@@ -7,6 +7,7 @@ import { AlertTriangle, Bot, RotateCcw } from 'lucide-react'
 import { ChatMessage, type ChatEntry } from '@/components/advisor/ChatMessage'
 import { QuickActions } from '@/components/advisor/QuickActions'
 import { AdvisorInput } from '@/components/advisor/AdvisorInput'
+import { ApplyActionsDialog } from '@/components/advisor/ApplyActionsDialog'
 import { PageHeader } from '@/components/ui/page-header'
 
 function buildConversationPrompt(history: ChatEntry[], newQuestion: string): string {
@@ -48,6 +49,14 @@ export function AdvisorPage() {
 
   const handleNewConversation = useCallback(() => {
     setHistory([])
+  }, [])
+
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false)
+  const [applyResponse, setApplyResponse] = useState('')
+
+  const handleApply = useCallback((answer: string) => {
+    setApplyResponse(answer)
+    setApplyDialogOpen(true)
   }, [])
 
   return (
@@ -106,7 +115,7 @@ export function AdvisorPage() {
               </p>
             </div>
           )}
-          {history.map((entry, i) => <ChatMessage key={i} entry={entry} />)}
+          {history.map((entry, i) => <ChatMessage key={i} entry={entry} onApply={handleApply} />)}
           {loading && (
             <div className="flex justify-start gap-2">
               <div className="flex items-center gap-3 px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
@@ -131,6 +140,12 @@ export function AdvisorPage() {
         </div>
         </div>
       </div>
+
+      <ApplyActionsDialog
+        open={applyDialogOpen}
+        onClose={() => setApplyDialogOpen(false)}
+        advisorResponse={applyResponse}
+      />
     </ModelRequired>
   )
 }

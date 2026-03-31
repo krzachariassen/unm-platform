@@ -17,6 +17,7 @@ import (
 // registerAIRoutes registers the AI advisor endpoints.
 func (h *Handler) registerAIRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/models/{id}/ask", h.handleAsk)
+	mux.HandleFunc("POST /api/models/{id}/extract-actions", h.handleExtractActions)
 }
 
 // validAICategories maps user-supplied category names to template paths.
@@ -33,6 +34,7 @@ var validAICategories = map[string]string{
 	"general":            "advisor/general",
 	"recommendations":    "advisor/recommendations",
 	"whatif-scenario":    "advisor/whatif-scenario",
+	"extract-actions":   "advisor/extract-actions",
 	"model-summary":      "query/model-summary",
 	"health-summary":     "query/health-summary",
 	"natural-language":   "query/natural-language",
@@ -154,6 +156,127 @@ func (h *Handler) handleAsk(w http.ResponseWriter, r *http.Request) {
 		Answer:       chatResp.Content,
 		FinishReason: chatResp.FinishReason,
 		Configured:   true,
+	})
+}
+
+// extractActionsRequest is the JSON body for POST /api/models/{id}/extract-actions.
+type extractActionsRequest struct {
+	AdvisorResponse string `json:"advisor_response"`
+}
+
+// extractedAction extends ChangeAction with a human-readable reason.
+type extractedAction struct {
+	entity.ChangeAction
+	Reason string `json:"reason"`
+}
+
+// extractActionsResponse is the JSON response from POST /api/models/{id}/extract-actions.
+type extractActionsResponse struct {
+	Actions      []extractedAction `json:"actions"`
+	Summary      string            `json:"summary"`
+	AIConfigured bool              `json:"ai_configured"`
+}
+
+// aiExtractedJSON is the raw JSON returned by the AI for action extraction.
+type aiExtractedJSON struct {
+	Actions []json.RawMessage `json:"actions"`
+	Summary string            `json:"summary"`
+}
+
+// handleExtractActions extracts structured ChangeActions from an AI advisor response.
+func (h *Handler) handleExtractActions(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	stored := h.store.Get(id)
+	if stored == nil {
+		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+
+	var req extractActionsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+
+	req.AdvisorResponse = strings.TrimSpace(req.AdvisorResponse)
+	if req.AdvisorResponse == "" {
+		writeError(w, http.StatusBadRequest, "advisor_response is required")
+		return
+	}
+
+	if h.aiClient == nil || !h.aiClient.IsConfigured() {
+		writeJSON(w, http.StatusOK, extractActionsResponse{
+			Actions:      nil,
+			Summary:      "AI advisor is not configured.",
+			AIConfigured: false,
+		})
+		return
+	}
+
+	m := stored.Model
+	data := buildAIPromptData(m, "", h)
+	data["AdvisorResponse"] = req.AdvisorResponse
+
+	templateName := "advisor/extract-actions"
+	rendered, err := h.promptRenderer.Render(templateName, data)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("prompt rendering failed: %v", err))
+		return
+	}
+
+	timeout := h.cfg.AI.TimeoutForCategory(templateName)
+	model := h.cfg.AI.ModelForCategory(templateName)
+	reasoning := h.reasoningEffortForCategory(templateName)
+	log.Printf("[AI-EXTRACT] template=%s model=%s reasoning=%s timeout=%s prompt_len=%d",
+		templateName, model, reasoning, timeout, len(rendered))
+
+	ctx, cancel := context.WithTimeout(r.Context(), timeout)
+	defer cancel()
+
+	rawJSON, err := h.aiClient.CompleteJSON(ctx, rendered,
+		"Extract all concrete structural actions from the advisor recommendation as JSON.",
+		ai.WithModel(model),
+		ai.WithReasoning(reasoning))
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, fmt.Sprintf("AI request failed: %v", err))
+		return
+	}
+
+	var parsed aiExtractedJSON
+	if err := json.Unmarshal([]byte(rawJSON), &parsed); err != nil {
+		log.Printf("[AI-EXTRACT] failed to parse AI JSON response: %v — raw: %s", err, rawJSON)
+		writeError(w, http.StatusInternalServerError, "AI returned invalid JSON for action extraction")
+		return
+	}
+
+	var validActions []extractedAction
+	for _, raw := range parsed.Actions {
+		var act struct {
+			entity.ChangeAction
+			Reason string `json:"reason"`
+		}
+		if err := json.Unmarshal(raw, &act); err != nil {
+			log.Printf("[AI-EXTRACT] skipping unparseable action: %v", err)
+			continue
+		}
+		if err := act.ChangeAction.Validate(); err != nil {
+			log.Printf("[AI-EXTRACT] skipping invalid action (type=%s): %v", act.Type, err)
+			continue
+		}
+		validActions = append(validActions, extractedAction{
+			ChangeAction: act.ChangeAction,
+			Reason:       act.Reason,
+		})
+	}
+
+	log.Printf("[AI-EXTRACT] extracted %d valid actions from %d raw (skipped %d)",
+		len(validActions), len(parsed.Actions), len(parsed.Actions)-len(validActions))
+
+	writeJSON(w, http.StatusOK, extractActionsResponse{
+		Actions:      validActions,
+		Summary:      parsed.Summary,
+		AIConfigured: true,
 	})
 }
 

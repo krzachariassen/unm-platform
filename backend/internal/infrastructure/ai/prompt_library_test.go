@@ -18,11 +18,12 @@ func TestPromptLibrary_Names_ReturnsAllTemplates(t *testing.T) {
 	require.NoError(t, err)
 
 	names := lib.Names()
-	assert.Len(t, names, 24)
+	assert.Len(t, names, 25)
 
 	expected := []string{
 		"advisor/bottleneck",
 		"advisor/coupling",
+		"advisor/extract-actions",
 		"advisor/fragmentation",
 		"advisor/general",
 		"advisor/interaction-mode",

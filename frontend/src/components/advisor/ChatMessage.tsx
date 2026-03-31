@@ -1,4 +1,4 @@
-import { User, Bot, Download } from 'lucide-react'
+import { User, Bot, Download, Sparkles } from 'lucide-react'
 import { Prose } from '@/components/ui/prose'
 import { exportToPdf } from '@/lib/export-pdf'
 
@@ -8,7 +8,12 @@ export interface ChatEntry {
   aiConfigured: boolean
 }
 
-export function ChatMessage({ entry }: { entry: ChatEntry }) {
+interface ChatMessageProps {
+  entry: ChatEntry
+  onApply?: (answer: string) => void
+}
+
+export function ChatMessage({ entry, onApply }: ChatMessageProps) {
   return (
     <div className="space-y-4">
       {/* User question */}
@@ -49,15 +54,29 @@ export function ChatMessage({ entry }: { entry: ChatEntry }) {
               <Bot size={14} style={{ color: '#6366f1' }} />
             </div>
             <span className="text-xs font-bold" style={{ color: '#6366f1' }}>Advisor</span>
-            <button
-              type="button"
-              onClick={() => exportToPdf(entry.answer, `AI Advisor — ${entry.question.slice(0, 60)}`)}
-              title="Save as PDF"
-              className="ml-auto rounded-md p-1.5 transition-colors hover:bg-gray-100"
-              style={{ color: '#9ca3af' }}
-            >
-              <Download size={12} />
-            </button>
+            <div className="ml-auto flex items-center gap-1">
+              {onApply && entry.aiConfigured && (
+                <button
+                  type="button"
+                  onClick={() => onApply(entry.answer)}
+                  title="Apply recommendations as changes"
+                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all hover:opacity-90"
+                  style={{ background: '#111827', color: '#ffffff' }}
+                >
+                  <Sparkles size={11} />
+                  Apply
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => exportToPdf(entry.answer, `AI Advisor — ${entry.question.slice(0, 60)}`)}
+                title="Save as PDF"
+                className="rounded-md p-1.5 transition-colors hover:bg-gray-100"
+                style={{ color: '#9ca3af' }}
+              >
+                <Download size={12} />
+              </button>
+            </div>
           </div>
           <div className="pl-0.5">
             <Prose>{entry.answer}</Prose>
