@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { X, Trash2 } from 'lucide-react'
-import type { ChangeAction } from '@/lib/api'
+import type { ChangeAction } from '@/types/changeset'
 
 const TYPE_LABELS: Record<string, string> = {
   move_service: 'Move Service',

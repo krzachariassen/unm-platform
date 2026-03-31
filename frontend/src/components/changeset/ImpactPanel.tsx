@@ -1,4 +1,4 @@
-import type { ImpactDelta } from '@/lib/api'
+import type { ImpactDelta } from '@/types/changeset'
 
 const CHANGE_STYLES = {
   improved: { color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', label: 'Improved' },

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Pencil } from 'lucide-react'
-import type { ChangeAction } from '@/lib/api'
+import type { ChangeAction } from '@/types/changeset'
 import { useChangeset } from '@/lib/changeset-context'
 
 interface QuickActionOption {

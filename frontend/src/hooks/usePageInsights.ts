@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useInsightsContext } from '@/lib/InsightsContext'
-import { type InsightItem } from '@/lib/api'
+import type { InsightItem } from '@/types/insights'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 
 interface InsightsResponseWithStatus {
