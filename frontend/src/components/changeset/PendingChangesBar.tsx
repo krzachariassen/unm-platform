@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Loader2, Send, Check, AlertTriangle, ChevronUp, ChevronDown, X, List } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { ImpactDelta, CommitResponse } from '@/lib/api'
+import type { ImpactDelta } from '@/lib/api'
 import { useModel } from '@/lib/model-context'
 import { useChangeset } from '@/lib/changeset-context'
 import { ImpactPanel } from './ImpactPanel'
@@ -26,7 +26,6 @@ export function PendingChangesBar() {
   const [phase, setPhase] = useState<CommitPhase>('idle')
   const [changesetId, setChangesetId] = useState<string | null>(null)
   const [impact, setImpact] = useState<ImpactDelta[] | null>(null)
-  const [commitResult, setCommitResult] = useState<CommitResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showList, setShowList] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -63,8 +62,8 @@ export function PendingChangesBar() {
     setError(null)
     try {
       const result = await api.commitChangeset(modelId, changesetId)
-      setCommitResult(result)
       if (result.validation.valid) {
+
         if (parseResult) {
           setModel(modelId, {
             ...parseResult,
@@ -85,10 +84,12 @@ export function PendingChangesBar() {
           setPhase('idle')
           setImpact(null)
           setChangesetId(null)
-          setCommitResult(null)
         }, 1500)
       } else {
-        setError('Validation failed — check errors below and adjust your changes.')
+        const msgs = result.validation.errors?.length
+          ? result.validation.errors.join(' · ')
+          : 'Validation failed — no details returned'
+        setError(msgs)
         setPhase('previewed')
       }
     } catch (err) {
@@ -103,7 +104,6 @@ export function PendingChangesBar() {
     setPhase('idle')
     setImpact(null)
     setChangesetId(null)
-    setCommitResult(null)
     setError(null)
   }, [actions.length, exitEditMode])
 
@@ -220,20 +220,6 @@ export function PendingChangesBar() {
         </div>
       )}
 
-      {/* Commit validation errors */}
-      {commitResult && !commitResult.validation.valid && (
-        <div className="px-5 py-2" style={{ background: '#fef2f2', borderTop: '1px solid #fca5a5' }}>
-          <div className="flex items-start gap-2">
-            <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#b91c1c' }} />
-            <div className="flex-1">
-              {commitResult.validation.errors?.map((e, i) => (
-                <p key={i} className="text-xs" style={{ color: '#991b1b' }}>{e}</p>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main bar */}
       <div
         className="flex items-center gap-3 px-5"
@@ -280,9 +266,9 @@ export function PendingChangesBar() {
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <AlertTriangle size={13} className="flex-shrink-0" style={{ color: '#f87171' }} />
-            <span className="text-xs truncate" style={{ color: '#f87171' }}>{error}</span>
+          <div className="flex items-start gap-1.5 flex-1 min-w-0">
+            <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#f87171' }} />
+            <span className="text-xs break-words" style={{ color: '#f87171' }}>{error}</span>
           </div>
         )}
 
