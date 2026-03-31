@@ -86,6 +86,16 @@ export interface ImpactResponse {
   deltas: ImpactDelta[]
 }
 
+export interface ExtractedAction extends ChangeAction {
+  reason: string
+}
+
+export interface ExtractActionsResponse {
+  actions: ExtractedAction[]
+  summary: string
+  ai_configured: boolean
+}
+
 export interface CommitResponse {
   model_id: string
   system_name: string

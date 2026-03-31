@@ -5,6 +5,7 @@ import { useModel } from '@/lib/model-context'
 import { api } from '@/lib/api'
 import { Prose } from '@/components/ui/prose'
 import { type ChatEntry } from './ChatMessage'
+import { ApplyActionsDialog } from './ApplyActionsDialog'
 
 function buildConversationPrompt(history: ChatEntry[], newQuestion: string): string {
   if (history.length === 0) return newQuestion
@@ -153,6 +154,9 @@ export function AdvisorPanel() {
   const [question, setQuestion] = useState('')
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false)
+  const [applyResponse, setApplyResponse] = useState('')
 
   const config = getPageConfig(location.pathname)
   const hasModel = !!modelId
@@ -322,6 +326,16 @@ export function AdvisorPanel() {
                     style={{ background: '#eff6ff', border: '1px solid #dbeafe' }}
                   >
                     <Prose compact>{entry.answer}</Prose>
+                    {entry.aiConfigured && (
+                      <button
+                        type="button"
+                        onClick={() => { setApplyResponse(entry.answer); setApplyDialogOpen(true) }}
+                        className="mt-2 flex items-center gap-1.5 text-[10px] font-medium px-2 py-1 rounded transition-all hover:opacity-90"
+                        style={{ background: '#111827', color: '#ffffff' }}
+                      >
+                        <Sparkles size={9} /> Apply
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -373,6 +387,11 @@ export function AdvisorPanel() {
           </div>
         </div>
       )}
+      <ApplyActionsDialog
+        open={applyDialogOpen}
+        onClose={() => setApplyDialogOpen(false)}
+        advisorResponse={applyResponse}
+      />
     </>
   )
 }

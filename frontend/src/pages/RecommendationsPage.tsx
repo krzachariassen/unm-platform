@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { RefreshCw, Sparkles, Loader2, FileText, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ModelRequired } from '@/components/ui/ModelRequired'
@@ -7,6 +7,7 @@ import { advisorApi } from '@/services/api'
 import { PageHeader } from '@/components/ui/page-header'
 import { Prose } from '@/components/ui/prose'
 import { exportToPdf } from '@/lib/export-pdf'
+import { ApplyActionsDialog } from '@/components/advisor/ApplyActionsDialog'
 
 export function RecommendationsPage() {
   const { modelId, parseResult } = useModel()
@@ -14,6 +15,7 @@ export function RecommendationsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [aiConfigured, setAiConfigured] = useState(true)
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false)
   const cacheRef = useRef<Map<string, string>>(new Map())
   const abortRef = useRef<AbortController | null>(null)
 
@@ -61,6 +63,15 @@ export function RecommendationsPage() {
           description={`Comprehensive restructuring report for ${parseResult?.system_name ?? ''}`}
           actions={report && !loading ? (
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setApplyDialogOpen(true)}
+                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all hover:opacity-90"
+                style={{ background: '#111827', color: '#ffffff' }}
+              >
+                <Sparkles size={13} />
+                Apply this report
+              </button>
               <Button variant="outline" size="sm" onClick={() => exportToPdf(report, `AI Recommendations — ${parseResult?.system_name ?? 'UNM'}`)} className="gap-2">
                 <Download className="w-3.5 h-3.5" />
                 Save as PDF
@@ -140,6 +151,14 @@ export function RecommendationsPage() {
           </div>
         )}
       </div></div>
+
+      {report && (
+        <ApplyActionsDialog
+          open={applyDialogOpen}
+          onClose={() => setApplyDialogOpen(false)}
+          advisorResponse={report}
+        />
+      )}
     </ModelRequired>
   )
 }
