@@ -4,13 +4,14 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-03-30_
+_Last updated: 2026-03-31_
 _Priority: Phase 9 cleanup + data_asset simplification._
 
 ---
 
 ## Recently Completed
 
+- [x] **feat(ux): batch edit mode** — Replace 3-phase-per-batch EditPanel with global ChangesetContext + floating PendingChangesBar; "Edit Model" toggle in TopBar; inline capability edits and service moves batch via context; fix stale changeset commit bug (2026-03-31)
 - [x] **feat(ai)** — AI IP allowlist: restrict AI features by client IP; supports exact IPs and CIDR ranges; respects X-Forwarded-For (2026-03-30)
 - [x] **BUG-2** — DSL parser did not support `#` hash comments; only `//` was supported. Fix: extend `skipWhitespaceAndComments` to treat `#` as a line comment delimiter. (2026-03-30)
 - [x] **refactor(data-asset)** — Simplify DataAsset: remove ProducedBy/ConsumedBy/Access; UsedBy becomes flat `[]string`; type is free-form. Updated across all parsers, serializer, analyzer, tests, and nexus.unm.yaml (2026-03-30)

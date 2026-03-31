@@ -7,6 +7,7 @@ import { usePageInsights } from '@/hooks/usePageInsights'
 import { LoadingState, ErrorState } from '@/components/ViewState'
 import { slug } from '@/lib/slug'
 import { EditPanel } from '@/components/changeset/EditPanel'
+import { useChangeset } from '@/lib/changeset-context'
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 const PAD_X = 60
@@ -417,6 +418,7 @@ function buildLayout(
 // ─── Component ────────────────────────────────────────────────────────────────
 export function UNMMapView() {
   const { modelId, isHydrating } = useRequireModel()
+  const { isEditMode, addAction, enterEditMode, refreshKey } = useChangeset()
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
   const [layout, setLayout]   = useState<ReturnType<typeof buildLayout> | null>(null)
@@ -425,13 +427,12 @@ export function UNMMapView() {
   const [highlight, setHighlight] = useState<Set<string> | null>(null)
   const [zoom, setZoom] = useState(1)
   const [editOpen, setEditOpen] = useState(false)
-  const [editKey, setEditKey] = useState(0)
   const [teams, setTeams] = useState<string[]>([])
   const [editState, setEditState] = useState<{
     capLabel: string; description: string; visibility: string; teamName: string
     origDescription: string; origVisibility: string; origTeam: string
+    svcs: SvcInfo[]
   } | null>(null)
-  const [saving, setSaving] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const { insights } = usePageInsights('dashboard')
 
@@ -514,11 +515,6 @@ export function UNMMapView() {
 
   useEffect(() => { loadMap() }, [loadMap])
 
-  const handleEditCommitted = useCallback(() => {
-    setEditKey(k => k + 1)
-    loadMap()
-  }, [loadMap])
-
   const handleEditClose = useCallback(() => {
     setEditOpen(false)
   }, [])
@@ -528,28 +524,28 @@ export function UNMMapView() {
     api.getTeams(modelId).then(r => setTeams(r.teams.map(t => t.name))).catch(() => {})
   }, [modelId, isHydrating])
 
-  const handleSaveEdit = useCallback(async () => {
-    if (!editState || !modelId) return
-    setSaving(true)
-    try {
-      const actions: ChangeAction[] = []
-      if (editState.description !== editState.origDescription)
-        actions.push({ type: 'update_description', entity_type: 'capability', entity_name: editState.capLabel, description: editState.description })
-      if (editState.visibility !== editState.origVisibility)
-        actions.push({ type: 'update_capability_visibility', capability_name: editState.capLabel, visibility: editState.visibility })
-      if (editState.teamName !== editState.origTeam)
-        actions.push({ type: 'reassign_capability', capability_name: editState.capLabel, from_team_name: editState.origTeam || undefined, to_team_name: editState.teamName || undefined })
-      if (actions.length === 0) { setSaving(false); return }
-      const cs = await api.createChangeset(modelId, { id: `edit-${Date.now()}`, description: `Edit ${editState.capLabel}`, actions })
-      await api.commitChangeset(modelId, cs.id)
-      setPanel(null); setHighlight(null); setEditState(null)
-      loadMap()
-    } catch (e) {
-      console.error('Save failed:', e)
-    } finally {
-      setSaving(false)
-    }
-  }, [editState, modelId, loadMap])
+  // Reload map when a changeset is committed (refreshKey bumps in ChangesetContext)
+  useEffect(() => {
+    if (refreshKey > 0) loadMap()
+  }, [refreshKey, loadMap])
+
+  const handleSaveEdit = useCallback(() => {
+    if (!editState) return
+    const actions: ChangeAction[] = []
+    if (editState.description !== editState.origDescription)
+      actions.push({ type: 'update_description', entity_type: 'capability', entity_name: editState.capLabel, description: editState.description })
+    if (editState.visibility !== editState.origVisibility)
+      actions.push({ type: 'update_capability_visibility', capability_name: editState.capLabel, visibility: editState.visibility })
+    if (editState.teamName !== editState.origTeam)
+      actions.push({ type: 'reassign_capability', capability_name: editState.capLabel, from_team_name: editState.origTeam || undefined, to_team_name: editState.teamName || undefined })
+    if (actions.length === 0) return
+    // Batch all actions via global context — commit from the bottom bar
+    if (!isEditMode) enterEditMode()
+    actions.forEach(a => addAction(a))
+    setPanel(null)
+    setHighlight(null)
+    setEditState(null)
+  }, [editState, isEditMode, enterEditMode, addAction])
 
   useEffect(() => {
     const el = containerRef.current
@@ -652,6 +648,7 @@ export function UNMMapView() {
         origDescription: node.description ?? '',
         origVisibility: node.vis ?? 'foundational',
         origTeam: node.team?.label ?? '',
+        svcs: node.svcs ?? [],
       })
     }
 
@@ -724,10 +721,10 @@ export function UNMMapView() {
               color: editOpen ? '#ffffff' : '#374151',
               border: editOpen ? '1px solid #111827' : '1px solid #e5e7eb',
             }}
-            title="Toggle model editor"
+            title="Toggle action panel"
           >
             <Pencil size={13} />
-            Edit
+            Add Action
           </button>
           <div className="w-px h-5 mx-1" style={{ background: '#e5e7eb' }} />
           <button onClick={() => setZoom(z => Math.min(3, z + 0.15))} className="p-1.5 rounded hover:bg-gray-100" title="Zoom in"><ZoomIn size={15} /></button>
@@ -1048,12 +1045,39 @@ export function UNMMapView() {
                       </select>
                     </div>
 
+                    {/* Service moves — directly from the panel */}
+                    {editState.svcs.length > 0 && (
+                      <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 6 }}>Move Service to Team</div>
+                        {editState.svcs.map(svc => (
+                          <div key={svc.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                            <span style={{ fontSize: 11, color: '#374151', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.label}</span>
+                            <select
+                              defaultValue=""
+                              onChange={e => {
+                                const toTeam = e.target.value
+                                if (!toTeam) return
+                                if (!isEditMode) enterEditMode()
+                                addAction({ type: 'move_service', service_name: svc.label, from_team_name: svc.teamName || undefined, to_team_name: toTeam })
+                                e.target.value = ''
+                              }}
+                              style={{ fontSize: 11, padding: '3px 6px', borderRadius: 5, border: '1px solid #d1d5db', background: '#fff', maxWidth: 130 }}
+                            >
+                              <option value="">Move to…</option>
+                              {teams.filter(t => t !== svc.teamName).map(t => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <button
                       onClick={handleSaveEdit}
-                      disabled={saving}
-                      style={{ width: '100%', padding: '7px', borderRadius: 6, background: saving ? '#6b7280' : '#111827', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: saving ? 'not-allowed' : 'pointer' }}
+                      style={{ width: '100%', padding: '7px', borderRadius: 6, background: '#111827', color: '#fff', border: 'none', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}
                     >
-                      {saving ? 'Saving…' : 'Save changes'}
+                      Add to batch
                     </button>
                   </div>
                 )}
@@ -1067,7 +1091,7 @@ export function UNMMapView() {
           <div className="flex-shrink-0 z-30"
             style={{ width: 340, borderLeft: '1px solid #e5e7eb' }}
             onClick={e => e.stopPropagation()}>
-            <EditPanel key={editKey} onClose={handleEditClose} onCommitted={handleEditCommitted} />
+            <EditPanel open={editOpen} onClose={handleEditClose} />
           </div>
         )}
       </div>
