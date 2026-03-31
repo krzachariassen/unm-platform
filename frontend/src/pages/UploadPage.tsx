@@ -101,7 +101,6 @@ export function UploadPage() {
   }, [modelId, setModel, startPollingInsights, aiEnabled, navigate])
 
   const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setDragging(false)
     const file = e.dataTransfer.files[0]; if (!file) return
     setStep('read', 'active')
     const reader = new FileReader()

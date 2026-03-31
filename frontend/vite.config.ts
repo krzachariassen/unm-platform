@@ -18,8 +18,8 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
         changeOrigin: true,
-        timeout: 90000,
-        proxyTimeout: 90000,
+        timeout: 360000,
+        proxyTimeout: 360000,
       },
     },
   },

@@ -44,16 +44,26 @@ var validAICategories = map[string]string{
 type askRequest struct {
 	Question string `json:"question"`
 	Category string `json:"category"` // optional; defaults to "general"
+	Tier     string `json:"tier"`     // optional; forces a complexity tier ("simple", "medium", "complex")
 }
 
 // askResponse is the JSON response from POST /api/models/{id}/ask.
 type askResponse struct {
-	ModelID      string `json:"model_id"`
-	Category     string `json:"category"`
-	Question     string `json:"question"`
-	Answer       string `json:"answer"`
-	FinishReason string `json:"finish_reason,omitempty"`
-	Configured   bool   `json:"ai_configured"`
+	ModelID      string          `json:"model_id"`
+	Category     string          `json:"category"`
+	Question     string          `json:"question"`
+	Answer       string          `json:"answer"`
+	FinishReason string          `json:"finish_reason,omitempty"`
+	Configured   bool            `json:"ai_configured"`
+	Routing      *routingInfo    `json:"routing,omitempty"`
+}
+
+// routingInfo describes how the AI request was routed based on question complexity.
+type routingInfo struct {
+	Tier      string `json:"tier"`
+	Model     string `json:"model"`
+	Reasoning string `json:"reasoning"`
+	Timeout   string `json:"timeout"`
 }
 
 // reasoningEffortForCategory returns the reasoning effort for a given template name.
@@ -132,11 +142,29 @@ func (h *Handler) handleAsk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	timeout := h.cfg.AI.TimeoutForCategory(templateName)
-	model := h.cfg.AI.ModelForCategory(templateName)
-	reasoning := h.reasoningEffortForCategory(templateName)
-	log.Printf("[AI-ASK] category=%s template=%s model=%s reasoning=%s timeout=%s prompt_len=%d",
-		req.Category, templateName, model, reasoning, timeout, len(rendered))
+	// Smart routing: classify question complexity and pick appropriate config.
+	// If the client sends an explicit tier, use that instead of auto-classification.
+	var tier ComplexityTier
+	switch req.Tier {
+	case "simple":
+		tier = TierSimple
+	case "medium":
+		tier = TierMedium
+	case "complex":
+		tier = TierComplex
+	default:
+		tier = ClassifyComplexity(req.Question)
+	}
+	configKey := templateName
+	if req.Category == "general" {
+		configKey = TierConfigKey(tier)
+	}
+
+	timeout := h.cfg.AI.TimeoutForCategory(configKey)
+	model := h.cfg.AI.ModelForCategory(configKey)
+	reasoning := h.reasoningEffortForCategory(configKey)
+	log.Printf("[AI-ASK] category=%s template=%s tier=%s model=%s reasoning=%s timeout=%s prompt_len=%d",
+		req.Category, templateName, tier, model, reasoning, timeout, len(rendered))
 
 	ctx, cancel := context.WithTimeout(r.Context(), timeout)
 	defer cancel()
@@ -149,6 +177,16 @@ func (h *Handler) handleAsk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var routing *routingInfo
+	if req.Category == "general" {
+		routing = &routingInfo{
+			Tier:      string(tier),
+			Model:     model,
+			Reasoning: reasoning,
+			Timeout:   timeout.String(),
+		}
+	}
+
 	writeJSON(w, http.StatusOK, askResponse{
 		ModelID:      id,
 		Category:     req.Category,
@@ -156,6 +194,7 @@ func (h *Handler) handleAsk(w http.ResponseWriter, r *http.Request) {
 		Answer:       chatResp.Content,
 		FinishReason: chatResp.FinishReason,
 		Configured:   true,
+		Routing:      routing,
 	})
 }
 

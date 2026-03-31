@@ -151,9 +151,11 @@ export function AdvisorPanel() {
   const [open, setOpen] = useState(false)
   const [history, setHistory] = useState<ChatEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const [question, setQuestion] = useState('')
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const askingRef = useRef(false)
 
   const [applyDialogOpen, setApplyDialogOpen] = useState(false)
   const [applyResponse, setApplyResponse] = useState('')
@@ -165,12 +167,14 @@ export function AdvisorPanel() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [history, loading])
+  }, [history, loading, pendingQuestion])
 
   const handleAsk = useCallback(async (q: string) => {
-    if (!modelId) return
+    if (!modelId || askingRef.current) return
+    askingRef.current = true
     const trimmed = q.trim()
     if (!trimmed) return
+    setPendingQuestion(trimmed)
     setLoading(true)
     const prompt = buildConversationPrompt(history, trimmed)
     try {
@@ -189,6 +193,8 @@ export function AdvisorPanel() {
       }])
     } finally {
       setLoading(false)
+      setPendingQuestion(null)
+      askingRef.current = false
     }
   }, [modelId, history])
 
@@ -341,17 +347,29 @@ export function AdvisorPanel() {
               </div>
             ))}
             {loading && (
-              <div className="flex gap-2">
-                <div className="flex-shrink-0 mt-1">
-                  <Bot size={12} className="animate-pulse" style={{ color: '#2563eb' }} />
-                </div>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#eff6ff', border: '1px solid #dbeafe' }}>
-                  <span className="text-xs" style={{ color: '#6b7280' }}>Thinking</span>
-                  <span className="flex gap-0.5">
-                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '0ms', animationDuration: '1.2s' }} />
-                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '200ms', animationDuration: '1.2s' }} />
-                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '400ms', animationDuration: '1.2s' }} />
-                  </span>
+              <div className="space-y-2">
+                {pendingQuestion && (
+                  <div className="flex gap-2">
+                    <div
+                      className="flex-1 text-xs px-3 py-2 rounded-lg"
+                      style={{ background: '#f3f4f6', color: '#374151' }}
+                    >
+                      {pendingQuestion}
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <div className="flex-shrink-0 mt-1">
+                    <Bot size={12} className="animate-pulse" style={{ color: '#2563eb' }} />
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#eff6ff', border: '1px solid #dbeafe' }}>
+                    <span className="text-xs" style={{ color: '#6b7280' }}>Thinking</span>
+                    <span className="flex gap-0.5">
+                      <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '0ms', animationDuration: '1.2s' }} />
+                      <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '200ms', animationDuration: '1.2s' }} />
+                      <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#2563eb', animationDelay: '400ms', animationDuration: '1.2s' }} />
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

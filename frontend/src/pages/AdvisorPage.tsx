@@ -23,27 +23,33 @@ export function AdvisorPage() {
   const aiEnabled = useAIEnabled()
   const [history, setHistory] = useState<ChatEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const askingRef = useRef(false)
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [history, loading])
+  }, [history, loading, pendingQuestion])
 
   const handleAsk = useCallback(async (question: string) => {
-    if (!modelId) return
+    if (!modelId || askingRef.current) return
+    askingRef.current = true
+    setPendingQuestion(question)
     setLoading(true)
     const prompt = buildConversationPrompt(history, question)
     try {
       const resp = await advisorApi.ask(modelId, prompt)
       setAiConfigured(resp.ai_configured)
-      setHistory(prev => [...prev, { question, answer: resp.answer, aiConfigured: resp.ai_configured }])
+      setHistory(prev => [...prev, { question, answer: resp.answer, aiConfigured: resp.ai_configured, routing: resp.routing }])
     } catch (err) {
       setHistory(prev => [...prev, { question, answer: `Error: ${err instanceof Error ? err.message : 'Request failed'}`, aiConfigured: false }])
     } finally {
       setLoading(false)
+      setPendingQuestion(null)
+      askingRef.current = false
     }
   }, [modelId, history])
 
@@ -58,6 +64,43 @@ export function AdvisorPage() {
     setApplyResponse(answer)
     setApplyDialogOpen(true)
   }, [])
+
+  const handleRetryWithTier = useCallback(async (question: string, tier: string) => {
+    if (!modelId || askingRef.current) return
+    askingRef.current = true
+    setPendingQuestion(question)
+    setLoading(true)
+    const prompt = buildConversationPrompt(
+      history.filter(e => e.question !== question),
+      question,
+    )
+    try {
+      const resp = await advisorApi.ask(modelId, prompt, 'general', tier)
+      setAiConfigured(resp.ai_configured)
+      setHistory(prev => {
+        const idx = [...prev].reverse().findIndex((e: ChatEntry) => e.question === question)
+        const lastIdx = idx === -1 ? -1 : prev.length - 1 - idx
+        if (lastIdx === -1) return [...prev, { question, answer: resp.answer, aiConfigured: resp.ai_configured, routing: resp.routing }]
+        const updated = [...prev]
+        updated[lastIdx] = { question, answer: resp.answer, aiConfigured: resp.ai_configured, routing: resp.routing }
+        return updated
+      })
+    } catch (err) {
+      setHistory(prev => {
+        const idx = [...prev].reverse().findIndex((e: ChatEntry) => e.question === question)
+        const lastIdx = idx === -1 ? -1 : prev.length - 1 - idx
+        const entry: ChatEntry = { question, answer: `Error: ${err instanceof Error ? err.message : 'Request failed'}`, aiConfigured: false }
+        if (lastIdx === -1) return [...prev, entry]
+        const updated = [...prev]
+        updated[lastIdx] = entry
+        return updated
+      })
+    } finally {
+      setLoading(false)
+      setPendingQuestion(null)
+      askingRef.current = false
+    }
+  }, [modelId, history])
 
   return (
     <ModelRequired>
@@ -115,20 +158,38 @@ export function AdvisorPage() {
               </p>
             </div>
           )}
-          {history.map((entry, i) => <ChatMessage key={i} entry={entry} onApply={handleApply} />)}
-          {loading && (
-            <div className="flex justify-start gap-2">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)' }}>
-                  <Bot size={14} className="animate-pulse" style={{ color: '#6366f1' }} />
+          {history.map((entry, i) => <ChatMessage key={i} entry={entry} onApply={handleApply} onRetryWithTier={handleRetryWithTier} />)}
+          {loading && pendingQuestion && (
+            <div className="space-y-4">
+              <div className="flex justify-end gap-2">
+                <div
+                  className="max-w-[min(100%,28rem)] px-4 py-3 text-sm leading-relaxed"
+                  style={{
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    color: '#ffffff',
+                    borderRadius: '20px 20px 4px 20px',
+                    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.25)',
+                  }}
+                >
+                  <div className="text-[10px] font-bold uppercase tracking-wider opacity-90 mb-1.5 flex items-center gap-1.5">
+                    <span className="opacity-90" aria-hidden>You</span>
+                  </div>
+                  {pendingQuestion}
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Thinking</span>
-                  <span className="flex gap-0.5 ml-0.5">
-                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '0ms', animationDuration: '1.2s' }} />
-                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '200ms', animationDuration: '1.2s' }} />
-                    <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '400ms', animationDuration: '1.2s' }} />
-                  </span>
+              </div>
+              <div className="flex justify-start gap-2">
+                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl rounded-bl-sm" style={{ background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)' }}>
+                    <Bot size={14} className="animate-pulse" style={{ color: '#6366f1' }} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-medium" style={{ color: '#6b7280' }}>Thinking</span>
+                    <span className="flex gap-0.5 ml-0.5">
+                      <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '0ms', animationDuration: '1.2s' }} />
+                      <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '200ms', animationDuration: '1.2s' }} />
+                      <span className="w-1 h-1 rounded-full animate-bounce" style={{ background: '#6366f1', animationDelay: '400ms', animationDuration: '1.2s' }} />
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

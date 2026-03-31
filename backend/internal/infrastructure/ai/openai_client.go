@@ -62,10 +62,10 @@ type OpenAIClient struct {
 	httpClient *http.Client
 }
 
-// defaultHTTPTimeout is the safety-net timeout applied to all OpenAI HTTP clients (6.10.23).
-// Handlers set a shorter per-request context timeout; this backstop prevents hung connections
-// if the context is not properly propagated.
-const defaultHTTPTimeout = 120 * time.Second
+// defaultHTTPTimeout is the safety-net timeout applied to all OpenAI HTTP clients.
+// Must exceed the longest per-request context timeout (currently 300s for recommendations)
+// to let the context-based timeout govern cancellation, not the transport.
+const defaultHTTPTimeout = 360 * time.Second
 
 // NewOpenAIClient creates a client using the UNM_OPENAI_API_KEY environment variable.
 func NewOpenAIClient() (*OpenAIClient, error) {
