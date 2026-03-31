@@ -121,35 +121,53 @@ The `visibility` field on capabilities represents position in the UNM vertical v
 ### 2.1 System Declaration
 
 ```unm
-system "Uber Delivery" {
-  description "End-to-end food delivery platform"
-  
-  // contents: actors, capabilities, services, teams, etc.
+system "BookShelf" {
+  description "Online bookstore platform for browsing, purchasing, and managing books"
+}
+```
+
+The system block also supports version metadata fields, managed automatically
+by the platform when models are edited through the API:
+
+```unm
+system "BookShelf" {
+  description "Online bookstore platform"
+  version "5"
+  lastModified "2026-03-30T15:37:34Z"
+  author "kristian"
 }
 ```
 
 ### 2.2 Actors
 
 ```unm
-actor "Merchant" {
-  description "Restaurant or store owner using the platform"
+actor "Reader" {
+  description "End user browsing and purchasing books"
 }
 
-actor "Eater" {
-  description "End consumer ordering food"
+actor "Author" {
+  description "Book author managing listings and tracking sales"
 }
 ```
 
 ### 2.3 Needs
 
 ```unm
-need "Publish catalog data" {
-  actor "Merchant"
-  outcome "My catalog is available for customers to browse and order from"
-  
-  supportedBy capability "Catalog ingestion"
-  supportedBy capability "Catalog validation"
-  supportedBy capability "Catalog publication"
+need "Find and purchase books easily" {
+  actor "Reader"
+  outcome "I can search for books and complete a purchase in under a minute"
+  supportedBy "Search & Discovery"
+  supportedBy "Order Processing"
+}
+```
+
+Multiple actors can share a need using comma-separated values:
+
+```unm
+need "View catalog data" {
+  actor "Reader", "Author"
+  outcome "Users can browse the full book catalog"
+  supportedBy "Catalog Management"
 }
 ```
 
@@ -163,119 +181,123 @@ All relationships within capabilities support an optional description using `:` 
 
 ```unm
 capability "Catalog & Inventory" {
-  description "Enable merchants to provide, maintain, and protect catalog data"
-  visibility domain
-  
-  capability "Catalog ingestion" {
-    description "Accept catalog data from various sources"
-    visibility user-facing
-    realizedBy service "feed-ingestion-service" : "Receives and normalizes merchant feeds"
-    realizedBy service "catalog-parser" : "Handles format-specific parsing (CSV, JSON, XML)"
+  description "Full lifecycle management of the book catalog"
+  visibility "domain"
+
+  capability "Catalog CRUD" {
+    description "Create, read, update, delete book records"
+    visibility "foundational"
+    realizedBy "catalog-api" : "Primary entity persistence"
   }
-  
-  capability "Catalog validation" {
-    description "Ensure catalog data meets quality standards"
-    visibility domain
-    realizedBy service "schema-validator" : "Validates structure and field types"
-    realizedBy service "quality-gate" : "Enforces business quality thresholds"
-  }
-  
-  capability "Catalog storage" {
-    description "Persist and retrieve catalog data"
-    visibility foundational
-    realizedBy service "catalog-store" : "Primary entity persistence"
+
+  capability "Catalog Search" {
+    description "Full-text search across the catalog"
+    visibility "user-facing"
+    realizedBy "search-service" : "Indexes and queries book data"
   }
 }
 ```
 
 Relationships without `:` are still valid — the description is optional.
 
-### 2.5 Services
-
-Services are dependencies in the value chain that realize capabilities. A service has a name, description, team owner, and service-to-service dependencies. **Services do not declare which capabilities they support** — that relationship is defined on the capability side via `realizedBy` and derived at query time. Similarly, data asset and external dependency usage is declared on those entities, not on services.
+Alternatively, use flat `parent` references instead of nesting:
 
 ```unm
-service "entity-store" {
-  description "Authoritative CRUD store for all catalog entities"
-  ownedBy team "catalog-core"
-
-  dependsOn service "registry" : "Catalog context lookup on every entity operation"
+capability "Catalog & Inventory" {
+  description "Full lifecycle management of the book catalog"
+  visibility "domain"
 }
 
-service "feed-worker" {
-  description "Workflow worker executing feed ingestion, sync, and transformation"
-  ownedBy team "ingestion-team"
-
-  dependsOn service "entity-store" : "Entity writes during feed processing"
-  dependsOn service "registry" : "Catalog config lookup"
-}
-
-service "serving-gateway" {
-  description "Gateway layer for serving catalog data to consumers"
-  ownedBy team "serving-team"
+capability "Catalog CRUD" {
+  description "Create, read, update, delete book records"
+  visibility "foundational"
+  parent "Catalog & Inventory"
+  realizedBy "catalog-api"
 }
 ```
 
-> **Eliminated fields**: Earlier versions included `type` (service classification), `supports` (service→capability), `dataAssets` (service→data_asset), and `externalDependsOn` (service→external) on services. These are all removed:
-> - `type` is an operational concern, not a UNM concept — service classification belongs in a service catalog, not the UNM model
-> - `supports`, `dataAssets`, `externalDependsOn` duplicate relationships already declared on capabilities, data assets, and external dependencies respectively
->
-> The parser derives reverse lookups at query time. YAML files containing these deprecated fields will parse with warnings.
+### 2.5 Services
+
+Services are concrete implementations that realize capabilities. A service has a name, description, team owner, and service-to-service dependencies.
+
+```unm
+service "catalog-api" {
+  description "Authoritative book catalog CRUD service"
+  ownedBy "Storefront"
+  dependsOn "order-service" : "Validates stock availability on order placement"
+}
+
+service "search-service" {
+  description "Full-text search engine for the book catalog"
+  ownedBy "Discovery"
+  dependsOn "catalog-api" : "Indexes book data from the catalog"
+}
+
+service "notification-service" {
+  description "Multi-channel notification dispatch service"
+  ownedBy "Platform"
+}
+```
+
+> **Note**: Earlier versions included `type` (service classification) and `supports` (service→capability) fields on services. These are removed. The parser derives reverse lookups at query time. YAML files containing these deprecated fields will parse with warnings.
 
 ### 2.6 Teams (with Team Topologies types)
 
 ```unm
-team "Ingestion Team" {
-  type stream-aligned
-  description "Handles merchant catalog feed ingestion and processing"
-
-  owns capability "Catalog ingestion"
-  owns service "feed-ingestion-service"
-  owns service "catalog-parser"
+team "Storefront" {
+  type "stream-aligned"
+  description "Owns the catalog browsing experience and author tools"
+  size 6
+  owns "Catalog Management"
+  owns "Author Dashboard"
 }
 
-team "Catalog Platform" {
-  type platform
-  description "Provides shared catalog infrastructure"
+team "Platform" {
+  type "platform"
+  description "Provides shared infrastructure services"
+  size 3
+  owns "Notification Delivery"
+}
+```
 
-  provides capability "Catalog storage"
-  provides capability "Backup and restore"
+Teams can declare inline interactions:
+
+```unm
+team "Discovery" {
+  type "stream-aligned"
+  description "Owns search and recommendations"
+  size 4
+  owns "Search & Discovery"
+  interacts "Storefront" mode "x-as-a-service" via "Catalog Management" description "Consumes catalog APIs"
 }
 ```
 
 ### 2.7 Team Interactions
 
+Interactions use arrow syntax to connect two teams:
+
 ```unm
-interaction {
-  from team "Ingestion Team"
-  to team "Catalog Platform"
-  mode x-as-a-service
-  via capability "Catalog storage"
-  description "Ingestion team consumes storage APIs without collaboration overhead"
+interaction "Discovery" -> "Storefront" {
+  mode "x-as-a-service"
+  via "Catalog Management"
+  description "Discovery team consumes catalog APIs for indexing"
 }
 
-interaction {
-  from team "Ingestion Team"
-  to team "Merchant Experience"
-  mode collaboration
-  via capability "Catalog publication"
-  description "Close collaboration during publication workflow redesign"
+interaction "Fulfillment" -> "Platform" {
+  mode "x-as-a-service"
+  via "Notification Delivery"
+  description "Fulfillment triggers order notifications via platform APIs"
 }
 ```
+
+**Modes:** `x-as-a-service`, `collaboration`, `facilitating`
 
 ### 2.8 Platform Groupings
 
 ```unm
-platform "Catalog Platform Group" {
-  description "Catalog and inventory infrastructure platform"
-
-  includes team "Catalog Platform"
-  includes team "Storage Platform"
-  includes team "Observability Platform"
-
-  provides capability "Catalog storage"
-  provides capability "Observability"
-  provides capability "Backup and restore"
+platform "Infrastructure Platform" {
+  description "Shared infrastructure services and tooling"
+  teams ["Platform", "SRE"]
 }
 ```
 
@@ -284,27 +306,18 @@ platform "Catalog Platform Group" {
 Data assets model the storage and messaging infrastructure that services share. Shared data assets reveal implicit coupling that service dependency graphs miss.
 
 ```unm
-data_asset "entity_store" {
-  type database
-  description "Primary entity store for all catalog entities"
-  usedBy service "entity-store" role "read-write"
-  usedBy service "publisher" role "read"
-  usedBy service "backup" role "read"
+data_asset "books_db" {
+  type "database"
+  description "Primary relational database storing the book catalog"
+  usedBy "catalog-api"
+  usedBy "search-service"
 }
 
-data_asset "entity_change_events" {
-  type event-stream
-  description "Entity change events published on catalog mutations"
-  producedBy service "entity-store"
-  consumedBy service "event-consumer"
-  consumedBy service "publisher"
-  consumedBy service "cache-worker"
-}
-
-data_asset "config_cache" {
-  type cache
-  description "Cache for catalog configuration and routing metadata"
-  usedBy service "registry" role "read-write"
+data_asset "book_change_events" {
+  type "event-stream"
+  description "Events emitted when book records are created or updated"
+  usedBy "search-service"
+  usedBy "recommendation-engine"
 }
 ```
 
@@ -315,49 +328,41 @@ Data asset types: `database`, `cache`, `event-stream`, `blob-storage`, `search-i
 External dependencies model systems outside the modeled boundary. They show blast radius and cross-team coupling.
 
 ```unm
-external "store-info-service" {
-  description "Store and location information service outside system boundary"
-  usedBy service "entity-store" : "Store info for entity context"
-  usedBy service "registry" : "Store metadata for catalog routing"
-  usedBy service "feed-worker" : "Store details during feed processing"
+external_dependency "Payment Gateway" {
+  description "Third-party payment processing provider"
+  usedBy "order-service" : "Processes credit card and wallet payments"
 }
 
-external "workflow-engine" {
-  description "Workflow orchestration engine"
-  usedBy service "publisher-worker" : "Orchestrates publishing workflows"
-  usedBy service "feed-worker" : "Feed ingestion and sync workflows"
-  usedBy service "backup" : "Backup and restore orchestration"
+external_dependency "Email Provider" {
+  description "Transactional email delivery service"
+  usedBy "notification-service" : "Sends order confirmations and author notifications"
 }
 ```
+
+The `usedBy` field supports an optional description using `:` syntax.
 
 ### 2.11 Transition Modeling
 
 ```unm
 transition "Consolidate catalog ownership" {
-  description "Move from fragmented to stream-aligned catalog ownership"
-  
+  description "Move from fragmented to single-team catalog ownership"
+
   current {
-    capability "Catalog publication" ownedBy team "Team A"
-    capability "Catalog publication" ownedBy team "Team B"
-    capability "Catalog publication" ownedBy team "Team C"
+    capability "Catalog Management" ownedBy team "Team A"
+    capability "Catalog Management" ownedBy team "Team B"
   }
-  
+
   target {
-    capability "Catalog publication" ownedBy team "Catalog Stream"
+    capability "Catalog Management" ownedBy team "Storefront"
   }
-  
-  step 1 "Align Team A and Team B" {
-    action merge team "Team A" team "Team B" into team "Catalog Stream"
-    expected_outcome "Single team owns ingestion and validation"
+
+  step 1 "Merge teams" {
+    action merge team "Team A" team "Team B" into team "Storefront"
+    expected_outcome "Single team owns all catalog operations"
   }
-  
-  step 2 "Absorb Team C scope" {
-    action move capability "Catalog publication" from team "Team C" to team "Catalog Stream"
-    expected_outcome "Full publication pipeline under one team"
-  }
-  
-  step 3 "Extract platform capabilities" {
-    action extract capability "Catalog storage" to team "Catalog Platform"
+
+  step 2 "Extract platform capabilities" {
+    action extract capability "Data Persistence" to team "Platform"
     expected_outcome "Storage becomes x-as-a-service"
   }
 }
@@ -366,21 +371,12 @@ transition "Consolidate catalog ownership" {
 ### 2.12 Imports and Composition
 
 ```unm
-import "catalog.unm" as catalog
-import "merchant-experience.unm" as mx
-
-system "Delivery Platform" {
-  includes catalog."Catalog Platform Group"
-  includes mx."Merchant Experience"
-
-  // cross-system relationships
-  dependency {
-    from mx."Menu Display"
-    to catalog."Catalog publication"
-    description "Menu display depends on published catalog data"
-  }
-}
+import "catalog.unm"
+import authors from "authors.unm"
 ```
+
+Simple imports include all entities from the referenced file. Named imports
+assign an alias for qualified references.
 
 ---
 
@@ -493,146 +489,98 @@ The parser enforces structural rules:
 
 ## 7. YAML Format
 
-Models are expressed in YAML. This is the primary authoring format for Phase 1 and remains supported alongside the custom DSL.
+Models can also be expressed in YAML (`.unm.yaml`). Both formats produce the same internal model. See [YAML_GUIDE.md](YAML_GUIDE.md) for a full tutorial.
 
 ```yaml
 system:
-  name: "Catalog Platform"
-  description: "Catalog and inventory management platform"
+  name: "BookShelf"
+  description: "Online bookstore platform"
 
 actors:
-  - name: "Merchant"
-    description: "Business owner managing product catalog"
+  - name: "Reader"
+    description: "End user browsing and purchasing books"
 
 needs:
-  - name: "Publish catalog data"
-    actor: "Merchant"
-    outcome: "My catalog is available for customers"
+  - name: "Find and purchase books easily"
+    actor: "Reader"
+    outcome: "I can search for books and complete a purchase quickly"
     supportedBy:
-      - "Catalog ingestion"                              # short form
-      - target: "Catalog validation"                     # long form
-        description: "Validates schema before publishing"
+      - "Search & Discovery"                             # short form
+      - target: "Order Processing"                       # long form
+        description: "Handles the purchase lifecycle"
 
 capabilities:
-  - name: "Catalog Management"
-    description: "Enable merchants to manage catalog data"
-    visibility: "domain"
-    children:
-      - name: "Catalog Entity CRUD"
-        description: "Foundational CRUD on all entity types"
-        visibility: "foundational"
-        realizedBy:
-          - target: "entity-store"
-            role: "primary"
-            description: "Primary entity service and internal CRUD API"
-          - target: "registry"
-            role: "supporting"
-            description: "Catalog context for entity operations"
-          - target: "publisher"
-            role: "consuming"
-            description: "Reads entities during publishing"
-      - name: "Entity Editing API"
-        description: "High-level editing operations with business rules"
-        visibility: "domain"
-        realizedBy:
-          - target: "entity-store"
-            role: "primary"
-            description: "EntityEditingService and validation pipeline"
-  - name: "Consumer Serving"
-    description: "Serve catalog data to end consumers"
+  - name: "Search & Discovery"
+    description: "Help readers find books"
     visibility: "user-facing"
-    children:
-      - name: "Menu Item Serving"
-        description: "Fast-read endpoint for menu items"
-        visibility: "user-facing"
-        realizedBy:
-          - target: "serving"
-            role: "primary"
-            description: "ServeItems RPC handler"
+    realizedBy:
+      - target: "search-service"
+        role: "primary"
+        description: "Full-text search across the catalog"
+    dependsOn:
+      - "Catalog Management"
 
-# Services declare owner and service-to-service dependencies only.
-# Capability support is declared on capabilities via realizedBy (source of truth).
-# Data asset and external dependency usage is declared on those entities.
+  - name: "Order Processing"
+    description: "Handle the purchase lifecycle"
+    visibility: "user-facing"
+    realizedBy:
+      - "order-service"
+
+  - name: "Catalog Management"
+    description: "Maintain the authoritative book catalog"
+    visibility: "domain"
+    realizedBy:
+      - "catalog-api"
+
 services:
-  - name: "entity-store"
-    description: "Authoritative CRUD store for all catalog entities"
-    ownedBy: "catalog-core"
-    dependsOn:
-      - target: "registry"
-        description: "Catalog context lookup on every entity operation"
+  - name: "catalog-api"
+    description: "Authoritative book catalog CRUD service"
+    ownedBy: "Storefront"
 
-  - name: "serving"
-    description: "Consumer-facing fast-read endpoint for menu items"
-    ownedBy: "serving-team"
+  - name: "search-service"
+    description: "Full-text search engine for the book catalog"
+    ownedBy: "Discovery"
     dependsOn:
-      - target: "serving-ingestor"
-        description: "Item records"
+      - target: "catalog-api"
+        description: "Indexes book data from the catalog"
+
+  - name: "order-service"
+    description: "Manages cart, checkout, and payment"
+    ownedBy: "Fulfillment"
 
 teams:
-  - name: "catalog-core"
-    type: "platform"
+  - name: "Storefront"
+    type: "stream-aligned"
     owns:
-      - "Catalog Entity CRUD"
-      - "Entity Editing API"
+      - "Catalog Management"
 
-platforms:
-  - name: "Catalog Platform Group"
-    description: "Catalog and inventory infrastructure platform"
-    teams:
-      - "catalog-core"
-      - "catalog-dev"
-    provides:
-      - "Catalog Entity CRUD"
-      - "Catalog Registry & Configuration"
+  - name: "Discovery"
+    type: "stream-aligned"
+    owns:
+      - "Search & Discovery"
 
-data_assets:
-  - name: "entity_store"
-    type: "database"
-    description: "Primary entity store"
-    usedBy:
-      - target: "entity-store"
-        access: "read-write"
-      - target: "publisher"
-        access: "read"
-      - target: "backup"
-        access: "read"
-
-  - name: "entity_change_events"
-    type: "event-stream"
-    description: "Entity change events published on catalog mutations"
-    producedBy: "entity-store"
-    consumedBy:
-      - "event-consumer"
-      - "publisher"
-      - "cache-worker"
-
-external_dependencies:
-  - name: "store-info-service"
-    description: "Store information service outside system boundary"
-    usedBy:
-      - target: "entity-store"
-        description: "Store info for entity context"
-      - target: "registry"
-        description: "Store metadata for catalog routing"
-
-  - name: "workflow-engine"
-    description: "Workflow orchestration engine"
-    usedBy:
-      - target: "publisher-worker"
-        description: "Orchestrates publishing workflows"
-      - target: "feed-worker"
-        description: "Feed ingestion and sync workflows"
+  - name: "Fulfillment"
+    type: "stream-aligned"
+    owns:
+      - "Order Processing"
 
 interactions:
-  - from: "ingestion-team"
-    to: "catalog-core"
+  - from: "Discovery"
+    to: "Storefront"
     mode: "x-as-a-service"
-    via: "Catalog Entity CRUD"
-    description: "Ingestion team writes entities via entity-store's editing service"
+    via: "Catalog Management"
+    description: "Discovery team consumes catalog APIs for indexing"
+
+external_dependencies:
+  - name: "Payment Gateway"
+    description: "Third-party payment processing provider"
+    usedBy:
+      - target: "order-service"
+        description: "Processes credit card and wallet payments"
 ```
 
 **Key schema rules**:
 - **Unidirectional relationships**: Capabilities declare `realizedBy` services (source of truth). Services do NOT declare `supports`. Data assets declare `usedBy` services. External dependencies declare `usedBy` services. Reverse lookups are derived at query time.
 - **Visibility is required**: Every capability should have a `visibility` level for proper UNM value chain rendering.
-- **Hierarchy**: Parent capabilities group children. Only leaf capabilities have `realizedBy`.
-- **Relationship forms**: short string and long object (`target` + `description` + optional `role`) can be mixed freely in any list. The parser treats plain strings as short form.
+- **Hierarchy**: Parent capabilities group children via `children` field. Only leaf capabilities have `realizedBy`.
+- **Relationship forms**: short string and long object (`target` + `description` + optional `role`) can be mixed freely in any list.

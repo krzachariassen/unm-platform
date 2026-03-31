@@ -4,6 +4,10 @@ This guide walks you through writing a `.unm.yaml` model file from scratch.
 It is practical and tutorial-style. For the full reference spec, see
 [UNM_DSL_SPECIFICATION.md](UNM_DSL_SPECIFICATION.md).
 
+> **Tip:** The `.unm` DSL format is more concise and git-friendly. If you're
+> starting fresh, consider using the [DSL Guide](DSL_GUIDE.md) instead. Both
+> formats produce the same internal model and are fully supported.
+
 ---
 
 ## What You're Building
@@ -469,7 +473,9 @@ The platform validates your model on load and reports:
 
 ## Full Example
 
-See [`examples/inca.unm.yaml`](../examples/inca.unm.yaml) for a real-world
-model of a 33-service platform. It demonstrates hierarchical capabilities,
-multiple actors, complex service dependencies, data assets, and external
-dependencies at production scale.
+See [`examples/minimal.unm.yaml`](../examples/minimal.unm.yaml) for a compact
+example demonstrating all YAML format features. For a larger model, see
+[`examples/nexus.unm.yaml`](../examples/nexus.unm.yaml).
+
+For the same concepts expressed in the more concise DSL format, see
+[`examples/bookshelf.unm`](../examples/bookshelf.unm).

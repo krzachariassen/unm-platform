@@ -37,8 +37,19 @@
 - Moved `config/` to top-level (separate from backend/) with actual file list
 - Removed "(7 agents)" count from .claude agents comment (may change)
 
+### 2026-03 -- DSL documentation overhaul
+- Created `docs/DSL_GUIDE.md` as the primary tutorial for writing `.unm` files
+- Created `examples/bookshelf.unm` using the approved BookShelf fictional domain
+- Updated `README.md`: added DSL quick start snippet, fixed project structure tree, updated examples listing
+- Updated `YAML_GUIDE.md`: added tip pointing to DSL Guide, fixed stale example references
+- Updated `UNM_DSL_SPECIFICATION.md`: replaced all INCA/Uber examples with BookShelf domain, fixed interaction syntax (uses `->` not `from/to` keywords), added version/lastModified/author metadata fields, added `parent` flat reference for capabilities, added inline `interacts` on teams, fixed `external` keyword to `external_dependency`
+- Old `inca.unm.yaml` and `inca.unm.v2.yaml` examples no longer exist; replaced by `minimal.unm.yaml`, `bookshelf.unm`, `nexus.unm`, `nexus.unm.yaml`
+- The DSL parser supports both `//` and `#` comments
+- The DSL interaction syntax is `interaction "from" -> "to" { ... }` not `interaction { from ... to ... }`
+- The `supportedBy` field in DSL uses `supportedBy "name"` not `supportedBy capability "name"`
+
 ## Known Gaps
 
-- No getting-started tutorial for new users
-- No "DSL by example" doc that teaches the DSL progressively
 - `inca.unm.extended.yaml` referenced by the debug handler does not exist — the "Load Example" button is broken
+- No tutorial for the What-If Explorer feature
+- No architecture decision records (ADR) documentation

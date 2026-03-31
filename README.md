@@ -6,11 +6,11 @@ UNM Platform turns User Needs Mapping from a workshop artifact into a versionabl
 
 ## What It Does
 
-- **Model** your architecture as code: actors, needs, capabilities, services, teams, and their relationships
+- **Model** your architecture as code in a concise [`.unm` DSL](docs/DSL_GUIDE.md) or YAML: actors, needs, capabilities, services, teams, and their relationships
 - **Analyze** fragmentation, cognitive load, dependency chains, and organizational anti-patterns
 - **Visualize** multiple interactive views: needs, capabilities, realization, ownership, team topologies, UNM map
 - **Edit** models through a smart changeset system with validation and impact preview
-- **Generate** candidate models from real codebases using AI agents
+- **Export** models as `.unm` or `.yaml` for git versioning with automatic version tracking
 - **Advise** with AI-powered architectural insights and recommendations
 
 ## Tech Stack
@@ -58,9 +58,9 @@ backend/                    # Go backend (Clean Architecture)
 │   │   ├── presenter/      # View model transformers for each view type
 │   │   └── repository/     # In-memory stores
 │   └── infrastructure/
-│       ├── parser/         # YAML parser + custom DSL parser (PEG)
+│       ├── parser/         # YAML parser + custom DSL parser
 │       ├── analyzer/       # Analysis engines
-│       ├── serializer/     # YAML export
+│       ├── serializer/     # YAML and DSL export
 │       ├── config/         # Configuration loading (koanf)
 │       └── ai/             # OpenAI integration, prompt templates
 ├── pkg/
@@ -88,13 +88,17 @@ frontend/                   # React frontend
 │   └── types/              # TypeScript type definitions
 
 docs/                       # Project documentation
-├── BACKLOG.md              # Phased product backlog
+├── DSL_GUIDE.md            # Tutorial: writing .unm models (recommended)
+├── YAML_GUIDE.md           # Tutorial: writing .unm.yaml models
 ├── UNM_DSL_SPECIFICATION.md  # Complete DSL syntax and meta-model
-├── YAML_GUIDE.md           # Practical guide to writing .unm.yaml models
+├── BACKLOG.md              # Phased product backlog
 └── CONFIGURATION.md        # Config system reference
 
 examples/                   # Example UNM models
-└── example.unm.yaml        # Reference model
+├── bookshelf.unm           # BookShelf example (DSL format — start here)
+├── minimal.unm.yaml        # Minimal YAML example
+├── nexus.unm               # Large-scale DSL example
+└── nexus.unm.yaml          # Large-scale YAML example
 
 scripts/                    # Utility scripts (publishing, deployment)
 
@@ -116,8 +120,51 @@ cd frontend && npm install && npm run dev
 
 The backend starts on port **8080**, the frontend on port **5173**.
 
-Open http://localhost:5173, go to the Upload page, and drag-drop a `.unm.yaml` file to load a model.
-Example models are available in the `examples/` directory.
+Open http://localhost:5173, go to the Upload page, and drag-drop a `.unm` or `.unm.yaml` file to load a model. Example models are in the `examples/` directory — start with `bookshelf.unm`.
+
+### Parse a model from the CLI
+
+```bash
+cd backend && go run ./cmd/cli/ parse ../examples/bookshelf.unm
+```
+
+### Write your first model
+
+Create a file called `my-platform.unm`:
+
+```unm
+system "My Platform" {
+  description "A quick example to get started"
+}
+
+actor "User" {
+  description "End user of the platform"
+}
+
+need "Do the thing" {
+  actor "User"
+  outcome "The thing is done quickly and reliably"
+  supportedBy "Core Feature"
+}
+
+capability "Core Feature" {
+  description "The main thing the platform does"
+  visibility "user-facing"
+  realizedBy "main-service"
+}
+
+service "main-service" {
+  description "Primary API service"
+  ownedBy "Product Team"
+}
+
+team "Product Team" {
+  type "stream-aligned"
+  description "Owns the core product experience"
+}
+```
+
+See the [DSL Guide](docs/DSL_GUIDE.md) for the full tutorial.
 
 ### AI Features (optional)
 
