@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useModel } from '@/lib/model-context'
+import { useChangeset } from '@/lib/changeset-context'
 import type { ChangeAction } from '@/lib/api'
 
 // Model entity lists fetched once and cached for dropdown population
@@ -16,7 +17,8 @@ export interface ModelEntities {
 
 export function useModelEntities(): ModelEntities {
   const { modelId } = useModel()
-  const [entities, setEntities] = useState<ModelEntities>({ teams: [], services: [], capabilities: [], needs: [], actors: [] })
+  const { actions } = useChangeset()
+  const [fetched, setFetched] = useState<ModelEntities>({ teams: [], services: [], capabilities: [], needs: [], actors: [] })
 
   useEffect(() => {
     if (!modelId) return
@@ -27,11 +29,35 @@ export function useModelEntities(): ModelEntities {
       api.getNeeds(modelId).then(r => r.needs.map(n => n.name)),
       api.getActors(modelId).then(r => r.actors.map(a => a.name)),
     ]).then(([teams, services, capabilities, needs, actors]) => {
-      setEntities({ teams, services, capabilities, needs, actors })
+      setFetched({ teams, services, capabilities, needs, actors })
     }).catch(() => {})
   }, [modelId])
 
-  return entities
+  // Merge pending add_* actions so newly staged entities appear in dropdowns immediately
+  return useMemo(() => {
+    const pendingCaps: string[] = []
+    const pendingTeams: string[] = []
+    const pendingServices: string[] = []
+    const pendingNeeds: string[] = []
+    const pendingActors: string[] = []
+
+    for (const a of actions) {
+      const ac = a as unknown as Record<string, unknown>
+      if (a.type === 'add_capability' && typeof ac.capability_name === 'string') pendingCaps.push(ac.capability_name)
+      if (a.type === 'add_team'       && typeof ac.team_name        === 'string') pendingTeams.push(ac.team_name)
+      if (a.type === 'add_service'    && typeof ac.service_name     === 'string') pendingServices.push(ac.service_name)
+      if (a.type === 'add_need'       && typeof ac.need_name        === 'string') pendingNeeds.push(ac.need_name)
+      if (a.type === 'add_actor'      && typeof ac.actor_name       === 'string') pendingActors.push(ac.actor_name)
+    }
+
+    return {
+      teams:        [...new Set([...fetched.teams,        ...pendingTeams])],
+      services:     [...new Set([...fetched.services,     ...pendingServices])],
+      capabilities: [...new Set([...fetched.capabilities, ...pendingCaps])],
+      needs:        [...new Set([...fetched.needs,        ...pendingNeeds])],
+      actors:       [...new Set([...fetched.actors,       ...pendingActors])],
+    }
+  }, [fetched, actions])
 }
 
 type ActionType = ChangeAction['type']

@@ -657,29 +657,33 @@ export function UNMMapView() {
           ]
         : []
       const uniqueTeamsForPanel = [...new Set((node.svcs ?? []).map(s => s.teamName).filter(Boolean))]
+      const isPendingNode = node.id.startsWith('pending:')
       setPanel({
-        title: node.label, badge: { text: cfg?.label ?? node.vis ?? '', color: cfg?.border ?? '#94a3b8' },
+        title: node.label, badge: { text: isPendingNode ? 'Pending' : (cfg?.label ?? node.vis ?? ''), color: isPendingNode ? '#f59e0b' : (cfg?.border ?? '#94a3b8') },
         fields: [
+          ...(isPendingNode ? [{ label: '⏳ Status', value: 'This capability is staged but not yet committed. Use "Link Capability to Service" (+ More) to add a service before committing.' }] : []),
           { label: 'Description', value: node.description ?? '' },
           { label: 'Visibility', value: node.vis ?? '' },
           { label: 'Owning Team', value: node.team?.label ?? 'Unowned' },
           { label: 'Team Type', value: node.team?.type ?? '' },
-          { label: 'Realized By', value: svcsText },
+          { label: 'Realized By', value: svcsText || 'No service linked yet' },
           ...(node.crossTeam ? [{ label: '⚠ Multi-team', value: `Services owned by ${uniqueTeamsForPanel.length} different teams: ${uniqueTeamsForPanel.join(', ')}` }] : []),
           ...(node.isFragmented ? [{ label: '⚠ Fragmented', value: 'Multiple teams own services for this capability — consider consolidating ownership' }] : []),
           ...aiFields,
         ],
       })
-      setEditState({
-        capLabel: node.label,
-        description: node.description ?? '',
-        visibility: node.vis ?? 'foundational',
-        teamName: node.team?.label ?? '',
-        origDescription: node.description ?? '',
-        origVisibility: node.vis ?? 'foundational',
-        origTeam: node.team?.label ?? '',
-        svcs: node.svcs ?? [],
-      })
+      if (!isPendingNode) {
+        setEditState({
+          capLabel: node.label,
+          description: node.description ?? '',
+          visibility: node.vis ?? 'foundational',
+          teamName: node.team?.label ?? '',
+          origDescription: node.description ?? '',
+          origVisibility: node.vis ?? 'foundational',
+          origTeam: node.team?.label ?? '',
+          svcs: node.svcs ?? [],
+        })
+      }
     }
 
     setHighlight(computeChain(node.id, node.type, chainData))
@@ -955,7 +959,7 @@ export function UNMMapView() {
                         ? '0 0 8px rgba(239,68,68,0.3)'
                         : undefined }}
                     title={isEditMode ? 'Click to edit' : node.label}
-                    onClick={e => { e.stopPropagation(); if (!isVirtualPending) openNodePanel(node) }}
+                    onClick={e => { e.stopPropagation(); openNodePanel(node) }}
                   >
                     <div style={{ fontSize: 10, fontWeight: 600, color: cfg.text, padding: '5px 8px 2px', lineHeight: 1.3 }}>
                       {node.label}
