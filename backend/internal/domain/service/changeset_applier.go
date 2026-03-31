@@ -222,9 +222,14 @@ func applyMergeTeams(m *entity.UNMModel, action entity.ChangeAction) error {
 
 func applyAddCapability(m *entity.UNMModel, action entity.ChangeAction) error {
 	capID, _ := valueobject.NewEntityID(action.CapabilityName)
+	vis := action.Visibility
+	if vis == "" {
+		vis = entity.CapVisibilityDomain
+	}
 	cap := &entity.Capability{
 		ID:         capID,
 		Name:       action.CapabilityName,
+		Visibility: vis,
 		Children:   []*entity.Capability{},
 		RealizedBy: []entity.Relationship{},
 		DependsOn:  []entity.Relationship{},

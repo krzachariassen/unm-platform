@@ -246,7 +246,7 @@ function buildLayout(
   const bandMaxH: Record<string, number> = {}
   for (const vis of VIS_ORDER) {
     bandMaxH[vis] = MIN_BAND_H
-    const visCaps = caps.filter(c => ((c.data.visibility as string) ?? 'foundational') === vis)
+    const visCaps = caps.filter(c => ((c.data.visibility as string) || 'domain') === vis)
     for (const cap of visCaps) {
       const svcs = capToSvcs.get(cap.id) ?? []
       const h = capCardHeight(svcs.length, cap.label.length) + CAP_BAND_PAD * 2
@@ -267,7 +267,7 @@ function buildLayout(
   let maxCapRight = needsWidth
   for (const vis of VIS_ORDER) {
     const visCaps = caps
-      .filter(c => ((c.data.visibility as string) ?? 'foundational') === vis)
+      .filter(c => ((c.data.visibility as string) || 'domain') === vis)
       .sort((a, b) => (capCentroid.get(a.id) ?? 0) - (capCentroid.get(b.id) ?? 0))
     let capCursor = PAD_X
     for (const cap of visCaps) {
@@ -299,7 +299,7 @@ function buildLayout(
   for (const cap of caps) {
     const x = capX.get(cap.id)
     if (x === undefined) continue
-    const vis = (cap.data.visibility as string) ?? 'foundational'
+    const vis = (cap.data.visibility as string) || 'domain'
     const band = bandByVis[vis] ?? bandByVis['infrastructure']
     const svcs = capToSvcs.get(cap.id) ?? []
     const cardH = capCardHeight(svcs.length, cap.label.length)
@@ -438,7 +438,7 @@ export function UNMMapView() {
         const ac = a as unknown as Record<string, unknown>
         const name = String(ac.capability_name ?? '')
         const team = String(ac.owner_team_name ?? '')
-        const vis  = String(ac.visibility ?? 'domain')
+        const vis  = String(ac.visibility || 'domain')
         return {
           id: `pending:${name}`, label: name, type: 'capability',
           data: { visibility: vis, team_label: team, team_type: '', services: [], isPending: true },
