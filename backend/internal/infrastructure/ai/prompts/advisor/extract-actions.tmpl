@@ -81,7 +81,7 @@ Required: type, service_name, depends_on_service
 {{end}}{{else}}No services.{{end}}
 
 ### Capabilities
-{{if .Capabilities}}{{range .Capabilities}}- {{.Name}} ({{.Visibility}}) owners=[{{range .OwnerTeams}}{{.}}, {{end}}] realizedBy=[{{range .RealizingServices}}{{.}}, {{end}}]
+{{if .Capabilities}}{{range .Capabilities}}- {{.Name}} ({{.Visibility}}) owners=[{{range .OwnerTeams}}{{.}}, {{end}}] realizes=[{{range .RealizingServices}}{{.}}, {{end}}]
 {{end}}{{else}}No capabilities.{{end}}
 
 ## Advisor Recommendation to Extract Actions From

@@ -18,6 +18,7 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
+- [x] **refactor(phase-10): 10.6-10.8** — Clean up examples, AI templates, README: rewrote bookshelf.unm to use `realizes` on services (removed `realizedBy` from capability blocks); verified nexus.unm.yaml is already v2-clean; updated extract-actions.tmpl and recommendations.tmpl display strings from `realizedBy` to `realizes`; verified ai_context_builder.go has no user-facing `realizedBy`; updated README DSL example to v2 pattern (2026-04-02)
 - [x] **refactor(phase-10): 10.1-10.5** — Model Freeze: removed capability.realizedBy, capability.ownedBy, top-level interactions:, external_dependencies.usedBy, scenarios, signals, pain_points, inferred, need.scenario, service.type/supports/dataAssets/externalDependsOn from YAML parser; updated all tests and testdata; fixed inca.unm.yaml reference in dsl_serializer_test.go (2026-04-02)
 - [x] **refactor(phase-10): 10.2** — Removed realizedBy keyword from DSL grammar, RealizedBy field from CapabilityNode AST, transformer processing; updated DSL grammar/transformer tests (2026-04-02)
 - [x] **refactor(phase-10): 10.3** — Removed top-level interactions: from YAML parser (addInteractions, yamlInteraction struct); kept standalone DSL arrow syntax (ergonomic); updated test fixtures (2026-04-02)
@@ -102,13 +103,13 @@ After this phase, only v2 patterns exist in parsers, serializers, tests, and exa
 
 ### 10.6 — Clean Up Examples
 
-- [ ] **10.6.1** — Rewrite `examples/bookshelf.unm` to v2 format (currently
+- [x] **10.6.1** — Rewrite `examples/bookshelf.unm` to v2 format (currently
       uses `realizedBy` on capabilities only).
       _File: `examples/bookshelf.unm`_ (#docs)
-- [ ] **10.6.2** — Rewrite `examples/nexus.unm.yaml` to v2-only format
+- [x] **10.6.2** — Rewrite `examples/nexus.unm.yaml` to v2-only format
       (verify no legacy patterns remain).
       _File: `examples/nexus.unm.yaml`_ (#docs)
-- [ ] **10.6.3** — Deduplicate multi-actor needs in example files (backlog
+- [x] **10.6.3** — Deduplicate multi-actor needs in example files (backlog
       item 9.11.9). _Files: `examples/*.unm.yaml`_ (#docs)
 - [x] **10.6.4** — Remove or update `examples/inca.unm` if it uses legacy
       patterns. Verify `inca.unm.yaml` references in `CLAUDE.md`,
@@ -118,18 +119,18 @@ After this phase, only v2 patterns exist in parsers, serializers, tests, and exa
 
 ### 10.7 — Clean Up AI Templates
 
-- [ ] **10.7.1** — Update `extract-actions.tmpl` wording from `realizedBy`
+- [x] **10.7.1** — Update `extract-actions.tmpl` wording from `realizedBy`
       to `realizes` (display string). Review all AI prompt templates for
       legacy terminology.
       _File: `ai/prompts/`_ (#backend)
-- [ ] **10.7.2** — Review `ai_context_builder.go` field naming:
+- [x] **10.7.2** — Review `ai_context_builder.go` field naming:
       `RealizingServices` is fine, but confirm no user-facing output still
       says "realizedBy".
       _File: `usecase/ai_context_builder.go`_ (#backend)
 
 ### 10.8 — Clean Up README
 
-- [ ] **10.8.1** — Update README.md DSL example: change `realizedBy` to
+- [x] **10.8.1** — Update README.md DSL example: change `realizedBy` to
       `realizes` on service block.
       _File: `README.md`_ (#docs)
 
