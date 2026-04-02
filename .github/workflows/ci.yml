@@ -39,3 +39,6 @@ jobs:
       - name: Build (tsc -b + vite build)
         run: npm run build
         working-directory: frontend
+      - name: Test
+        run: npm run test
+        working-directory: frontend

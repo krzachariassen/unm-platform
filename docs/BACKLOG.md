@@ -4,7 +4,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-02 (Phase 11 docs complete)_
+_Last updated: 2026-04-02 (Phase 12 frontend tests in CI complete)_
 _Priority: Phase 10 (model freeze) → Phase 11 (docs) → Phase 12 (tests/CI)
 → Phase 13 (code quality) → Phase 14 (persistence) → Phase 15 (auth/tenancy)
 → Phase 16 (collaboration) → Phase 17 (hardening) → Phase 18 (ecosystem)._
@@ -18,6 +18,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
+- [x] **test(phase-12): 12.6.1-12.6.3** — Frontend tests in CI: added `npm run test` step to `.github/workflows/ci.yml`; smoke tests for NeedView, TeamTopologyView, OwnershipView, RealizationView, CognitiveLoadView, DashboardPage, UploadPage (69 tests total across 16 test files, all passing) (2026-04-02)
+- [x] **test(phase-12): 12.1-12.3, 12.5** — Test infrastructure: golden model fixtures for need/capability/ownership/team-topology views (nexus.unm.yaml source, UPDATE_GOLDEN=1 workflow); commit endpoint HTTP tests + UpdatesStoredModel; ChangesetStore CRUD tests; cross-format round-trip (DSL→YAML→model comparison); validation severity levels (error/warning/info) + orphan entity diagnostics (InfoOrphanActor, InfoOrphanTeam); DSL transformer warning parity for unresolved realizes and team interaction targets (2026-04-02)
 - [x] **docs(phase-11): 11.1-11.5** — Documentation alignment: rewrote UNM_DSL_SPECIFICATION.md to v2-only (service.realizes, team.interacts, external deps definition-only, removed realizedBy/usedBy/interactions/scenarios); rewrote YAML_GUIDE.md and DSL_GUIDE.md to v2-only patterns; created META_MODEL_REFERENCE.md (authored vs derived fields, v2 removal table); fixed inca.unm.yaml → nexus.unm.yaml in CLAUDE.md and CONFIGURATION.md (2026-04-02)
 - [x] **refactor(phase-10): 10.6-10.8** — Clean up examples, AI templates, README: rewrote bookshelf.unm to use `realizes` on services (removed `realizedBy` from capability blocks); verified nexus.unm.yaml is already v2-clean; updated extract-actions.tmpl and recommendations.tmpl display strings from `realizedBy` to `realizes`; verified ai_context_builder.go has no user-facing `realizedBy`; updated README DSL example to v2 pattern (2026-04-02)
 - [x] **refactor(phase-10): 10.1-10.5** — Model Freeze: removed capability.realizedBy, capability.ownedBy, top-level interactions:, external_dependencies.usedBy, scenarios, signals, pain_points, inferred, need.scenario, service.type/supports/dataAssets/externalDependsOn from YAML parser; updated all tests and testdata; fixed inca.unm.yaml reference in dsl_serializer_test.go (2026-04-02)
@@ -214,11 +216,11 @@ All golden tests use `nexus.unm` (DSL format) as the input model — DSL is
 the primary authoring format. Golden output files are `.json` because they
 capture the expected REST API response shape (what the handler returns).
 
-- [ ] **12.1.1** — Create `testdata/golden/nexus-need-view.json` — expected
+- [x] **12.1.1** — Create `testdata/golden/nexus-need-view.json` — expected
       enriched need view API response for `nexus.unm`. Snapshot test: parse
       DSL → call handler → compare JSON output against golden file.
       _Files: `testdata/golden/`, `handler/view_test.go`_ (#backend)
-- [ ] **12.1.2** — Create golden fixtures for: capability view, ownership
+- [x] **12.1.2** — Create golden fixtures for: capability view, ownership
       view, team-topology view, cognitive-load view, signals view.
       _File: `testdata/golden/`_ (#backend)
 - [ ] **12.1.3** — Create golden fixtures for analyzer outputs: fragmentation,
@@ -227,18 +229,18 @@ capture the expected REST API response shape (what the handler returns).
 
 ### 12.2 — Missing Backend Tests
 
-- [ ] **12.2.1** — Add HTTP tests for changeset commit endpoint
+- [x] **12.2.1** — Add HTTP tests for changeset commit endpoint
       (`POST .../commit`). Test: valid commit, conflict (409), validation
       failure.
       _File: `handler/changeset_test.go`_ (#backend)
-- [ ] **12.2.2** — Add `changeset_store_test.go` — dedicated tests for
+- [x] **12.2.2** — Add `changeset_store_test.go` — dedicated tests for
       ChangesetStore CRUD and cascade delete.
       _File: `adapter/repository/changeset_store_test.go`_ (#backend)
-- [ ] **12.2.3** — Add round-trip test: parse `nexus.unm` (DSL) → serialize
+- [x] **12.2.3** — Add round-trip test: parse `nexus.unm` (DSL) → serialize
       to DSL → parse again → compare models field-by-field. This is the
       primary round-trip path. Fix `dsl_serializer_test.go` skip-if-missing.
       _File: `serializer/dsl_serializer_test.go`_ (#backend)
-- [ ] **12.2.4** — Add cross-format round-trip test: parse `nexus.unm` (DSL)
+- [x] **12.2.4** — Add cross-format round-trip test: parse `nexus.unm` (DSL)
       → serialize to YAML → parse YAML → compare models. Verifies format
       interop produces identical domain models.
       _File: `serializer/yaml_serializer_test.go`_ (#backend)
@@ -248,38 +250,38 @@ capture the expected REST API response shape (what the handler returns).
 Review 2 §6: "Reference validation is still relatively shallow." Improve
 error quality to support real authoring at scale.
 
-- [ ] **12.3.1** — Add error locality: validation errors should include
+- [x] **12.3.1** — Add error locality: validation errors should include
       the entity name and field where the broken reference occurs, not just
       "unresolved reference to X".
       _File: `domain/service/validation_engine.go`_ (#backend)
-- [ ] **12.3.2** — Distinguish "missing entity" from "model incomplete":
+- [x] **12.3.2** — Distinguish "missing entity" from "model incomplete":
       if a capability has no `realizedBy` relationships, is that a gap or
       just an incomplete model? Add severity levels (error vs warning vs
       info) based on model completeness context.
       _File: `domain/service/validation_engine.go`_ (#backend)
-- [ ] **12.3.3** — Add validation for orphaned entities: services not
+- [x] **12.3.3** — Add validation for orphaned entities: services not
       referenced by any capability, teams that own nothing, actors with no
       needs. Surface as info-level diagnostics.
       _File: `domain/service/validation_engine.go`_ (#backend)
 
 ### 12.5 — DSL Parser Warning Parity
 
-- [ ] **12.5.1** — Add `Warnings` population to DSL parser (parity with
+- [x] **12.5.1** — Add `Warnings` population to DSL parser (parity with
       YAML parser). Unresolved references, unknown fields should produce
       warnings on `.unm` files too.
       _File: `parser/dsl/transformer.go`_ (#backend)
-- [ ] **12.5.2** — Tests for DSL warning output.
+- [x] **12.5.2** — Tests for DSL warning output.
       _File: `parser/dsl/transformer_test.go`_ (#backend)
 
 ### 12.6 — Frontend Tests in CI
 
-- [ ] **12.6.1** — Add `npm run test -- --run` (non-watch mode) to
+- [x] **12.6.1** — Add `npm run test -- --run` (non-watch mode) to
       `.github/workflows/ci.yml` frontend job.
       _File: `.github/workflows/ci.yml`_ (#infra)
-- [ ] **12.6.2** — Add smoke tests for untested views: NeedView,
+- [x] **12.6.2** — Add smoke tests for untested views: NeedView,
       TeamTopologyView, OwnershipView, RealizationView, CognitiveLoadView.
       _File: `frontend/src/pages/views/`_ (#frontend)
-- [ ] **12.6.3** — Add smoke tests for DashboardPage and UploadPage.
+- [x] **12.6.3** — Add smoke tests for DashboardPage and UploadPage.
       _File: `frontend/src/pages/`_ (#frontend)
 - [ ] **12.6.4** — Add smoke tests for WhatIfPage and AdvisorPage.
       _File: `frontend/src/pages/`_ (#frontend)

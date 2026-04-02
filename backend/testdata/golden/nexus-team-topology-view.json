@@ -1,0 +1,482 @@
+{
+  "interactions": [
+    {
+      "description": "nexus-async-writer (owned by nexus-core-dev) writes entities via EntityService on Kafka consume",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-core-dev",
+      "target_id": "team-nexus-core-dev",
+      "via": "Async Entity Writing"
+    },
+    {
+      "description": "nexus-feed-worker calls CacheWorkerService to invalidate and regenerate caches after feed changes",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-ingestion-dev",
+      "target_id": "team-nexus-conversion-dev",
+      "via": "Catalog Cache Generation"
+    },
+    {
+      "description": "Feed workers and feed-api read/write catalog entities through nexus-core's EntityService",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-ingestion-dev",
+      "target_id": "team-nexus-core-dev",
+      "via": "Entity CRUD \u0026 Lifecycle"
+    },
+    {
+      "description": "nexus-warehouse-ingester is part of the ingestion team's portfolio, writing warehouse entities to nexus-core",
+      "mode": "collaboration",
+      "source_id": "team-nexus-ingestion-dev",
+      "target_id": "team-nexus-ingestion-dev",
+      "via": "Warehouse Data Ingestion"
+    },
+    {
+      "description": "nexus-feed-worker triggers entity publishing via PublisherService after writing feed entities",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-ingestion-dev",
+      "target_id": "team-nexus-publisher-dev",
+      "via": "Entity Publishing \u0026 Validation"
+    },
+    {
+      "description": "nexus-anomaly-detector calls CacheWorkerService to access cached catalog baseline data",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-observability-dev",
+      "target_id": "team-nexus-conversion-dev",
+      "via": "Catalog Cache Generation"
+    },
+    {
+      "description": "nexus-backup reads all entities via ScanCatalog and writes them back on restore",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-observability-dev",
+      "target_id": "team-nexus-core-dev",
+      "via": "Entity CRUD \u0026 Lifecycle"
+    },
+    {
+      "description": "Publisher and entity-builder read entities from nexus-core before publishing and construction",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-publisher-dev",
+      "target_id": "team-nexus-core-dev",
+      "via": "Entity CRUD \u0026 Lifecycle"
+    },
+    {
+      "description": "nexus-publisher-worker queries nexus-realtime-stats before making publishing decisions",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-publisher-dev",
+      "target_id": "team-nexus-observability-dev",
+      "via": "Anomaly Detection \u0026 Statistical Analysis"
+    },
+    {
+      "description": "nexus-transformer and nexus-indexer read and write entities via nexus-core's EntityService",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-quality-dev",
+      "target_id": "team-nexus-core-dev",
+      "via": "Entity CRUD \u0026 Lifecycle"
+    },
+    {
+      "description": "nexus-query (nexus-quality-dev) depends on the index built by nexus-indexer-worker (nexus-core-dev)",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-quality-dev",
+      "target_id": "team-nexus-core-dev",
+      "via": "Product Indexing"
+    },
+    {
+      "description": "Serving-ingestor reads full entity details from nexus-core when processing change notifications",
+      "mode": "x-as-a-service",
+      "source_id": "team-nexus-serving-dev",
+      "target_id": "team-nexus-core-dev",
+      "via": "Entity CRUD \u0026 Lifecycle"
+    },
+    {
+      "description": "nexus-social-ingester (owned by partner-eng) triggers PrePublish workflow via nexus-publisher",
+      "mode": "x-as-a-service",
+      "source_id": "team-partner-eng",
+      "target_id": "team-nexus-publisher-dev",
+      "via": "Entity Publishing \u0026 Validation"
+    }
+  ],
+  "teams": [
+    {
+      "capabilities": [
+        "Catalog Cache Generation",
+        "Data Transformation \u0026 Conversion"
+      ],
+      "capability_count": 2,
+      "description": "Owns catalog cache generation and model conversion workflows; aligned to the catalog-to-listing data pipeline and serving cache population.\n",
+      "id": "team-nexus-conversion-dev",
+      "interactions": [
+        {
+          "description": "nexus-feed-worker calls CacheWorkerService to invalidate and regenerate caches after feed changes",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-conversion-dev",
+          "via": "Catalog Cache Generation"
+        },
+        {
+          "description": "nexus-anomaly-detector calls CacheWorkerService to access cached catalog baseline data",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-observability-dev",
+          "target_id": "team-nexus-conversion-dev",
+          "via": "Catalog Cache Generation"
+        }
+      ],
+      "is_overloaded": false,
+      "label": "nexus-conversion-dev",
+      "service_count": 2,
+      "services": [
+        "nexus-cache-worker",
+        "nexus-conversion-worker"
+      ],
+      "type": "stream-aligned"
+    },
+    {
+      "anti_patterns": [
+        {
+          "code": "overloaded",
+          "message": "Team cognitive load exceeds threshold",
+          "severity": "warning"
+        }
+      ],
+      "capabilities": [
+        "Administrative \u0026 Bulk Operations",
+        "Async Entity Writing",
+        "Entity CRUD \u0026 Lifecycle",
+        "Entity Change Event Emission",
+        "Object Storage",
+        "Product Indexing",
+        "Registry \u0026 Configuration Management"
+      ],
+      "capability_count": 7,
+      "description": "Owns the authoritative catalog entity store (nexus-core) and its immediate platform support services. Acts as an internal platform providing Entity CRUD to all other Nexus teams and to external teams via x-as-a-service. Also owns async entity writing infrastructure.\n",
+      "id": "team-nexus-core-dev",
+      "interactions": [
+        {
+          "description": "nexus-async-writer (owned by nexus-core-dev) writes entities via EntityService on Kafka consume",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-core-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Async Entity Writing"
+        },
+        {
+          "description": "nexus-async-writer (owned by nexus-core-dev) writes entities via EntityService on Kafka consume",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-core-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Async Entity Writing"
+        },
+        {
+          "description": "Feed workers and feed-api read/write catalog entities through nexus-core's EntityService",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "nexus-backup reads all entities via ScanCatalog and writes them back on restore",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-observability-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "Publisher and entity-builder read entities from nexus-core before publishing and construction",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-publisher-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "nexus-transformer and nexus-indexer read and write entities via nexus-core's EntityService",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-quality-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "nexus-query (nexus-quality-dev) depends on the index built by nexus-indexer-worker (nexus-core-dev)",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-quality-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Product Indexing"
+        },
+        {
+          "description": "Serving-ingestor reads full entity details from nexus-core when processing change notifications",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-serving-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        }
+      ],
+      "is_overloaded": true,
+      "label": "nexus-core-dev",
+      "service_count": 7,
+      "services": [
+        "nexus-admin",
+        "nexus-async-writer",
+        "nexus-blob",
+        "nexus-core",
+        "nexus-indexer",
+        "nexus-indexer-worker",
+        "nexus-registry"
+      ],
+      "type": "platform"
+    },
+    {
+      "capabilities": [
+        "Feed Ingestion \u0026 Processing",
+        "Feed Submission \u0026 Job Tracking",
+        "Media Processing \u0026 Management",
+        "Warehouse Data Ingestion"
+      ],
+      "capability_count": 4,
+      "description": "Owns the seller feed ingestion pipeline end-to-end: feed API, feed processing workers, media handling, and warehouse data ingestion. Aligned to the seller feed submission and data ingestion flow.\n",
+      "id": "team-nexus-ingestion-dev",
+      "interactions": [
+        {
+          "description": "nexus-feed-worker calls CacheWorkerService to invalidate and regenerate caches after feed changes",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-conversion-dev",
+          "via": "Catalog Cache Generation"
+        },
+        {
+          "description": "Feed workers and feed-api read/write catalog entities through nexus-core's EntityService",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "nexus-warehouse-ingester is part of the ingestion team's portfolio, writing warehouse entities to nexus-core",
+          "mode": "collaboration",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-ingestion-dev",
+          "via": "Warehouse Data Ingestion"
+        },
+        {
+          "description": "nexus-warehouse-ingester is part of the ingestion team's portfolio, writing warehouse entities to nexus-core",
+          "mode": "collaboration",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-ingestion-dev",
+          "via": "Warehouse Data Ingestion"
+        },
+        {
+          "description": "nexus-feed-worker triggers entity publishing via PublisherService after writing feed entities",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-publisher-dev",
+          "via": "Entity Publishing \u0026 Validation"
+        }
+      ],
+      "is_overloaded": false,
+      "label": "nexus-ingestion-dev",
+      "service_count": 5,
+      "services": [
+        "nexus-feed-adhoc-worker",
+        "nexus-feed-api",
+        "nexus-feed-worker",
+        "nexus-media",
+        "nexus-warehouse-ingester"
+      ],
+      "type": "stream-aligned"
+    },
+    {
+      "capabilities": [
+        "Anomaly Detection \u0026 Statistical Analysis",
+        "Backup \u0026 Point-in-Time Recovery",
+        "Issue Tracking \u0026 Management",
+        "Platform Health Monitoring"
+      ],
+      "capability_count": 4,
+      "description": "Owns statistical anomaly detection, real-time monitoring, issue tracking, backup/restore, and platform health status. Specializes in the deep statistics and reliability capabilities that underpin catalog quality guarantees.\n",
+      "id": "team-nexus-observability-dev",
+      "interactions": [
+        {
+          "description": "nexus-anomaly-detector calls CacheWorkerService to access cached catalog baseline data",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-observability-dev",
+          "target_id": "team-nexus-conversion-dev",
+          "via": "Catalog Cache Generation"
+        },
+        {
+          "description": "nexus-backup reads all entities via ScanCatalog and writes them back on restore",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-observability-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "nexus-publisher-worker queries nexus-realtime-stats before making publishing decisions",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-publisher-dev",
+          "target_id": "team-nexus-observability-dev",
+          "via": "Anomaly Detection \u0026 Statistical Analysis"
+        }
+      ],
+      "is_overloaded": false,
+      "label": "nexus-observability-dev",
+      "service_count": 5,
+      "services": [
+        "nexus-anomaly-detector",
+        "nexus-backup",
+        "nexus-issue-store",
+        "nexus-realtime-stats",
+        "nexus-status"
+      ],
+      "type": "complicated-subsystem"
+    },
+    {
+      "capabilities": [
+        "Debug Interface",
+        "Operational CLI Tooling"
+      ],
+      "capability_count": 2,
+      "description": "Owns operational tooling and developer-facing catalog interfaces. Primary focus: operational migration workflows, catalog tooling, and developer experience interfaces (MCP, CLI).\n",
+      "id": "team-nexus-platform-dev",
+      "interactions": [],
+      "is_overloaded": false,
+      "label": "nexus-platform-dev",
+      "service_count": 2,
+      "services": [
+        "nexus-mcp",
+        "nexus-tool"
+      ],
+      "type": "stream-aligned"
+    },
+    {
+      "capabilities": [
+        "Data Scrubbing \u0026 Cleanup",
+        "Entity Construction",
+        "Entity Publishing \u0026 Validation",
+        "Product Entity Enrichment"
+      ],
+      "capability_count": 4,
+      "description": "Owns entity publishing, validation, and downstream enrichment services including entity construction, async writes, and data scrubbing. Aligned to the entity publishing and distribution flow.\n",
+      "id": "team-nexus-publisher-dev",
+      "interactions": [
+        {
+          "description": "nexus-feed-worker triggers entity publishing via PublisherService after writing feed entities",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-ingestion-dev",
+          "target_id": "team-nexus-publisher-dev",
+          "via": "Entity Publishing \u0026 Validation"
+        },
+        {
+          "description": "Publisher and entity-builder read entities from nexus-core before publishing and construction",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-publisher-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "nexus-publisher-worker queries nexus-realtime-stats before making publishing decisions",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-publisher-dev",
+          "target_id": "team-nexus-observability-dev",
+          "via": "Anomaly Detection \u0026 Statistical Analysis"
+        },
+        {
+          "description": "nexus-social-ingester (owned by partner-eng) triggers PrePublish workflow via nexus-publisher",
+          "mode": "x-as-a-service",
+          "source_id": "team-partner-eng",
+          "target_id": "team-nexus-publisher-dev",
+          "via": "Entity Publishing \u0026 Validation"
+        }
+      ],
+      "is_overloaded": false,
+      "label": "nexus-publisher-dev",
+      "service_count": 6,
+      "services": [
+        "nexus-async",
+        "nexus-enricher",
+        "nexus-entity-builder",
+        "nexus-publisher",
+        "nexus-publisher-worker",
+        "nexus-scrubber"
+      ],
+      "type": "stream-aligned"
+    },
+    {
+      "capabilities": [
+        "Data Transformation \u0026 Conversion",
+        "Indexed Product Query"
+      ],
+      "capability_count": 2,
+      "description": "Nexus sub-team that owns quality frameworks, enrichers, validators, indexed query, catalog indexing, and data transformation pipeline. Provides specialized indexing and transformation capabilities to the Nexus platform.\n",
+      "id": "team-nexus-quality-dev",
+      "interactions": [
+        {
+          "description": "nexus-transformer and nexus-indexer read and write entities via nexus-core's EntityService",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-quality-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "description": "nexus-query (nexus-quality-dev) depends on the index built by nexus-indexer-worker (nexus-core-dev)",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-quality-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Product Indexing"
+        }
+      ],
+      "is_overloaded": false,
+      "label": "nexus-quality-dev",
+      "service_count": 2,
+      "services": [
+        "nexus-query",
+        "nexus-transformer"
+      ],
+      "type": "complicated-subsystem"
+    },
+    {
+      "capabilities": [
+        "Real-time Product Serving",
+        "Serving Data Synchronization"
+      ],
+      "capability_count": 2,
+      "description": "Owns the shopper-facing serving layer: the CatalogServing API, the serving gateway, and the serving-ingestor that keeps serving data synchronized. Aligned to the consumer read path.\n",
+      "id": "team-nexus-serving-dev",
+      "interactions": [
+        {
+          "description": "Serving-ingestor reads full entity details from nexus-core when processing change notifications",
+          "mode": "x-as-a-service",
+          "source_id": "team-nexus-serving-dev",
+          "target_id": "team-nexus-core-dev",
+          "via": "Entity CRUD \u0026 Lifecycle"
+        }
+      ],
+      "is_overloaded": false,
+      "label": "nexus-serving-dev",
+      "service_count": 3,
+      "services": [
+        "nexus-serving",
+        "nexus-serving-gateway",
+        "nexus-serving-ingestor"
+      ],
+      "type": "stream-aligned"
+    },
+    {
+      "capabilities": [
+        "Social Media Content Ingestion"
+      ],
+      "capability_count": 1,
+      "description": "External partner team that owns the social media content ingestion service (nexus-social-ingester). Deploys and operates a service within the Nexus platform boundary but is not part of the Nexus org.\n",
+      "id": "team-partner-eng",
+      "interactions": [
+        {
+          "description": "nexus-social-ingester (owned by partner-eng) triggers PrePublish workflow via nexus-publisher",
+          "mode": "x-as-a-service",
+          "source_id": "team-partner-eng",
+          "target_id": "team-nexus-publisher-dev",
+          "via": "Entity Publishing \u0026 Validation"
+        }
+      ],
+      "is_overloaded": false,
+      "label": "partner-eng",
+      "service_count": 1,
+      "services": [
+        "nexus-social-ingester"
+      ],
+      "type": "stream-aligned"
+    }
+  ],
+  "view_type": "team-topology"
+}

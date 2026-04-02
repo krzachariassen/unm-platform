@@ -1,0 +1,422 @@
+{
+  "groups": [
+    {
+      "actor": {
+        "id": "actor-Downstream Platform Team",
+        "label": "Downstream Platform Team"
+      },
+      "needs": [
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "infrastructure"
+              },
+              "id": "cap-Entity Change Event Emission",
+              "label": "Entity Change Event Emission"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "Downstream systems can subscribe to catalog change events and react in near-real-time when entities are created, updated, or deleted, keeping their own data synchronized without polling.\n",
+              "team_span": 1,
+              "teams": [
+                "nexus-core-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Receive real-time notifications of catalog entity changes",
+            "label": "Receive real-time notifications of catalog entity changes"
+          }
+        },
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "foundational"
+              },
+              "id": "cap-Entity CRUD \u0026 Lifecycle",
+              "label": "Entity CRUD \u0026 Lifecycle"
+            },
+            {
+              "data": {
+                "visibility": "user-facing"
+              },
+              "id": "cap-Indexed Product Query",
+              "label": "Indexed Product Query"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "A downstream team can call Nexus APIs to read catalog entities with high availability and consistent data, enabling them to build pricing, availability, and storefront features without worrying about stale or missing data.\n",
+              "team_span": 2,
+              "teams": [
+                "nexus-core-dev",
+                "nexus-quality-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Reliably access current catalog data to build downstream features",
+            "label": "Reliably access current catalog data to build downstream features"
+          }
+        }
+      ]
+    },
+    {
+      "actor": {
+        "id": "actor-Nexus Platform Engineer",
+        "label": "Nexus Platform Engineer"
+      },
+      "needs": [
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Operational CLI Tooling",
+              "label": "Operational CLI Tooling"
+            },
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Debug Interface",
+              "label": "Debug Interface"
+            },
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Administrative \u0026 Bulk Operations",
+              "label": "Administrative \u0026 Bulk Operations"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "An engineer can inspect the current state of any catalog entity and trace how it arrived at that state (which feed changed it, when, what validations ran) without needing direct database access.\n",
+              "team_span": 2,
+              "teams": [
+                "nexus-core-dev",
+                "nexus-platform-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Debug entity state and trace feed processing history in production",
+            "label": "Debug entity state and trace feed processing history in production"
+          }
+        },
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "foundational"
+              },
+              "id": "cap-Anomaly Detection \u0026 Statistical Analysis",
+              "label": "Anomaly Detection \u0026 Statistical Analysis"
+            },
+            {
+              "data": {
+                "visibility": "foundational"
+              },
+              "id": "cap-Issue Tracking \u0026 Management",
+              "label": "Issue Tracking \u0026 Management"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": false,
+              "is_mapped": true,
+              "outcome": "The platform continuously monitors catalog data for statistical anomalies or regressions and alerts engineers before shoppers or sellers are impacted.\n",
+              "team_span": 1,
+              "teams": [
+                "nexus-observability-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Detect and remediate regressions in catalog data quality proactively",
+            "label": "Detect and remediate regressions in catalog data quality proactively"
+          }
+        },
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Administrative \u0026 Bulk Operations",
+              "label": "Administrative \u0026 Bulk Operations"
+            },
+            {
+              "data": {
+                "visibility": "foundational"
+              },
+              "id": "cap-Data Scrubbing \u0026 Cleanup",
+              "label": "Data Scrubbing \u0026 Cleanup"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "An engineer can apply bulk changes to catalog entities via a controlled administrative interface, with auditability and rollback options.\n",
+              "team_span": 2,
+              "teams": [
+                "nexus-core-dev",
+                "nexus-publisher-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Perform safe bulk corrections on catalog data",
+            "label": "Perform safe bulk corrections on catalog data"
+          }
+        },
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "foundational"
+              },
+              "id": "cap-Backup \u0026 Point-in-Time Recovery",
+              "label": "Backup \u0026 Point-in-Time Recovery"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": false,
+              "is_mapped": true,
+              "outcome": "An on-call engineer can restore a catalog to a known-good state from a backup taken at a specific point in time, minimizing data loss after a corruption incident.\n",
+              "team_span": 1,
+              "teams": [
+                "nexus-observability-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Recover catalog data from a specific point in time after data corruption",
+            "label": "Recover catalog data from a specific point in time after data corruption"
+          }
+        }
+      ]
+    },
+    {
+      "actor": {
+        "id": "actor-Seller / Vendor Partner",
+        "label": "Seller / Vendor Partner"
+      },
+      "needs": [
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Media Processing \u0026 Management",
+              "label": "Media Processing \u0026 Management"
+            },
+            {
+              "data": {
+                "visibility": "infrastructure"
+              },
+              "id": "cap-Object Storage",
+              "label": "Object Storage"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "Images submitted with catalog entities are processed, validated, and stored so that they render correctly in the marketplace app without broken links or wrong associations.\n",
+              "team_span": 2,
+              "teams": [
+                "nexus-core-dev",
+                "nexus-ingestion-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Ensure product images are correctly associated and render properly",
+            "label": "Ensure product images are correctly associated and render properly"
+          }
+        },
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "user-facing"
+              },
+              "id": "cap-Feed Submission \u0026 Job Tracking",
+              "label": "Feed Submission \u0026 Job Tracking"
+            },
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Feed Ingestion \u0026 Processing",
+              "label": "Feed Ingestion \u0026 Processing"
+            },
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Entity Publishing \u0026 Validation",
+              "label": "Entity Publishing \u0026 Validation"
+            },
+            {
+              "data": {
+                "visibility": "infrastructure"
+              },
+              "id": "cap-Serving Data Synchronization",
+              "label": "Serving Data Synchronization"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "A seller submits a feed containing catalog updates; those changes are ingested, validated, published, and reflected in the shopper-facing catalog within the agreed service level (typically minutes), without manual intervention.\n",
+              "team_span": 3,
+              "teams": [
+                "nexus-ingestion-dev",
+                "nexus-publisher-dev",
+                "nexus-serving-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Submit catalog changes and see them live for shoppers within SLA",
+            "label": "Submit catalog changes and see them live for shoppers within SLA"
+          }
+        },
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "user-facing"
+              },
+              "id": "cap-Feed Submission \u0026 Job Tracking",
+              "label": "Feed Submission \u0026 Job Tracking"
+            },
+            {
+              "data": {
+                "visibility": "foundational"
+              },
+              "id": "cap-Issue Tracking \u0026 Management",
+              "label": "Issue Tracking \u0026 Management"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "When a feed fails validation or processing, the seller or their integration partner receives actionable error information identifying which items failed and why, so they can correct and resubmit.\n",
+              "team_span": 2,
+              "teams": [
+                "nexus-ingestion-dev",
+                "nexus-observability-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Understand why a feed failed and correct the issue",
+            "label": "Understand why a feed failed and correct the issue"
+          }
+        }
+      ]
+    },
+    {
+      "actor": {
+        "id": "actor-Shopper / Buyer",
+        "label": "Shopper / Buyer"
+      },
+      "needs": [
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "user-facing"
+              },
+              "id": "cap-Real-time Product Serving",
+              "label": "Real-time Product Serving"
+            },
+            {
+              "data": {
+                "visibility": "user-facing"
+              },
+              "id": "cap-Indexed Product Query",
+              "label": "Indexed Product Query"
+            },
+            {
+              "data": {
+                "visibility": "infrastructure"
+              },
+              "id": "cap-Serving Data Synchronization",
+              "label": "Serving Data Synchronization"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": false,
+              "is_mapped": true,
+              "outcome": "Product pages load quickly with full item details (descriptions, photos, variants, prices) so the shopper can make informed purchase decisions without delays.\n",
+              "team_span": 2,
+              "teams": [
+                "nexus-quality-dev",
+                "nexus-serving-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-Get fast, complete product data for purchase decisions",
+            "label": "Get fast, complete product data for purchase decisions"
+          }
+        },
+        {
+          "capabilities": [
+            {
+              "data": {
+                "visibility": "user-facing"
+              },
+              "id": "cap-Real-time Product Serving",
+              "label": "Real-time Product Serving"
+            },
+            {
+              "data": {
+                "visibility": "user-facing"
+              },
+              "id": "cap-Indexed Product Query",
+              "label": "Indexed Product Query"
+            },
+            {
+              "data": {
+                "visibility": "domain"
+              },
+              "id": "cap-Catalog Cache Generation",
+              "label": "Catalog Cache Generation"
+            }
+          ],
+          "need": {
+            "data": {
+              "at_risk": true,
+              "is_mapped": true,
+              "outcome": "A shopper browsing the marketplace app sees product catalogs that accurately reflect the seller's current offerings, including correct items, prices, and availability, updated within the platform's freshness SLA.\n",
+              "team_span": 3,
+              "teams": [
+                "nexus-conversion-dev",
+                "nexus-quality-dev",
+                "nexus-serving-dev"
+              ],
+              "unbacked": false
+            },
+            "id": "need-View accurate, up-to-date catalogs when browsing",
+            "label": "View accurate, up-to-date catalogs when browsing"
+          }
+        }
+      ]
+    }
+  ],
+  "total_needs": 11,
+  "unmapped_count": 0,
+  "view_type": "need"
+}
