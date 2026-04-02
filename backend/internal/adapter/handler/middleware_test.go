@@ -31,7 +31,7 @@ func TestLoggingMiddleware_LogsRequest(t *testing.T) {
 }
 
 func TestCORSMiddleware_SetsAccessControlHeader(t *testing.T) {
-	handler := corsMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := makeCORSMiddleware([]string{"*"})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 

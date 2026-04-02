@@ -8,7 +8,6 @@ import (
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
 )
-
 // DepthChainThreshold is the default maximum service dependency chain depth before a coupling
 // signal is suggested. Kept for backward compatibility; prefer SignalsConfig.DepthChainThreshold.
 const DepthChainThreshold = 4
@@ -21,7 +20,9 @@ type SuggestedSignal struct {
 	Description  string
 	Evidence     string
 	Severity     valueobject.Severity
-	Source       string // which analyzer generated this suggestion
+	Source       string                 // which analyzer generated this suggestion
+	Explanation  string                 // human-readable why it was flagged and what threshold was breached
+	SourceTag    valueobject.SourceType // trust layer: always SourceAnalyzerFinding for auto-generated signals
 }
 
 // SignalSuggestionsReport holds all auto-generated signal suggestions.
@@ -71,13 +72,15 @@ func (g *SignalSuggestionGenerator) Generate(
 			continue
 		}
 		var sev valueobject.Severity
-		var desc string
+		var desc, explanation string
 		if sb.IsCritical {
 			sev = valueobject.SeverityCritical
 			desc = fmt.Sprintf("%s is a critical bottleneck: %d services depend on it", sb.Service.Name, sb.FanIn)
+			explanation = fmt.Sprintf("Service '%s' has %d dependents (critical threshold exceeded). This creates a high-blast-radius deployment bottleneck where a single failure cascades to many downstream services.", sb.Service.Name, sb.FanIn)
 		} else {
 			sev = valueobject.SeverityHigh
 			desc = fmt.Sprintf("%s is a bottleneck candidate: %d services depend on it", sb.Service.Name, sb.FanIn)
+			explanation = fmt.Sprintf("Service '%s' has %d dependents (warning threshold exceeded). High fan-in indicates this service is becoming a coordination bottleneck and may slow team velocity.", sb.Service.Name, sb.FanIn)
 		}
 		suggestions = append(suggestions, SuggestedSignal{
 			Category:     entity.CategoryBottleneck,
@@ -86,6 +89,8 @@ func (g *SignalSuggestionGenerator) Generate(
 			Evidence:     fmt.Sprintf("Fan-in: %d (fan-out: %d)", sb.FanIn, sb.FanOut),
 			Severity:     sev,
 			Source:       "bottleneck-analyzer",
+			Explanation:  explanation,
+			SourceTag:    valueobject.SourceAnalyzerFinding,
 		})
 	}
 
@@ -119,6 +124,8 @@ func (g *SignalSuggestionGenerator) Generate(
 			Evidence:     fmt.Sprintf("High dimensions: %s", strings.Join(highDims, ", ")),
 			Severity:     valueobject.SeverityHigh,
 			Source:       "cognitive-load-analyzer",
+			Explanation:  fmt.Sprintf("Team '%s' exceeds structural load thresholds across %d dimension(s): %s. According to Team Topologies principles, high cognitive load reduces team responsiveness and increases delivery risk.", tl.Team.Name, len(highDims), strings.Join(highDims, ", ")),
+			SourceTag:    valueobject.SourceAnalyzerFinding,
 		})
 	}
 
@@ -139,6 +146,8 @@ func (g *SignalSuggestionGenerator) Generate(
 			Evidence:     fmt.Sprintf("Teams involved: %s", strings.Join(teamNames, ", ")),
 			Severity:     valueobject.SeverityHigh,
 			Source:       "fragmentation-analyzer",
+			Explanation:  fmt.Sprintf("Capability '%s' is realized by services owned across %d teams (%s). Fragmented ownership increases coordination overhead, creates release coupling, and reduces reliability of the capability end-to-end.", fc.Capability.Name, len(fc.Teams), strings.Join(teamNames, ", ")),
+			SourceTag:    valueobject.SourceAnalyzerFinding,
 		})
 	}
 
@@ -153,6 +162,8 @@ func (g *SignalSuggestionGenerator) Generate(
 				Evidence:     fmt.Sprintf("Critical path (%d hops): %s", depReport.MaxServiceDepth, strings.Join(depReport.CriticalServicePath, " → ")),
 				Severity:     valueobject.SeverityMedium,
 				Source:       "dependency-analyzer",
+				Explanation:  fmt.Sprintf("The service dependency chain reaches a depth of %d (threshold: %d), with '%s' at the deepest point. Long dependency chains amplify the blast radius of failures and complicate independent deployment.", depReport.MaxServiceDepth, g.cfg.DepthChainThreshold, deepest),
+				SourceTag:    valueobject.SourceAnalyzerFinding,
 			})
 		}
 	}
@@ -172,6 +183,8 @@ func (g *SignalSuggestionGenerator) Generate(
 			Evidence:     fmt.Sprintf("Visibility: %s; capability is a leaf with no need.supportedBy reference", uc.Visibility),
 			Severity:     valueobject.SeverityHigh,
 			Source:       "unlinked-capability-analyzer",
+			Explanation:  fmt.Sprintf("Capability '%s' (visibility: %s) is a leaf capability with no user need pointing to it via 'supportedBy'. This suggests the capability may be orphaned, misclassified, or that a user need is missing from the model.", uc.Capability.Name, uc.Visibility),
+			SourceTag:    valueobject.SourceAnalyzerFinding,
 		})
 	}
 

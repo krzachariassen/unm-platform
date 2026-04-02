@@ -33,6 +33,8 @@ type Signal struct {
 	Evidence         string
 	Severity         valueobject.Severity
 	AffectedEntities []string
+	Explanation      string           // human-readable explanation of why it was flagged and what threshold was breached
+	Source           valueobject.SourceType // origin of the signal (model_fact, analyzer_finding, ai_interpretation)
 }
 
 // NewSignal constructs a Signal. Returns an error if category is invalid or onEntityName is empty.

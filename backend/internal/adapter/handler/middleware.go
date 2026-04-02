@@ -59,12 +59,6 @@ func makeCORSMiddleware(origins []string) func(http.Handler) http.Handler {
 	}
 }
 
-// corsMiddleware adds permissive CORS headers and handles preflight requests.
-// Kept for backward compatibility — delegates to makeCORSMiddleware with "*".
-func corsMiddleware(next http.Handler) http.Handler {
-	return makeCORSMiddleware([]string{"*"})(next)
-}
-
 // chain wraps h with middleware in order (outermost first).
 func chain(h http.Handler, middleware ...func(http.Handler) http.Handler) http.Handler {
 	for i := len(middleware) - 1; i >= 0; i-- {

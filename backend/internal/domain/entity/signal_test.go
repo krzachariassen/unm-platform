@@ -68,4 +68,32 @@ func TestNewSignal(t *testing.T) {
 			t.Errorf("expected 2 AffectedEntities, got %d", len(s.AffectedEntities))
 		}
 	})
+
+	t.Run("Explanation field is settable", func(t *testing.T) {
+		s, err := NewSignal("sig-1", CategoryBottleneck, "payment-service", "Payment service is a bottleneck", "High fan-in", valueobject.SeverityHigh)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if s.Explanation != "" {
+			t.Errorf("expected empty Explanation on construction, got %q", s.Explanation)
+		}
+		s.Explanation = "Service 'payment-service' has 12 dependents, exceeding the critical threshold of 10. High fan-in creates a deployment bottleneck."
+		if s.Explanation == "" {
+			t.Error("expected non-empty Explanation after assignment")
+		}
+	})
+
+	t.Run("Source defaults to empty on construction", func(t *testing.T) {
+		s, err := NewSignal("sig-1", CategoryBottleneck, "payment-service", "bottleneck", "evidence", valueobject.SeverityHigh)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if s.Source != "" {
+			t.Errorf("expected empty Source on construction, got %q", s.Source)
+		}
+		s.Source = valueobject.SourceAnalyzerFinding
+		if s.Source != valueobject.SourceAnalyzerFinding {
+			t.Errorf("expected Source %q, got %q", valueobject.SourceAnalyzerFinding, s.Source)
+		}
+	})
 }
