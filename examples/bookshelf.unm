@@ -51,15 +51,12 @@ need "Receive personalized book recommendations" {
 capability "Search & Discovery" {
   description "Help readers find books through search, browse, and recommendations"
   visibility "user-facing"
-  realizedBy "search-service" : "Full-text search across title, author, and description"
-  realizedBy "recommendation-engine" : "Collaborative filtering for personalized suggestions"
   dependsOn "Catalog Management"
 }
 
 capability "Order Processing" {
   description "Handle the purchase lifecycle from cart to confirmation"
   visibility "user-facing"
-  realizedBy "order-service" : "Cart management, checkout, and payment orchestration"
   dependsOn "Catalog Management"
   dependsOn "Notification Delivery"
 }
@@ -67,27 +64,23 @@ capability "Order Processing" {
 capability "Author Dashboard" {
   description "Provide authors with sales analytics and review management"
   visibility "user-facing"
-  realizedBy "author-portal" : "Web dashboard aggregating sales and review data"
   dependsOn "Catalog Management"
 }
 
 capability "Catalog Management" {
   description "Maintain the authoritative book catalog with quality enforcement"
   visibility "domain"
-  realizedBy "catalog-api" : "CRUD operations for book records"
   dependsOn "Data Persistence"
 }
 
 capability "Notification Delivery" {
   description "Send transactional notifications across channels"
   visibility "domain"
-  realizedBy "notification-service" : "Email, push, and SMS dispatch"
 }
 
 capability "Data Persistence" {
   description "Reliable storage and retrieval of all platform data"
   visibility "infrastructure"
-  realizedBy "catalog-api" : "Primary data store interface"
 }
 
 // ─── Services ───
@@ -95,24 +88,29 @@ capability "Data Persistence" {
 service "catalog-api" {
   description "Authoritative book catalog CRUD service"
   ownedBy "Storefront"
+  realizes "Catalog Management" : "CRUD operations for book records"
+  realizes "Data Persistence" : "Primary data store interface"
   dependsOn "order-service" : "Validates stock availability on order placement"
 }
 
 service "search-service" {
   description "Full-text search engine for the book catalog"
   ownedBy "Discovery"
+  realizes "Search & Discovery" : "Full-text search across title, author, and description"
   dependsOn "catalog-api" : "Indexes book data from the catalog"
 }
 
 service "recommendation-engine" {
   description "ML-based recommendation service using collaborative filtering"
   ownedBy "Discovery"
+  realizes "Search & Discovery" : "Collaborative filtering for personalized suggestions"
   dependsOn "catalog-api" : "Reads purchase history and book metadata"
 }
 
 service "order-service" {
   description "Manages cart, checkout, and payment processing"
   ownedBy "Fulfillment"
+  realizes "Order Processing" : "Cart management, checkout, and payment orchestration"
   dependsOn "catalog-api" : "Reads book details and pricing"
   dependsOn "notification-service" : "Sends order confirmation emails"
 }
@@ -120,6 +118,7 @@ service "order-service" {
 service "author-portal" {
   description "Web dashboard for authors to view sales and manage listings"
   ownedBy "Storefront"
+  realizes "Author Dashboard" : "Web dashboard aggregating sales and review data"
   dependsOn "catalog-api" : "Reads and updates book listings"
   dependsOn "order-service" : "Reads sales data"
 }
@@ -127,6 +126,7 @@ service "author-portal" {
 service "notification-service" {
   description "Multi-channel notification dispatch service"
   ownedBy "Platform"
+  realizes "Notification Delivery" : "Email, push, and SMS dispatch"
 }
 
 // ─── Teams ───

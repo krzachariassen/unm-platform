@@ -150,12 +150,12 @@ need "Do the thing" {
 capability "Core Feature" {
   description "The main thing the platform does"
   visibility "user-facing"
-  realizedBy "main-service"
 }
 
 service "main-service" {
   description "Primary API service"
   ownedBy "Product Team"
+  realizes "Core Feature"
 }
 
 team "Product Team" {

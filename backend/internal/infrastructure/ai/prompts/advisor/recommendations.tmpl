@@ -37,7 +37,7 @@ Thresholds: domain-spread(caps:1-3=low,4-5=med,6+=high) service-load(svcs÷size:
 {{range .Services}}{{.Name}}|owner={{.OwnerTeam}}{{if .DependsOn}}|deps={{range .DependsOn}}{{.}};{{end}}{{end}}{{if .Capabilities}}|caps={{range .Capabilities}}{{.}};{{end}}{{end}}
 {{end}}
 ### Capabilities
-{{range .Capabilities}}{{.Name}}|{{.Visibility}}|owners={{range .OwnerTeams}}{{.}};{{end}}|realizedBy={{range .RealizingServices}}{{.}};{{end}}
+{{range .Capabilities}}{{.Name}}|{{.Visibility}}|owners={{range .OwnerTeams}}{{.}};{{end}}|realizes={{range .RealizingServices}}{{.}};{{end}}
 {{end}}
 ### Value Chains (need→caps→svcs→teams)
 {{range .ValueChains}}{{.Actor}}:"{{.Need}}"|caps={{range .Capabilities}}{{.}};{{end}}|svcs={{range .Services}}{{.}};{{end}}|teams={{range .Teams}}{{.}};{{end}}(span={{len .Teams}})
