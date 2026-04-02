@@ -293,3 +293,67 @@ func TestSignalSuggestionGenerator_SortOrder(t *testing.T) {
 		t.Errorf("first suggestion should be critical, got %q", r.Suggestions[0].Severity)
 	}
 }
+
+func TestSuggestedSignal_SourceIsAnalyzerFinding(t *testing.T) {
+	g := NewSignalSuggestionGenerator(entity.DefaultConfig().Analysis.Signals)
+	empty := entity.UNMModel{}
+
+	r := g.Generate(
+		buildCriticalBottleneckReport("payment-svc"),
+		CognitiveLoadReport{},
+		FragmentationReport{},
+		DependencyReport{},
+		UnlinkedCapabilityReport{},
+		&empty,
+	)
+
+	if len(r.Suggestions) == 0 {
+		t.Fatal("expected at least one suggestion")
+	}
+	for i, s := range r.Suggestions {
+		if s.SourceTag != valueobject.SourceAnalyzerFinding {
+			t.Errorf("suggestion[%d] (%s/%s) has SourceTag %q, want %q", i, s.Category, s.OnEntityName, s.SourceTag, valueobject.SourceAnalyzerFinding)
+		}
+	}
+}
+
+func TestSuggestedSignal_ExplanationIsNonEmpty(t *testing.T) {
+	g := NewSignalSuggestionGenerator(entity.DefaultConfig().Analysis.Signals)
+	empty := entity.UNMModel{}
+
+	tests := []struct {
+		name    string
+		botRep  BottleneckReport
+		cogRep  CognitiveLoadReport
+		fragRep FragmentationReport
+		depRep  DependencyReport
+		unlRep  UnlinkedCapabilityReport
+	}{
+		{
+			name:   "bottleneck_critical",
+			botRep: buildCriticalBottleneckReport("payment-svc"),
+		},
+		{
+			name:   "bottleneck_warning",
+			botRep: buildWarningBottleneckReport("search-svc"),
+		},
+		{
+			name:   "cognitive_load",
+			cogRep: buildHighLoadReport("overloaded-team"),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r := g.Generate(tc.botRep, tc.cogRep, tc.fragRep, tc.depRep, tc.unlRep, &empty)
+			if len(r.Suggestions) == 0 {
+				t.Fatal("expected at least one suggestion")
+			}
+			for i, s := range r.Suggestions {
+				if s.Explanation == "" {
+					t.Errorf("suggestion[%d] (%s/%s) has empty Explanation", i, s.Category, s.OnEntityName)
+				}
+			}
+		})
+	}
+}

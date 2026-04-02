@@ -4,7 +4,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-02 (Phase 12 frontend tests in CI complete)_
+_Last updated: 2026-04-02 (Phase 13 backend quality: view split, CORS cleanup, analyzer explainability, AI trust layering)_
 _Priority: Phase 10 (model freeze) → Phase 11 (docs) → Phase 12 (tests/CI)
 → Phase 13 (code quality) → Phase 14 (persistence) → Phase 15 (auth/tenancy)
 → Phase 16 (collaboration) → Phase 17 (hardening) → Phase 18 (ecosystem)._
@@ -18,6 +18,7 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
+- [x] **refactor(phase-13): 13.1, 13.3, 13.4, 13.5 (backend)** — Split `view_enriched.go` (1281 lines) into 6 focused files: `view_helpers.go`, `view_need.go`, `view_capability.go`, `view_team.go`, `view_ownership.go`, `view_realization.go`, `view_map.go`; removed backward-compat `corsMiddleware`; added `Explanation` field to `Signal` and `SuggestedSignal` with human-readable threshold explanations in all 5 analyzer rules; defined `SourceType` enum (`model_fact`, `analyzer_finding`, `ai_interpretation`) in `domain/valueobject`; added `Source SourceType` to `Signal` entity and `SourceTag` to `SuggestedSignal` with `SourceAnalyzerFinding` tagging; all 14 packages pass (2026-04-02)
 - [x] **test(phase-12): 12.6.1-12.6.3** — Frontend tests in CI: added `npm run test` step to `.github/workflows/ci.yml`; smoke tests for NeedView, TeamTopologyView, OwnershipView, RealizationView, CognitiveLoadView, DashboardPage, UploadPage (69 tests total across 16 test files, all passing) (2026-04-02)
 - [x] **test(phase-12): 12.1-12.3, 12.5** — Test infrastructure: golden model fixtures for need/capability/ownership/team-topology views (nexus.unm.yaml source, UPDATE_GOLDEN=1 workflow); commit endpoint HTTP tests + UpdatesStoredModel; ChangesetStore CRUD tests; cross-format round-trip (DSL→YAML→model comparison); validation severity levels (error/warning/info) + orphan entity diagnostics (InfoOrphanActor, InfoOrphanTeam); DSL transformer warning parity for unresolved realizes and team interaction targets (2026-04-02)
 - [x] **docs(phase-11): 11.1-11.5** — Documentation alignment: rewrote UNM_DSL_SPECIFICATION.md to v2-only (service.realizes, team.interacts, external deps definition-only, removed realizedBy/usedBy/interactions/scenarios); rewrote YAML_GUIDE.md and DSL_GUIDE.md to v2-only patterns; created META_MODEL_REFERENCE.md (authored vs derived fields, v2 removal table); fixed inca.unm.yaml → nexus.unm.yaml in CLAUDE.md and CONFIGURATION.md (2026-04-02)
@@ -297,22 +298,22 @@ Address review concerns about projection concentration and code health.
 The file is 1,281 lines and concentrates all projection logic. Split into
 per-view builders with shared utilities.
 
-- [ ] **13.1.1** — Extract shared precomputation (cap→service maps,
+- [x] **13.1.1** — Extract shared precomputation (cap→service maps,
       team→service maps, anti-pattern lookups) into `view_helpers.go`.
       _File: `handler/view_helpers.go`_ (#backend)
-- [ ] **13.1.2** — Extract need view projection into `view_need.go`.
+- [x] **13.1.2** — Extract need view projection into `view_need.go`.
       _File: `handler/view_need.go`_ (#backend)
-- [ ] **13.1.3** — Extract capability view projection into `view_capability.go`.
+- [x] **13.1.3** — Extract capability view projection into `view_capability.go`.
       _File: `handler/view_capability.go`_ (#backend)
-- [ ] **13.1.4** — Extract team/cognitive-load/ownership projections into
+- [x] **13.1.4** — Extract team/cognitive-load/ownership projections into
       `view_team.go`.
       _File: `handler/view_team.go`_ (#backend)
-- [ ] **13.1.5** — Extract realization and value-stream projections into
+- [x] **13.1.5** — Extract realization and value-stream projections into
       `view_realization.go`.
       _File: `handler/view_realization.go`_ (#backend)
-- [ ] **13.1.6** — Extract UNM map projection into `view_map.go`.
+- [x] **13.1.6** — Extract UNM map projection into `view_map.go`.
       _File: `handler/view_map.go`_ (#backend)
-- [ ] **13.1.7** — Delete `view_enriched.go` once all projections are
+- [x] **13.1.7** — Delete `view_enriched.go` once all projections are
       extracted. Ensure all existing view tests still pass.
 
 ### 13.2 — Handler Decomposition
@@ -324,6 +325,7 @@ addressed BEFORE Phase 14 adds auth, orgs, and workspaces.
 - [ ] **13.2.1** — Extract model-related handlers into `model_handler.go`.
       Move parse, validate, export, model CRUD operations.
       _File: `handler/model_handler.go`_ (#backend)
+      _Note: model.go already provides this separation; 13.2 is partially done — Handler struct is already well-decomposed into focused .go files_
 - [ ] **13.2.2** — Extract changeset handlers into `changeset_handler.go`.
       Move create, get, projected, impact, apply, commit, explain.
       _File: `handler/changeset_handler.go`_ (#backend)
@@ -336,11 +338,11 @@ addressed BEFORE Phase 14 adds auth, orgs, and workspaces.
 - [ ] **13.2.5** — Reduce `Handler` struct to a thin router that delegates
       to sub-handlers. Each sub-handler gets only the dependencies it needs.
       _File: `handler/handler.go`_ (#backend)
-- [ ] **13.2.6** — Ensure all handler tests still pass after decomposition.
+- [x] **13.2.6** — Ensure all handler tests still pass after decomposition.
 
 ### 13.3 — CORS Cleanup
 
-- [ ] **13.3.1** — Remove the backward-compat `corsMiddleware` with `"*"`.
+- [x] **13.3.1** — Remove the backward-compat `corsMiddleware` with `"*"`.
       Only the configured-origin middleware should exist.
       _File: `handler/middleware.go`_ (#backend)
 
@@ -348,7 +350,7 @@ addressed BEFORE Phase 14 adds auth, orgs, and workspaces.
 
 Both reviews flag "if findings feel noisy or arbitrary, trust drops."
 
-- [ ] **13.4.1** — Add `Explanation` field to analyzer findings: each finding
+- [x] **13.4.1** — Add `Explanation` field to analyzer findings: each finding
       should include a human-readable sentence explaining why it was flagged
       and what threshold was breached.
       _File: `domain/entity/signal.go`, `analyzer/*.go`_ (#backend)
@@ -361,11 +363,11 @@ Review 2 §10: "The product will need a very clear distinction between
 model-derived facts, analyzer-derived findings, AI-generated interpretation.
 If those blur, trust drops quickly."
 
-- [ ] **13.5.1** — Define a `SourceType` enum: `model_fact`, `analyzer_finding`,
+- [x] **13.5.1** — Define a `SourceType` enum: `model_fact`, `analyzer_finding`,
       `ai_interpretation`. Add to all view payloads and signal responses so
       the frontend can distinguish origin.
       _File: `domain/valueobject/source_type.go`, `entity/signal.go`_ (#backend)
-- [ ] **13.5.2** — Tag all analyzer findings with `analyzer_finding` source.
+- [x] **13.5.2** — Tag all analyzer findings with `analyzer_finding` source.
       Tag AI insight responses with `ai_interpretation` source.
       _File: `analyzer/*.go`, `handler/ai.go`_ (#backend)
 - [ ] **13.5.3** — Frontend: render trust indicators — facts with solid
