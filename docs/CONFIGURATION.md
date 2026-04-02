@@ -161,9 +161,9 @@ Weights used when calculating cognitive load from team interactions.
 
 Default `debug_example_paths`:
 ```yaml
-- "../examples/inca.unm.yaml"
-- "../../examples/inca.unm.yaml"
-- "examples/inca.unm.extended.yaml"
+- "../examples/nexus.unm.yaml"
+- "../../examples/nexus.unm.yaml"
+- "examples/nexus.unm.yaml"
 ```
 
 ### Logging (`logging`)

@@ -46,12 +46,12 @@ need "Create and track tasks" {
 capability "Task Management" {
   description "Create, update, and organize tasks"
   visibility "user-facing"
-  realizedBy "task-api"
 }
 
 service "task-api" {
   description "REST API for task CRUD operations"
   ownedBy "Product Team"
+  realizes "Task Management"
 }
 
 team "Product Team" {
@@ -166,42 +166,27 @@ level that positions it in the UNM value chain:
 capability "Search & Discovery" {
   description "Help readers find books through search and recommendations"
   visibility "user-facing"
-  realizedBy "search-service" : "Full-text search across title and author"
-  realizedBy "recommendation-engine" : "Personalized suggestions"
   dependsOn "Catalog Management"
 }
 ```
 
-#### Relationships on capabilities
+Services declare which capabilities they realize — not the capability itself.
 
-**`realizedBy`** links a capability to the services that implement it.
-Three forms are supported:
+#### Capability dependencies
 
 ```unm
-// Simple — just the service name
-realizedBy "search-service"
-
-// With description — colon shorthand
-realizedBy "search-service" : "Full-text search implementation"
-
-// With role and description — block form
-realizedBy "search-service" {
-  role "primary"
-  description "Main search implementation"
+capability "Search & Discovery" {
+  description "Help readers find books"
+  visibility "user-facing"
+  dependsOn "Catalog Management"
+  dependsOn "Data Persistence" : "Needs reliable storage for search indexes"
 }
-```
-
-**`dependsOn`** links to other capabilities this one requires:
-
-```unm
-dependsOn "Catalog Management"
-dependsOn "Data Persistence" : "Needs reliable storage for search indexes"
 ```
 
 #### Nested capabilities
 
 Capabilities can nest to form a hierarchy. Only leaf capabilities (no children)
-have `realizedBy`:
+are realized by services:
 
 ```unm
 capability "Catalog & Inventory" {
@@ -211,13 +196,11 @@ capability "Catalog & Inventory" {
   capability "Catalog CRUD" {
     description "Create, read, update, delete book records"
     visibility "foundational"
-    realizedBy "catalog-api"
   }
 
   capability "Inventory Tracking" {
     description "Track stock levels across warehouses"
     visibility "domain"
-    realizedBy "inventory-service"
   }
 }
 ```
@@ -234,27 +217,79 @@ capability "Catalog CRUD" {
   description "Create, read, update, delete book records"
   visibility "foundational"
   parent "Catalog & Inventory"
-  realizedBy "catalog-api"
 }
 ```
+
+**Visibility inheritance:** A child capability with no `visibility` inherits
+from its parent. Set `visibility` explicitly on a child to override.
 
 ---
 
 ### `service`
 
-Services are concrete implementations. They declare an owner and
-service-to-service dependencies:
+Services are concrete implementations. They declare:
+- `ownedBy` — which team owns this service
+- `realizes` — which capabilities this service implements
+- `externalDeps` — which external systems this service depends on
+- `dependsOn` — which other services this service calls
 
 ```unm
+service "search-service" {
+  description "Full-text search engine for the book catalog"
+  ownedBy "Discovery"
+  realizes "Catalog Search" : "Indexes and queries book data"
+  externalDeps "Elasticsearch"
+  dependsOn "catalog-api" : "Indexes book data from the catalog"
+}
+
 service "catalog-api" {
   description "Authoritative book catalog CRUD service"
   ownedBy "Storefront"
-  dependsOn "order-service" : "Validates stock on order placement"
+  realizes "Catalog CRUD"
+}
+
+service "order-service" {
+  description "Manages cart, checkout, and payment"
+  ownedBy "Fulfillment"
+  realizes "Order Processing"
+  externalDeps "Payment Gateway"
 }
 ```
 
-The `dependsOn` field supports the same three forms as capability relationships
-(simple, colon shorthand, and block form).
+#### `realizes` — relationship forms
+
+Three forms are supported and can be mixed freely:
+
+```unm
+// Simple — just the capability name
+realizes "Catalog CRUD"
+
+// With description — colon shorthand
+realizes "Catalog Search" : "Full-text search implementation"
+
+// With role and description — block form
+realizes "Catalog Search" {
+  role "primary"
+  description "Full-text search implementation"
+}
+```
+
+Roles:
+- `primary` — main implementation
+- `supporting` — contributes to but does not own
+- `consuming` — uses the capability as a client
+
+#### `dependsOn` — relationship forms
+
+The same three forms apply:
+
+```unm
+dependsOn "catalog-api"
+dependsOn "catalog-api" : "Indexes book data"
+dependsOn "catalog-api" {
+  description "Indexes book data"
+}
+```
 
 ---
 
@@ -281,7 +316,10 @@ team "Platform" {
 }
 ```
 
-Teams can declare inline interactions:
+#### Inline interactions
+
+Teams declare how they interact with other teams using `interacts` — the
+primary authoring path for team interactions:
 
 ```unm
 team "Discovery" {
@@ -289,22 +327,24 @@ team "Discovery" {
   description "Owns search and recommendations"
   size 4
   owns "Search & Discovery"
-  interacts "Storefront" mode "x-as-a-service" via "Catalog Management" description "Consumes catalog APIs"
+  interacts "Storefront" mode "x-as-a-service" via "Catalog CRUD" description "Consumes catalog APIs"
 }
 ```
 
+**Interaction modes:** `x-as-a-service`, `collaboration`, `facilitating`
+
 ---
 
-### `interaction`
+### `interaction` (standalone form — DSL only)
 
-Top-level interaction blocks describe how teams work together:
-
-**Modes:** `x-as-a-service`, `collaboration`, `facilitating`
+Top-level interaction blocks describe how teams work together using arrow syntax.
+This is ergonomic for expressing interactions at the file level rather than
+inside team blocks:
 
 ```unm
 interaction "Discovery" -> "Storefront" {
   mode "x-as-a-service"
-  via "Catalog Management"
+  via "Catalog CRUD"
   description "Discovery team consumes catalog APIs for indexing"
 }
 
@@ -314,6 +354,9 @@ interaction "Fulfillment" -> "Platform" {
   description "Fulfillment triggers order notifications via platform APIs"
 }
 ```
+
+> Note: Standalone `interaction` blocks exist only in the DSL format. In YAML,
+> use `team.interacts` instead.
 
 ---
 
@@ -356,18 +399,37 @@ data_asset "book_change_events" {
 
 ### `external_dependency`
 
-Systems outside the modeled boundary. The `usedBy` field supports an optional
-description using colon syntax:
+Systems outside the modeled boundary. External dependencies are
+**definition-only** — you declare their name and description here. Services
+declare which external systems they use via `externalDeps`.
 
 ```unm
 external_dependency "Payment Gateway" {
   description "Third-party payment processing provider"
-  usedBy "order-service" : "Processes credit card and wallet payments"
+}
+
+external_dependency "Elasticsearch" {
+  description "Search engine cluster for full-text indexing"
 }
 
 external_dependency "Email Provider" {
   description "Transactional email delivery service"
-  usedBy "notification-service" : "Sends order confirmations"
+}
+```
+
+Services declare their use:
+
+```unm
+service "order-service" {
+  ownedBy "Fulfillment"
+  realizes "Order Processing"
+  externalDeps "Payment Gateway"
+}
+
+service "search-service" {
+  ownedBy "Discovery"
+  realizes "Catalog Search"
+  externalDeps "Elasticsearch"
 }
 ```
 
@@ -412,18 +474,18 @@ import authors from "authors.unm"
 
 ## Relationship Forms — Quick Reference
 
-All list-type relationships (`supportedBy`, `realizedBy`, `dependsOn`) support
+All list-type relationships (`supportedBy`, `realizes`, `dependsOn`) support
 three forms that can be mixed freely:
 
 ```unm
 // 1. Simple — just the name
-realizedBy "catalog-api"
+realizes "Catalog CRUD"
 
 // 2. Colon shorthand — adds a description
-realizedBy "catalog-api" : "Primary CRUD implementation"
+realizes "Catalog CRUD" : "Primary CRUD implementation"
 
 // 3. Block form — adds role and description
-realizedBy "catalog-api" {
+realizes "Catalog CRUD" {
   role "primary"
   description "Primary CRUD implementation"
 }
@@ -433,7 +495,25 @@ realizedBy "catalog-api" {
 
 ## Common Mistakes
 
-**1. Missing `supportedBy` on a need**
+**1. Putting `realizes`/`realizedBy` on a capability**
+
+Services declare which capabilities they realize — not the capability itself.
+
+```unm
+// Wrong — realizedBy is not a capability field in v2
+capability "Search & Discovery" {
+  visibility "user-facing"
+  realizedBy "search-service"    // ERROR: removed in v2
+}
+
+// Correct — declare on the service
+service "search-service" {
+  ownedBy "Discovery"
+  realizes "Search & Discovery"
+}
+```
+
+**2. Missing `supportedBy` on a need**
 
 Every need must link to at least one capability:
 
@@ -452,33 +532,6 @@ need "Buy a book" {
 }
 ```
 
-**2. Putting `realizedBy` on a parent capability**
-
-Only leaf capabilities (no nested children) have `realizedBy`:
-
-```unm
-// Wrong — parent has realizedBy
-capability "Catalog" {
-  visibility "domain"
-  realizedBy "catalog-api"
-
-  capability "Search" {
-    visibility "user-facing"
-    realizedBy "search-service"
-  }
-}
-
-// Correct — only the leaf has realizedBy
-capability "Catalog" {
-  visibility "domain"
-
-  capability "Search" {
-    visibility "user-facing"
-    realizedBy "search-service"
-  }
-}
-```
-
 **3. Forgetting quotes on multi-word names**
 
 ```unm
@@ -487,6 +540,25 @@ actor Search & Discovery { ... }
 
 // Correct
 actor "Search & Discovery" { ... }
+```
+
+**4. Declaring external dependency edges on the dependency**
+
+External dependency definitions do not carry usage edges. Services declare
+which external systems they use.
+
+```unm
+// Wrong — usedBy is not valid on external_dependency in v2
+external_dependency "Elasticsearch" {
+  description "Search engine"
+  usedBy "search-service"    // ERROR: removed in v2
+}
+
+// Correct — declare on the service
+service "search-service" {
+  ownedBy "Discovery"
+  externalDeps "Elasticsearch"
+}
 ```
 
 ---
@@ -508,11 +580,15 @@ These are stored in the `system` block and exported with the file.
 ## Full Example
 
 See [`examples/bookshelf.unm`](../examples/bookshelf.unm) for a complete model
-with 3 actors, 4 needs, 6 capabilities, 6 services, 4 teams, data assets, and
-external dependencies.
+demonstrating all DSL format features, including capabilities, services with
+`realizes` and `externalDeps`, teams with inline interactions, and external
+dependencies.
 
 Parse it yourself:
 
 ```bash
 cd backend && go run ./cmd/cli/ parse ../examples/bookshelf.unm
 ```
+
+For a large real-world example in YAML format, see
+[`examples/nexus.unm.yaml`](../examples/nexus.unm.yaml).
