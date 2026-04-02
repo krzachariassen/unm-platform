@@ -6,6 +6,17 @@ import (
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 )
 
+// ── Severity levels ───────────────────────────────────────────────────────────
+
+// Severity classifies a validation finding by urgency.
+type Severity string
+
+const (
+	SeverityError   Severity = "error"   // Blocks model validity
+	SeverityWarning Severity = "warning" // Non-blocking advisory
+	SeverityInfo    Severity = "info"    // Informational diagnostic (orphan entities, etc.)
+)
+
 // ── Error codes ───────────────────────────────────────────────────────────────
 
 // ValidationErrorCode identifies a specific validation error rule.
@@ -32,22 +43,28 @@ const (
 	WarnNonPlatformTeamInPlatform ValidationWarningCode = "non-platform-team-in-platform"
 	WarnSelfDependency            ValidationWarningCode = "self-dependency"
 	WarnTeamSizeUnset             ValidationWarningCode = "team-size-unset"
+
+	// Info-level diagnostics for orphaned entities.
+	InfoOrphanActor ValidationWarningCode = "info-orphan-actor"
+	InfoOrphanTeam  ValidationWarningCode = "info-orphan-team"
 )
 
 // ── Result types ──────────────────────────────────────────────────────────────
 
 // ValidationError describes a rule violation that blocks model validity.
 type ValidationError struct {
-	Code    ValidationErrorCode
-	Message string
-	Entity  string // name of the entity causing the error
+	Code     ValidationErrorCode
+	Severity Severity
+	Message  string
+	Entity   string // name of the entity causing the error
 }
 
 // ValidationWarning describes a non-blocking advisory about the model.
 type ValidationWarning struct {
-	Code    ValidationWarningCode
-	Message string
-	Entity  string
+	Code     ValidationWarningCode
+	Severity Severity
+	Message  string
+	Entity   string
 }
 
 // ValidationResult aggregates all errors and warnings produced by validation.
@@ -87,8 +104,40 @@ func (v *ValidationEngine) Validate(model *entity.UNMModel) ValidationResult {
 	v.checkSelfDependencies(model, &result)
 	v.checkCircularDeps(model, &result)
 	v.checkPlatforms(model, &result)
+	v.checkOrphanActors(model, &result)
+	v.checkOrphanTeams(model, &result)
 
 	return result
+}
+
+// addError appends an error-severity validation error.
+func addError(result *ValidationResult, code ValidationErrorCode, entity, message string) {
+	result.Errors = append(result.Errors, ValidationError{
+		Code:     code,
+		Severity: SeverityError,
+		Message:  message,
+		Entity:   entity,
+	})
+}
+
+// addWarning appends a warning-severity validation warning.
+func addWarning(result *ValidationResult, code ValidationWarningCode, entity, message string) {
+	result.Warnings = append(result.Warnings, ValidationWarning{
+		Code:     code,
+		Severity: SeverityWarning,
+		Message:  message,
+		Entity:   entity,
+	})
+}
+
+// addInfo appends an info-severity diagnostic as a ValidationWarning.
+func addInfo(result *ValidationResult, code ValidationWarningCode, entity, message string) {
+	result.Warnings = append(result.Warnings, ValidationWarning{
+		Code:     code,
+		Severity: SeverityInfo,
+		Message:  message,
+		Entity:   entity,
+	})
 }
 
 // ── Error rules ───────────────────────────────────────────────────────────────
@@ -97,11 +146,9 @@ func (v *ValidationEngine) Validate(model *entity.UNMModel) ValidationResult {
 func (v *ValidationEngine) checkNeeds(model *entity.UNMModel, result *ValidationResult) {
 	for _, need := range model.Needs {
 		if len(need.SupportedBy) == 0 {
-			result.Errors = append(result.Errors, ValidationError{
-				Code:    ErrNeedNoCapability,
-				Message: fmt.Sprintf("need %q has no supporting capabilities", need.Name),
-				Entity:  need.Name,
-			})
+			addError(result, ErrNeedNoCapability,
+				need.Name,
+				fmt.Sprintf("need %q has no supporting capabilities", need.Name))
 		}
 	}
 }
@@ -110,19 +157,15 @@ func (v *ValidationEngine) checkNeeds(model *entity.UNMModel, result *Validation
 func (v *ValidationEngine) checkCapabilities(model *entity.UNMModel, result *ValidationResult) {
 	for _, cap := range model.Capabilities {
 		if cap.IsLeaf() && len(cap.RealizedBy) == 0 {
-			result.Errors = append(result.Errors, ValidationError{
-				Code:    ErrLeafCapNoService,
-				Message: fmt.Sprintf("leaf capability %q is not realized by any service", cap.Name),
-				Entity:  cap.Name,
-			})
+			addError(result, ErrLeafCapNoService,
+				cap.Name,
+				fmt.Sprintf("leaf capability %q is not realized by any service", cap.Name))
 		}
 		// Warn if a non-leaf capability also has RealizedBy entries (only leaf caps should have services).
 		if !cap.IsLeaf() && len(cap.RealizedBy) > 0 {
-			result.Warnings = append(result.Warnings, ValidationWarning{
-				Code:    WarnParentCapHasServices,
-				Message: fmt.Sprintf("non-leaf capability %q has RealizedBy entries; only leaf capabilities should realize services", cap.Name),
-				Entity:  cap.Name,
-			})
+			addWarning(result, WarnParentCapHasServices,
+				cap.Name,
+				fmt.Sprintf("non-leaf capability %q has RealizedBy entries; only leaf capabilities should realize services", cap.Name))
 		}
 	}
 }
@@ -131,19 +174,15 @@ func (v *ValidationEngine) checkCapabilities(model *entity.UNMModel, result *Val
 func (v *ValidationEngine) checkServices(model *entity.UNMModel, result *ValidationResult) {
 	for _, svc := range model.Services {
 		if svc.OwnerTeamName == "" {
-			result.Errors = append(result.Errors, ValidationError{
-				Code:    ErrServiceNoOwner,
-				Message: fmt.Sprintf("service %q has no owner team", svc.Name),
-				Entity:  svc.Name,
-			})
+			addError(result, ErrServiceNoOwner,
+				svc.Name,
+				fmt.Sprintf("service %q has no owner team", svc.Name))
 		}
 		// Orphan check: service not referenced in any capability's RealizedBy.
 		if len(model.GetCapabilitiesForService(svc.Name)) == 0 {
-			result.Warnings = append(result.Warnings, ValidationWarning{
-				Code:    WarnOrphanService,
-				Message: fmt.Sprintf("service %q supports no capabilities", svc.Name),
-				Entity:  svc.Name,
-			})
+			addWarning(result, WarnOrphanService,
+				svc.Name,
+				fmt.Sprintf("service %q supports no capabilities", svc.Name))
 		}
 	}
 }
@@ -160,11 +199,9 @@ func (v *ValidationEngine) checkInteractions(model *entity.UNMModel, result *Val
 		_, toExists := model.Teams[interaction.ToTeamName]
 
 		if !fromExists || !toExists || interaction.Mode == "" {
-			result.Errors = append(result.Errors, ValidationError{
-				Code:    ErrInvalidInteraction,
-				Message: fmt.Sprintf("interaction %q is invalid (unknown team or empty mode)", entityLabel),
-				Entity:  entityLabel,
-			})
+			addError(result, ErrInvalidInteraction,
+				entityLabel,
+				fmt.Sprintf("interaction %q is invalid (unknown team or empty mode)", entityLabel))
 		}
 	}
 }
@@ -176,17 +213,13 @@ func (v *ValidationEngine) checkInferredMappings(model *entity.UNMModel, result 
 
 		score := im.Confidence.Score
 		if score < 0.0 || score > 1.0 {
-			result.Errors = append(result.Errors, ValidationError{
-				Code:    ErrInvalidConfidence,
-				Message: fmt.Sprintf("inferred mapping %q has confidence score %v outside [0.0, 1.0]", entityLabel, score),
-				Entity:  entityLabel,
-			})
+			addError(result, ErrInvalidConfidence,
+				entityLabel,
+				fmt.Sprintf("inferred mapping %q has confidence score %v outside [0.0, 1.0]", entityLabel, score))
 		} else if im.IsLowConfidence() {
-			result.Warnings = append(result.Warnings, ValidationWarning{
-				Code:    WarnLowConfidence,
-				Message: fmt.Sprintf("inferred mapping %q has low confidence score %v", entityLabel, score),
-				Entity:  entityLabel,
-			})
+			addWarning(result, WarnLowConfidence,
+				entityLabel,
+				fmt.Sprintf("inferred mapping %q has low confidence score %v", entityLabel, score))
 		}
 	}
 }
@@ -198,11 +231,9 @@ func (v *ValidationEngine) checkFragmentation(model *entity.UNMModel, result *Va
 	for capName, cap := range model.Capabilities {
 		teams := model.GetTeamsForCapability(capName)
 		if len(teams) > 2 {
-			result.Warnings = append(result.Warnings, ValidationWarning{
-				Code:    WarnFragmentation,
-				Message: fmt.Sprintf("capability %q is owned by %d teams (fragmentation)", cap.Name, len(teams)),
-				Entity:  cap.Name,
-			})
+			addWarning(result, WarnFragmentation,
+				cap.Name,
+				fmt.Sprintf("capability %q is owned by %d teams (fragmentation)", cap.Name, len(teams)))
 		}
 	}
 }
@@ -212,11 +243,9 @@ func (v *ValidationEngine) checkCognitiveLoad(model *entity.UNMModel, result *Va
 	for _, team := range model.Teams {
 		caps := model.GetCapabilitiesForTeam(team.Name)
 		if len(caps) > 6 {
-			result.Warnings = append(result.Warnings, ValidationWarning{
-				Code:    WarnCognitiveLoad,
-				Message: fmt.Sprintf("team %q owns %d capabilities (cognitive load)", team.Name, len(caps)),
-				Entity:  team.Name,
-			})
+			addWarning(result, WarnCognitiveLoad,
+				team.Name,
+				fmt.Sprintf("team %q owns %d capabilities (cognitive load)", team.Name, len(caps)))
 		}
 	}
 }
@@ -227,11 +256,9 @@ func (v *ValidationEngine) checkCognitiveLoad(model *entity.UNMModel, result *Va
 func (v *ValidationEngine) checkTeamSizes(model *entity.UNMModel, result *ValidationResult) {
 	for _, team := range model.Teams {
 		if !team.SizeExplicit {
-			result.Warnings = append(result.Warnings, ValidationWarning{
-				Code:    WarnTeamSizeUnset,
-				Message: fmt.Sprintf("team %q has no size set — structural load uses default of 5 people; add 'size: N' to the team definition", team.Name),
-				Entity:  team.Name,
-			})
+			addWarning(result, WarnTeamSizeUnset,
+				team.Name,
+				fmt.Sprintf("team %q has no size set — structural load uses default of 5 people; add 'size: N' to the team definition", team.Name))
 		}
 	}
 }
@@ -242,11 +269,9 @@ func (v *ValidationEngine) checkSelfDependencies(model *entity.UNMModel, result 
 	for _, svc := range model.Services {
 		for _, rel := range svc.DependsOn {
 			if rel.TargetID.String() == svc.Name {
-				result.Warnings = append(result.Warnings, ValidationWarning{
-					Code:    WarnSelfDependency,
-					Message: fmt.Sprintf("service %q depends on itself", svc.Name),
-					Entity:  svc.Name,
-				})
+				addWarning(result, WarnSelfDependency,
+					svc.Name,
+					fmt.Sprintf("service %q depends on itself", svc.Name))
 				break // only emit once per service
 			}
 		}
@@ -254,11 +279,9 @@ func (v *ValidationEngine) checkSelfDependencies(model *entity.UNMModel, result 
 	for capName, cap := range model.Capabilities {
 		for _, rel := range cap.DependsOn {
 			if rel.TargetID.String() == capName {
-				result.Warnings = append(result.Warnings, ValidationWarning{
-					Code:    WarnSelfDependency,
-					Message: fmt.Sprintf("capability %q depends on itself", cap.Name),
-					Entity:  cap.Name,
-				})
+				addWarning(result, WarnSelfDependency,
+					cap.Name,
+					fmt.Sprintf("capability %q depends on itself", cap.Name))
 				break // only emit once per capability
 			}
 		}
@@ -304,11 +327,9 @@ func (v *ValidationEngine) checkCircularDeps(model *entity.UNMModel, result *Val
 				// back edge → cycle detected
 				if !reported[neighbor] {
 					reported[neighbor] = true
-					result.Warnings = append(result.Warnings, ValidationWarning{
-						Code:    WarnCircularDep,
-						Message: fmt.Sprintf("capability %q is part of a circular dependency", neighbor),
-						Entity:  neighbor,
-					})
+					addWarning(result, WarnCircularDep,
+						neighbor,
+						fmt.Sprintf("capability %q is part of a circular dependency", neighbor))
 				}
 				return true
 			case unvisited:
@@ -316,11 +337,9 @@ func (v *ValidationEngine) checkCircularDeps(model *entity.UNMModel, result *Val
 					// also flag the current node if not already reported
 					if !reported[node] {
 						reported[node] = true
-						result.Warnings = append(result.Warnings, ValidationWarning{
-							Code:    WarnCircularDep,
-							Message: fmt.Sprintf("capability %q is part of a circular dependency", node),
-							Entity:  node,
-						})
+						addWarning(result, WarnCircularDep,
+							node,
+							fmt.Sprintf("capability %q is part of a circular dependency", node))
 					}
 				}
 			}
@@ -346,12 +365,52 @@ func (v *ValidationEngine) checkPlatforms(model *entity.UNMModel, result *Valida
 				continue
 			}
 			if team.TeamType.String() != "platform" {
-				result.Warnings = append(result.Warnings, ValidationWarning{
-					Code:    WarnNonPlatformTeamInPlatform,
-					Message: fmt.Sprintf("platform %q contains team %q which is not of type platform (got %q)", platform.Name, teamName, team.TeamType.String()),
-					Entity:  platform.Name,
-				})
+				addWarning(result, WarnNonPlatformTeamInPlatform,
+					platform.Name,
+					fmt.Sprintf("platform %q contains team %q which is not of type platform (got %q)", platform.Name, teamName, team.TeamType.String()))
 			}
+		}
+	}
+}
+
+// ── Info diagnostics ──────────────────────────────────────────────────────────
+
+// checkOrphanActors emits an info-level diagnostic for actors that have no needs.
+func (v *ValidationEngine) checkOrphanActors(model *entity.UNMModel, result *ValidationResult) {
+	// Build set of actor names referenced by needs
+	referenced := make(map[string]bool)
+	for _, need := range model.Needs {
+		for _, actorName := range need.ActorNames {
+			referenced[actorName] = true
+		}
+	}
+	for _, actor := range model.Actors {
+		if !referenced[actor.Name] {
+			addInfo(result, InfoOrphanActor,
+				actor.Name,
+				fmt.Sprintf("actor %q has no needs — consider adding needs or removing the actor", actor.Name))
+		}
+	}
+}
+
+// checkOrphanTeams emits an info-level diagnostic for teams that own no services
+// and no capabilities.
+func (v *ValidationEngine) checkOrphanTeams(model *entity.UNMModel, result *ValidationResult) {
+	for _, team := range model.Teams {
+		caps := model.GetCapabilitiesForTeam(team.Name)
+
+		// Count services owned by this team
+		svcCount := 0
+		for _, svc := range model.Services {
+			if svc.OwnerTeamName == team.Name {
+				svcCount++
+			}
+		}
+
+		if len(caps) == 0 && svcCount == 0 {
+			addInfo(result, InfoOrphanTeam,
+				team.Name,
+				fmt.Sprintf("team %q owns no services or capabilities — it may be incomplete", team.Name))
 		}
 	}
 }

@@ -1261,3 +1261,153 @@ func TestTransform_NeedMultiActor(t *testing.T) {
 		t.Errorf("expected ActorNames[1] %q, got %q", "Actor B", need.ActorNames[1])
 	}
 }
+
+// ── Phase 12.5: DSL Transformer Warning Parity ────────────────────────────────
+
+// TestTransform_UnresolvedServiceRealizes_ProducesWarning verifies that when a
+// service.realizes target capability does not exist in the model, the transformer
+// populates model.Warnings with a descriptive message rather than silently skipping.
+func TestTransform_UnresolvedServiceRealizes_ProducesWarning(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Warning Test"},
+		Services: []*ServiceNode{
+			{
+				Name:    "auth-service",
+				OwnedBy: "Platform Team",
+				Realizes: []ServiceRealizesNode{
+					{Target: "Unknown Capability"}, // capability not in model
+				},
+			},
+		},
+		Teams: []*TeamNode{
+			{Name: "Platform Team", Type: "platform"},
+		},
+	}
+
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(model.Warnings) == 0 {
+		t.Error("expected at least one warning for unresolved service.realizes reference, got none")
+	}
+
+	found := false
+	for _, w := range model.Warnings {
+		if strings.Contains(w, "auth-service") && strings.Contains(w, "Unknown Capability") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected warning mentioning 'auth-service' and 'Unknown Capability', got: %v", model.Warnings)
+	}
+}
+
+// TestTransform_UnresolvedTeamInteractionTarget_ProducesWarning verifies that when a
+// team.interacts.with target does not exist in the model, a warning is generated.
+func TestTransform_UnresolvedTeamInteractionTarget_ProducesWarning(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Warning Test"},
+		Teams: []*TeamNode{
+			{
+				Name: "My Team",
+				Type: "stream-aligned",
+				Interacts: []TeamInteractionNode{
+					{With: "Ghost Team", Mode: "x-as-a-service"},
+				},
+			},
+		},
+	}
+
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(model.Warnings) == 0 {
+		t.Error("expected at least one warning for unresolved team interaction target, got none")
+	}
+
+	found := false
+	for _, w := range model.Warnings {
+		if strings.Contains(w, "My Team") && strings.Contains(w, "Ghost Team") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected warning mentioning 'My Team' and 'Ghost Team', got: %v", model.Warnings)
+	}
+}
+
+// TestTransform_ResolvedServiceRealizes_NoWarning verifies that a resolved
+// service.realizes reference produces no warnings.
+func TestTransform_ResolvedServiceRealizes_NoWarning(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "No Warning Test"},
+		Capabilities: []*CapabilityNode{
+			{Name: "Real Capability"},
+		},
+		Services: []*ServiceNode{
+			{
+				Name:    "my-service",
+				OwnedBy: "My Team",
+				Realizes: []ServiceRealizesNode{
+					{Target: "Real Capability"}, // exists in model
+				},
+			},
+		},
+		Teams: []*TeamNode{
+			{Name: "My Team", Type: "stream-aligned"},
+		},
+	}
+
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, w := range model.Warnings {
+		if strings.Contains(w, "realizes") || strings.Contains(w, "Real Capability") {
+			t.Errorf("unexpected warning for resolved realizes reference: %q", w)
+		}
+	}
+}
+
+// TestTransform_MultipleUnresolvedRealizes_AllWarned verifies that all unresolved
+// references produce individual warnings.
+func TestTransform_MultipleUnresolvedRealizes_AllWarned(t *testing.T) {
+	f := &File{
+		System: &SystemNode{Name: "Multi Warning Test"},
+		Services: []*ServiceNode{
+			{
+				Name:    "svc-a",
+				OwnedBy: "Team A",
+				Realizes: []ServiceRealizesNode{
+					{Target: "Cap One"},  // missing
+					{Target: "Cap Two"},  // missing
+				},
+			},
+		},
+		Teams: []*TeamNode{
+			{Name: "Team A", Type: "stream-aligned"},
+		},
+	}
+
+	model, err := Transform(f)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	warnCount := 0
+	for _, w := range model.Warnings {
+		if strings.Contains(w, "svc-a") {
+			warnCount++
+		}
+	}
+	if warnCount < 2 {
+		t.Errorf("expected at least 2 warnings for 2 unresolved references from svc-a, got %d: %v", warnCount, model.Warnings)
+	}
+}

@@ -256,13 +256,15 @@ func transformServices(model *entity.UNMModel, nodes []*ServiceNode) error {
 
 // wireServiceRealizes wires service.Realizes → capability.RealizedBy (9.3.5).
 // Must be called after both services and capabilities are in the model.
+// Unresolved references produce a warning in model.Warnings (12.5.1).
 func wireServiceRealizes(model *entity.UNMModel, nodes []*ServiceNode) error {
 	for _, n := range nodes {
 		for _, r := range n.Realizes {
 			cap, ok := model.Capabilities[r.Target]
 			if !ok {
-				// Capability not found — silently skip (it may be in an imported file).
-				// If stricter behaviour is desired, return an error here.
+				// Capability not found — emit a warning for diagnostic parity with YAML parser.
+				model.Warnings = append(model.Warnings,
+					fmt.Sprintf("service %q realizes unknown capability %q — reference is unresolved", n.Name, r.Target))
 				continue
 			}
 			targetID, err := valueobject.NewEntityID(n.Name)
@@ -325,9 +327,16 @@ func transformTeams(model *entity.UNMModel, nodes []*TeamNode) error {
 
 // wireTeamInteracts converts TeamNode.Interacts into Interaction entities (9.5.3).
 // Must be called after teams are in the model.
+// Interactions with unknown target teams produce a warning (12.5.1).
 func wireTeamInteracts(model *entity.UNMModel, nodes []*TeamNode) error {
 	for i, n := range nodes {
 		for j, inter := range n.Interacts {
+			// Warn if the target team does not exist in the model.
+			if _, exists := model.Teams[inter.With]; !exists {
+				model.Warnings = append(model.Warnings,
+					fmt.Sprintf("team %q interacts with unknown team %q — reference is unresolved", n.Name, inter.With))
+				// Still add the interaction so validation can catch it.
+			}
 			mode, err := valueobject.NewInteractionMode(inter.Mode)
 			if err != nil {
 				return fmt.Errorf("transform: team %q interacts[%d] mode: %w", n.Name, j, err)

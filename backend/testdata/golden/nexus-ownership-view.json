@@ -1,0 +1,1790 @@
+{
+  "cross_team_capabilities": [
+    {
+      "cap_id": "cap-Async Entity Writing",
+      "cap_label": "Async Entity Writing",
+      "team_labels": [
+        "nexus-core-dev",
+        "nexus-publisher-dev"
+      ]
+    },
+    {
+      "cap_id": "cap-Data Transformation \u0026 Conversion",
+      "cap_label": "Data Transformation \u0026 Conversion",
+      "team_labels": [
+        "nexus-conversion-dev",
+        "nexus-quality-dev"
+      ]
+    }
+  ],
+  "external_dependency_count": 10,
+  "high_span_services": [],
+  "lanes": [
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Pre-computes and caches assembled catalog views for performance optimization of the serving path",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Catalog Cache Generation",
+            "label": "Catalog Cache Generation"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-cache-worker",
+              "label": "nexus-cache-worker",
+              "team_id": "team-nexus-conversion-dev",
+              "team_label": "nexus-conversion-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Transforms catalog data between model formats and converts between catalog and listing representations",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Data Transformation \u0026 Conversion",
+            "label": "Data Transformation \u0026 Conversion"
+          },
+          "cross_team": true,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-conversion-worker",
+              "label": "nexus-conversion-worker",
+              "team_id": "team-nexus-conversion-dev",
+              "team_label": "nexus-conversion-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-transformer",
+              "label": "nexus-transformer",
+              "team_id": "team-nexus-quality-dev",
+              "team_label": "nexus-quality-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "Temporal workflow orchestration platform",
+          "id": "extdep-temporal",
+          "label": "temporal",
+          "service_count": 2
+        }
+      ],
+      "team": {
+        "data": {
+          "description": "Owns catalog cache generation and model conversion workflows; aligned to the catalog-to-listing data pipeline and serving cache population.\n",
+          "is_overloaded": false,
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-conversion-dev",
+        "label": "nexus-conversion-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Provides controlled administrative operations: semantic validation, bulk entity management",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Administrative \u0026 Bulk Operations",
+            "label": "Administrative \u0026 Bulk Operations"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-admin",
+              "label": "nexus-admin",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Processes entity write operations from Kafka queues asynchronously",
+              "is_leaf": true,
+              "visibility": "infrastructure"
+            },
+            "id": "cap-Async Entity Writing",
+            "label": "Async Entity Writing"
+          },
+          "cross_team": true,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-async",
+              "label": "nexus-async",
+              "team_id": "team-nexus-publisher-dev",
+              "team_label": "nexus-publisher-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-async-writer",
+              "label": "nexus-async-writer",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Authoritative create, read, update, delete, and scan operations for all catalog entities",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Entity CRUD \u0026 Lifecycle",
+            "label": "Entity CRUD \u0026 Lifecycle"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 2,
+              "id": "svc-nexus-core",
+              "label": "nexus-core",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Emits Kafka events whenever catalog entities are created, updated, or deleted",
+              "is_leaf": true,
+              "visibility": "infrastructure"
+            },
+            "id": "cap-Entity Change Event Emission",
+            "label": "Entity Change Event Emission"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 2,
+              "id": "svc-nexus-core",
+              "label": "nexus-core",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Provides blob/file storage for catalog assets such as images and backup artifacts",
+              "is_leaf": true,
+              "visibility": "infrastructure"
+            },
+            "id": "cap-Object Storage",
+            "label": "Object Storage"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-blob",
+              "label": "nexus-blob",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Builds and maintains search and catalog indexes to enable fast indexed reads",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Product Indexing",
+            "label": "Product Indexing"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-indexer",
+              "label": "nexus-indexer",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-indexer-worker",
+              "label": "nexus-indexer-worker",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Manages dynamic configuration for Nexus services including schema registries and service config",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Registry \u0026 Configuration Management",
+            "label": "Registry \u0026 Configuration Management"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-registry",
+              "label": "nexus-registry",
+              "team_id": "team-nexus-core-dev",
+              "team_label": "nexus-core-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "Schemaless document storage backed by relational database",
+          "id": "extdep-datastore",
+          "label": "datastore",
+          "service_count": 2
+        },
+        {
+          "description": "Feature flag and dynamic configuration platform",
+          "id": "extdep-feature-flags",
+          "label": "feature-flags",
+          "service_count": 1
+        },
+        {
+          "description": "Distributed blob and object storage system",
+          "id": "extdep-object-storage",
+          "label": "object-storage",
+          "service_count": 1
+        },
+        {
+          "description": "Temporal workflow orchestration platform",
+          "id": "extdep-temporal",
+          "label": "temporal",
+          "service_count": 1
+        }
+      ],
+      "team": {
+        "data": {
+          "anti_patterns": [
+            {
+              "code": "overloaded",
+              "message": "Team cognitive load exceeds threshold",
+              "severity": "warning"
+            }
+          ],
+          "description": "Owns the authoritative catalog entity store (nexus-core) and its immediate platform support services. Acts as an internal platform providing Entity CRUD to all other Nexus teams and to external teams via x-as-a-service. Also owns async entity writing infrastructure.\n",
+          "is_overloaded": true,
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Processes submitted feed payloads through validation, transformation, and entity writes in workflow engine",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Feed Ingestion \u0026 Processing",
+            "label": "Feed Ingestion \u0026 Processing"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-feed-adhoc-worker",
+              "label": "nexus-feed-adhoc-worker",
+              "team_id": "team-nexus-ingestion-dev",
+              "team_label": "nexus-ingestion-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-feed-worker",
+              "label": "nexus-feed-worker",
+              "team_id": "team-nexus-ingestion-dev",
+              "team_label": "nexus-ingestion-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Accepts feed submissions from sellers and integration partners; provides job status and error visibility",
+              "is_leaf": true,
+              "visibility": "user-facing"
+            },
+            "id": "cap-Feed Submission \u0026 Job Tracking",
+            "label": "Feed Submission \u0026 Job Tracking"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-feed-api",
+              "label": "nexus-feed-api",
+              "team_id": "team-nexus-ingestion-dev",
+              "team_label": "nexus-ingestion-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Handles image ingestion, validation, transformation, and association with catalog entities",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Media Processing \u0026 Management",
+            "label": "Media Processing \u0026 Management"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-media",
+              "label": "nexus-media",
+              "team_id": "team-nexus-ingestion-dev",
+              "team_label": "nexus-ingestion-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Ingests catalog data from the data warehouse via streaming message pipelines",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Warehouse Data Ingestion",
+            "label": "Warehouse Data Ingestion"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-warehouse-ingester",
+              "label": "nexus-warehouse-ingester",
+              "team_id": "team-nexus-ingestion-dev",
+              "team_label": "nexus-ingestion-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "OAuth and identity service for authentication",
+          "id": "extdep-auth-service",
+          "label": "auth-service",
+          "service_count": 1
+        },
+        {
+          "description": "External store platform; also produces catalog update Kafka events",
+          "id": "extdep-external-store",
+          "label": "external-store",
+          "service_count": 1
+        },
+        {
+          "description": "Feature flag and dynamic configuration platform",
+          "id": "extdep-feature-flags",
+          "label": "feature-flags",
+          "service_count": 1
+        },
+        {
+          "description": "User identity and profile platform",
+          "id": "extdep-identity-gateway",
+          "label": "identity-gateway",
+          "service_count": 1
+        },
+        {
+          "description": "Key management service providing encryption keys",
+          "id": "extdep-kms",
+          "label": "kms",
+          "service_count": 1
+        },
+        {
+          "description": "Distributed blob and object storage system",
+          "id": "extdep-object-storage",
+          "label": "object-storage",
+          "service_count": 1
+        },
+        {
+          "description": "Marketplace pricing service",
+          "id": "extdep-pricing-service",
+          "label": "pricing-service",
+          "service_count": 1
+        },
+        {
+          "description": "Store data platform providing seller and store information",
+          "id": "extdep-store-gateway",
+          "label": "store-gateway",
+          "service_count": 1
+        },
+        {
+          "description": "Temporal workflow orchestration platform",
+          "id": "extdep-temporal",
+          "label": "temporal",
+          "service_count": 3
+        }
+      ],
+      "team": {
+        "data": {
+          "description": "Owns the seller feed ingestion pipeline end-to-end: feed API, feed processing workers, media handling, and warehouse data ingestion. Aligned to the seller feed submission and data ingestion flow.\n",
+          "is_overloaded": false,
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-ingestion-dev",
+        "label": "nexus-ingestion-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Monitors catalog metrics for statistical deviations and detects regressions before they impact users",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Anomaly Detection \u0026 Statistical Analysis",
+            "label": "Anomaly Detection \u0026 Statistical Analysis"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-anomaly-detector",
+              "label": "nexus-anomaly-detector",
+              "team_id": "team-nexus-observability-dev",
+              "team_label": "nexus-observability-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-realtime-stats",
+              "label": "nexus-realtime-stats",
+              "team_id": "team-nexus-observability-dev",
+              "team_label": "nexus-observability-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Creates periodic backups of all catalog entities and supports restoring to a specific point in time",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Backup \u0026 Point-in-Time Recovery",
+            "label": "Backup \u0026 Point-in-Time Recovery"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-backup",
+              "label": "nexus-backup",
+              "team_id": "team-nexus-observability-dev",
+              "team_label": "nexus-observability-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Stores, surfaces, and manages structured issues from feed validation failures and data quality checks",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Issue Tracking \u0026 Management",
+            "label": "Issue Tracking \u0026 Management"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-issue-store",
+              "label": "nexus-issue-store",
+              "team_id": "team-nexus-observability-dev",
+              "team_label": "nexus-observability-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Minimal health status reporting for infrastructure readiness checks and service discovery",
+              "is_leaf": true,
+              "visibility": "infrastructure"
+            },
+            "id": "cap-Platform Health Monitoring",
+            "label": "Platform Health Monitoring"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-status",
+              "label": "nexus-status",
+              "team_id": "team-nexus-observability-dev",
+              "team_label": "nexus-observability-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "Temporal workflow orchestration platform",
+          "id": "extdep-temporal",
+          "label": "temporal",
+          "service_count": 2
+        }
+      ],
+      "team": {
+        "data": {
+          "description": "Owns statistical anomaly detection, real-time monitoring, issue tracking, backup/restore, and platform health status. Specializes in the deep statistics and reliability capabilities that underpin catalog quality guarantees.\n",
+          "is_overloaded": false,
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-observability-dev",
+        "label": "nexus-observability-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Machine-readable debug interface exposing entity inspection and publishing simulation",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Debug Interface",
+            "label": "Debug Interface"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-mcp",
+              "label": "nexus-mcp",
+              "team_id": "team-nexus-platform-dev",
+              "team_label": "nexus-platform-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Command-line tool for operators to inspect, debug, and perform maintenance tasks on catalog data",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Operational CLI Tooling",
+            "label": "Operational CLI Tooling"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-tool",
+              "label": "nexus-tool",
+              "team_id": "team-nexus-platform-dev",
+              "team_label": "nexus-platform-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [],
+      "team": {
+        "data": {
+          "description": "Owns operational tooling and developer-facing catalog interfaces. Primary focus: operational migration workflows, catalog tooling, and developer experience interfaces (MCP, CLI).\n",
+          "is_overloaded": false,
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-platform-dev",
+        "label": "nexus-platform-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Performs automated cleanup, deduplication, and trimming of stale or corrupt catalog data",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Data Scrubbing \u0026 Cleanup",
+            "label": "Data Scrubbing \u0026 Cleanup"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-scrubber",
+              "label": "nexus-scrubber",
+              "team_id": "team-nexus-publisher-dev",
+              "team_label": "nexus-publisher-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Builds assembled entity objects from flattened extension values for downstream consumption",
+              "is_leaf": true,
+              "visibility": "foundational"
+            },
+            "id": "cap-Entity Construction",
+            "label": "Entity Construction"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-entity-builder",
+              "label": "nexus-entity-builder",
+              "team_id": "team-nexus-publisher-dev",
+              "team_label": "nexus-publisher-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Validates catalog entities against business rules and publishes them to the serving layer",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Entity Publishing \u0026 Validation",
+            "label": "Entity Publishing \u0026 Validation"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-publisher",
+              "label": "nexus-publisher",
+              "team_id": "team-nexus-publisher-dev",
+              "team_label": "nexus-publisher-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-publisher-worker",
+              "label": "nexus-publisher-worker",
+              "team_id": "team-nexus-publisher-dev",
+              "team_label": "nexus-publisher-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Computes and applies extension attribute values to catalog entities before publication",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Product Entity Enrichment",
+            "label": "Product Entity Enrichment"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-enricher",
+              "label": "nexus-enricher",
+              "team_id": "team-nexus-publisher-dev",
+              "team_label": "nexus-publisher-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "Feature flag and dynamic configuration platform",
+          "id": "extdep-feature-flags",
+          "label": "feature-flags",
+          "service_count": 1
+        },
+        {
+          "description": "Temporal workflow orchestration platform",
+          "id": "extdep-temporal",
+          "label": "temporal",
+          "service_count": 2
+        }
+      ],
+      "team": {
+        "data": {
+          "description": "Owns entity publishing, validation, and downstream enrichment services including entity construction, async writes, and data scrubbing. Aligned to the entity publishing and distribution flow.\n",
+          "is_overloaded": false,
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-publisher-dev",
+        "label": "nexus-publisher-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Transforms catalog data between model formats and converts between catalog and listing representations",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Data Transformation \u0026 Conversion",
+            "label": "Data Transformation \u0026 Conversion"
+          },
+          "cross_team": true,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-conversion-worker",
+              "label": "nexus-conversion-worker",
+              "team_id": "team-nexus-conversion-dev",
+              "team_label": "nexus-conversion-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-transformer",
+              "label": "nexus-transformer",
+              "team_id": "team-nexus-quality-dev",
+              "team_label": "nexus-quality-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Provides fast, index-based access to catalog categories and items for search and browse",
+              "is_leaf": true,
+              "visibility": "user-facing"
+            },
+            "id": "cap-Indexed Product Query",
+            "label": "Indexed Product Query"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-query",
+              "label": "nexus-query",
+              "team_id": "team-nexus-quality-dev",
+              "team_label": "nexus-quality-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "Temporal workflow orchestration platform",
+          "id": "extdep-temporal",
+          "label": "temporal",
+          "service_count": 1
+        }
+      ],
+      "team": {
+        "data": {
+          "description": "Nexus sub-team that owns quality frameworks, enrichers, validators, indexed query, catalog indexing, and data transformation pipeline. Provides specialized indexing and transformation capabilities to the Nexus platform.\n",
+          "is_overloaded": false,
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-quality-dev",
+        "label": "nexus-quality-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Serves current catalog data to consumer-facing surfaces at high throughput",
+              "is_leaf": true,
+              "visibility": "user-facing"
+            },
+            "id": "cap-Real-time Product Serving",
+            "label": "Real-time Product Serving"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-serving",
+              "label": "nexus-serving",
+              "team_id": "team-nexus-serving-dev",
+              "team_label": "nexus-serving-dev"
+            },
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-serving-gateway",
+              "label": "nexus-serving-gateway",
+              "team_id": "team-nexus-serving-dev",
+              "team_label": "nexus-serving-dev"
+            }
+          ]
+        },
+        {
+          "cap": {
+            "data": {
+              "description": "Continuously synchronizes entity changes from the authoritative store to the serving data layer",
+              "is_leaf": true,
+              "visibility": "infrastructure"
+            },
+            "id": "cap-Serving Data Synchronization",
+            "label": "Serving Data Synchronization"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-serving-ingestor",
+              "label": "nexus-serving-ingestor",
+              "team_id": "team-nexus-serving-dev",
+              "team_label": "nexus-serving-dev"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "Schemaless document storage backed by relational database",
+          "id": "extdep-datastore",
+          "label": "datastore",
+          "service_count": 1
+        },
+        {
+          "description": "External store platform; also produces catalog update Kafka events",
+          "id": "extdep-external-store",
+          "label": "external-store",
+          "service_count": 1
+        }
+      ],
+      "team": {
+        "data": {
+          "description": "Owns the shopper-facing serving layer: the CatalogServing API, the serving gateway, and the serving-ingestor that keeps serving data synchronized. Aligned to the consumer read path.\n",
+          "is_overloaded": false,
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-serving-dev",
+        "label": "nexus-serving-dev"
+      }
+    },
+    {
+      "caps": [
+        {
+          "cap": {
+            "data": {
+              "description": "Ingests catalog images and content from social media platforms",
+              "is_leaf": true,
+              "visibility": "domain"
+            },
+            "id": "cap-Social Media Content Ingestion",
+            "label": "Social Media Content Ingestion"
+          },
+          "cross_team": false,
+          "services": [
+            {
+              "cap_count": 1,
+              "id": "svc-nexus-social-ingester",
+              "label": "nexus-social-ingester",
+              "team_id": "team-partner-eng",
+              "team_label": "partner-eng"
+            }
+          ]
+        }
+      ],
+      "external_deps": [
+        {
+          "description": "Temporal workflow orchestration platform",
+          "id": "extdep-temporal",
+          "label": "temporal",
+          "service_count": 1
+        }
+      ],
+      "team": {
+        "data": {
+          "description": "External partner team that owns the social media content ingestion service (nexus-social-ingester). Deploys and operates a service within the Nexus platform boundary but is not part of the Nexus org.\n",
+          "is_overloaded": false,
+          "type": "stream-aligned"
+        },
+        "id": "team-partner-eng",
+        "label": "partner-eng"
+      }
+    }
+  ],
+  "multi_cap_count": 1,
+  "no_cap_count": 0,
+  "overloaded_teams": [
+    {
+      "id": "team-nexus-core-dev",
+      "label": "nexus-core-dev"
+    }
+  ],
+  "service_rows": [
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Catalog Cache Generation",
+          "label": "Catalog Cache Generation"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Workflow worker running GenerateCatalogCache workflow; assembles and caches complete catalog views",
+        "id": "svc-nexus-cache-worker",
+        "label": "nexus-cache-worker"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-conversion-dev",
+        "label": "nexus-conversion-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Data Transformation \u0026 Conversion",
+          "label": "Data Transformation \u0026 Conversion"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Workflow worker executing model conversion workflows between catalog and listing data representations",
+        "id": "svc-nexus-conversion-worker",
+        "label": "nexus-conversion-worker"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-conversion-dev",
+        "label": "nexus-conversion-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Administrative \u0026 Bulk Operations",
+          "label": "Administrative \u0026 Bulk Operations"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Administrative operations API for semantic validation, bulk entity management, and operator tasks",
+        "id": "svc-nexus-admin",
+        "label": "nexus-admin"
+      },
+      "team": {
+        "data": {
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "infrastructure"
+          },
+          "id": "cap-Async Entity Writing",
+          "label": "Async Entity Writing"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Kafka consumer service that reads entity write messages and applies them asynchronously to the entity store",
+        "id": "svc-nexus-async-writer",
+        "label": "nexus-async-writer"
+      },
+      "team": {
+        "data": {
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "infrastructure"
+          },
+          "id": "cap-Object Storage",
+          "label": "Object Storage"
+        }
+      ],
+      "external_deps": [
+        "datastore",
+        "object-storage"
+      ],
+      "service": {
+        "description": "On-premises blob storage service backed by datastore for catalog assets",
+        "id": "svc-nexus-blob",
+        "label": "nexus-blob"
+      },
+      "team": {
+        "data": {
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Entity CRUD \u0026 Lifecycle",
+          "label": "Entity CRUD \u0026 Lifecycle"
+        },
+        {
+          "data": {
+            "visibility": "infrastructure"
+          },
+          "id": "cap-Entity Change Event Emission",
+          "label": "Entity Change Event Emission"
+        }
+      ],
+      "external_deps": [
+        "datastore",
+        "feature-flags"
+      ],
+      "service": {
+        "description": "Authoritative entity CRUD API; main datastore-backed database interaction layer for all catalog entities",
+        "id": "svc-nexus-core",
+        "label": "nexus-core"
+      },
+      "team": {
+        "data": {
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Product Indexing",
+          "label": "Product Indexing"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Catalog indexing API server that orchestrates the building of catalog search indexes",
+        "id": "svc-nexus-indexer",
+        "label": "nexus-indexer"
+      },
+      "team": {
+        "data": {
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Product Indexing",
+          "label": "Product Indexing"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Workflow worker executing IndexPublishedItems and IndexCatalog workflows",
+        "id": "svc-nexus-indexer-worker",
+        "label": "nexus-indexer-worker"
+      },
+      "team": {
+        "data": {
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Registry \u0026 Configuration Management",
+          "label": "Registry \u0026 Configuration Management"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Configuration management service exposing ConfigService gRPC",
+        "id": "svc-nexus-registry",
+        "label": "nexus-registry"
+      },
+      "team": {
+        "data": {
+          "type": "platform"
+        },
+        "id": "team-nexus-core-dev",
+        "label": "nexus-core-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Feed Ingestion \u0026 Processing",
+          "label": "Feed Ingestion \u0026 Processing"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Workflow worker for ad-hoc and one-off feed processing jobs outside the standard scheduled pipeline",
+        "id": "svc-nexus-feed-adhoc-worker",
+        "label": "nexus-feed-adhoc-worker"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-ingestion-dev",
+        "label": "nexus-ingestion-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "user-facing"
+          },
+          "id": "cap-Feed Submission \u0026 Job Tracking",
+          "label": "Feed Submission \u0026 Job Tracking"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "RPC server for feed submission and job status tracking; exposes FeedAPIService (SubmitFeed, GetJob)",
+        "id": "svc-nexus-feed-api",
+        "label": "nexus-feed-api"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-ingestion-dev",
+        "label": "nexus-ingestion-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Feed Ingestion \u0026 Processing",
+          "label": "Feed Ingestion \u0026 Processing"
+        }
+      ],
+      "external_deps": [
+        "auth-service",
+        "external-store",
+        "feature-flags",
+        "identity-gateway",
+        "kms",
+        "pricing-service",
+        "store-gateway",
+        "temporal"
+      ],
+      "service": {
+        "description": "Workflow worker executing feed processing workflows",
+        "id": "svc-nexus-feed-worker",
+        "label": "nexus-feed-worker"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-ingestion-dev",
+        "label": "nexus-ingestion-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Media Processing \u0026 Management",
+          "label": "Media Processing \u0026 Management"
+        }
+      ],
+      "external_deps": [
+        "object-storage"
+      ],
+      "service": {
+        "description": "Media processing API managing image lifecycle: ingestion, validation, transformation, and object storage",
+        "id": "svc-nexus-media",
+        "label": "nexus-media"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-ingestion-dev",
+        "label": "nexus-ingestion-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Warehouse Data Ingestion",
+          "label": "Warehouse Data Ingestion"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Warehouse data ingestion service combining a workflow worker and API server; processes streaming messages",
+        "id": "svc-nexus-warehouse-ingester",
+        "label": "nexus-warehouse-ingester"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-ingestion-dev",
+        "label": "nexus-ingestion-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Anomaly Detection \u0026 Statistical Analysis",
+          "label": "Anomaly Detection \u0026 Statistical Analysis"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Anomaly detection service aggregating catalog stats, detecting deviations, producing to nexus.anomalies topic",
+        "id": "svc-nexus-anomaly-detector",
+        "label": "nexus-anomaly-detector"
+      },
+      "team": {
+        "data": {
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-observability-dev",
+        "label": "nexus-observability-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Backup \u0026 Point-in-Time Recovery",
+          "label": "Backup \u0026 Point-in-Time Recovery"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Backup and restore service combining a gRPC API with workflow jobs: BackupCatalog, RestoreCatalog",
+        "id": "svc-nexus-backup",
+        "label": "nexus-backup"
+      },
+      "team": {
+        "data": {
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-observability-dev",
+        "label": "nexus-observability-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Issue Tracking \u0026 Management",
+          "label": "Issue Tracking \u0026 Management"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Issue management API exposing IssueStore gRPC (SyncIssues, ListProducerIssues)",
+        "id": "svc-nexus-issue-store",
+        "label": "nexus-issue-store"
+      },
+      "team": {
+        "data": {
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-observability-dev",
+        "label": "nexus-observability-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Anomaly Detection \u0026 Statistical Analysis",
+          "label": "Anomaly Detection \u0026 Statistical Analysis"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Real-time statistics service tracking per-catalog metrics and running workflow-based consistency checks",
+        "id": "svc-nexus-realtime-stats",
+        "label": "nexus-realtime-stats"
+      },
+      "team": {
+        "data": {
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-observability-dev",
+        "label": "nexus-observability-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "infrastructure"
+          },
+          "id": "cap-Platform Health Monitoring",
+          "label": "Platform Health Monitoring"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Minimal health status reporting service providing gRPC health check endpoints",
+        "id": "svc-nexus-status",
+        "label": "nexus-status"
+      },
+      "team": {
+        "data": {
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-observability-dev",
+        "label": "nexus-observability-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Debug Interface",
+          "label": "Debug Interface"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "MCP (Model Context Protocol) server exposing debugging tools: readentity, getcatalogconfig, simulatepublishing",
+        "id": "svc-nexus-mcp",
+        "label": "nexus-mcp"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-platform-dev",
+        "label": "nexus-platform-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Operational CLI Tooling",
+          "label": "Operational CLI Tooling"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Multi-purpose operator CLI with subcommands: catalog, feed, product, media, backup, migration support",
+        "id": "svc-nexus-tool",
+        "label": "nexus-tool"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-platform-dev",
+        "label": "nexus-platform-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "infrastructure"
+          },
+          "id": "cap-Async Entity Writing",
+          "label": "Async Entity Writing"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Async operations coordination service providing EmulateConsumeDBEvent for decoupled entity processing",
+        "id": "svc-nexus-async",
+        "label": "nexus-async"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-publisher-dev",
+        "label": "nexus-publisher-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Product Entity Enrichment",
+          "label": "Product Entity Enrichment"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Product enrichment service hosting enricher functions that compute extension attribute values before publication",
+        "id": "svc-nexus-enricher",
+        "label": "nexus-enricher"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-publisher-dev",
+        "label": "nexus-publisher-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Entity Construction",
+          "label": "Entity Construction"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Entity construction API that assembles entity objects from flattened extension attribute values",
+        "id": "svc-nexus-entity-builder",
+        "label": "nexus-entity-builder"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-publisher-dev",
+        "label": "nexus-publisher-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Entity Publishing \u0026 Validation",
+          "label": "Entity Publishing \u0026 Validation"
+        }
+      ],
+      "external_deps": [
+        "feature-flags"
+      ],
+      "service": {
+        "description": "Publishing and validation API server; runs entity validation pipelines and manages publishing lifecycle",
+        "id": "svc-nexus-publisher",
+        "label": "nexus-publisher"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-publisher-dev",
+        "label": "nexus-publisher-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Entity Publishing \u0026 Validation",
+          "label": "Entity Publishing \u0026 Validation"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Workflow worker for asynchronous publishing workflows and retry logic",
+        "id": "svc-nexus-publisher-worker",
+        "label": "nexus-publisher-worker"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-publisher-dev",
+        "label": "nexus-publisher-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "foundational"
+          },
+          "id": "cap-Data Scrubbing \u0026 Cleanup",
+          "label": "Data Scrubbing \u0026 Cleanup"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Data scrubbing service combining a workflow worker and API for cleanup, deduplication, and trimming",
+        "id": "svc-nexus-scrubber",
+        "label": "nexus-scrubber"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-publisher-dev",
+        "label": "nexus-publisher-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "user-facing"
+          },
+          "id": "cap-Indexed Product Query",
+          "label": "Indexed Product Query"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Indexed catalog query API exposing CatalogQueryService gRPC (ScanCategory) for fast indexed browsing",
+        "id": "svc-nexus-query",
+        "label": "nexus-query"
+      },
+      "team": {
+        "data": {
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-quality-dev",
+        "label": "nexus-quality-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Data Transformation \u0026 Conversion",
+          "label": "Data Transformation \u0026 Conversion"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Data transformation service running workflow jobs to convert entities between model formats; persists in relational DB",
+        "id": "svc-nexus-transformer",
+        "label": "nexus-transformer"
+      },
+      "team": {
+        "data": {
+          "type": "complicated-subsystem"
+        },
+        "id": "team-nexus-quality-dev",
+        "label": "nexus-quality-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "user-facing"
+          },
+          "id": "cap-Real-time Product Serving",
+          "label": "Real-time Product Serving"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Read-optimized serving API exposing CatalogServing gRPC (GetItems, ScanCategory) for consumer-facing apps",
+        "id": "svc-nexus-serving",
+        "label": "nexus-serving"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-serving-dev",
+        "label": "nexus-serving-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "user-facing"
+          },
+          "id": "cap-Real-time Product Serving",
+          "label": "Real-time Product Serving"
+        }
+      ],
+      "external_deps": [],
+      "service": {
+        "description": "Gateway routing layer for serving endpoints",
+        "id": "svc-nexus-serving-gateway",
+        "label": "nexus-serving-gateway"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-serving-dev",
+        "label": "nexus-serving-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "infrastructure"
+          },
+          "id": "cap-Serving Data Synchronization",
+          "label": "Serving Data Synchronization"
+        }
+      ],
+      "external_deps": [
+        "datastore",
+        "external-store"
+      ],
+      "service": {
+        "description": "Kafka consumer syncing entity change events to serving-layer datastore tables",
+        "id": "svc-nexus-serving-ingestor",
+        "label": "nexus-serving-ingestor"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-nexus-serving-dev",
+        "label": "nexus-serving-dev"
+      }
+    },
+    {
+      "capabilities": [
+        {
+          "data": {
+            "visibility": "domain"
+          },
+          "id": "cap-Social Media Content Ingestion",
+          "label": "Social Media Content Ingestion"
+        }
+      ],
+      "external_deps": [
+        "temporal"
+      ],
+      "service": {
+        "description": "Social media content ingestion service; workflow worker + API server running PrePublish workflow",
+        "id": "svc-nexus-social-ingester",
+        "label": "nexus-social-ingester"
+      },
+      "team": {
+        "data": {
+          "type": "stream-aligned"
+        },
+        "id": "team-partner-eng",
+        "label": "partner-eng"
+      }
+    }
+  ],
+  "unowned_capabilities": [],
+  "view_type": "ownership"
+}

@@ -1,6 +1,7 @@
 package serializer
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -236,4 +237,40 @@ func TestMarshalYAML_DeterministicOrder(t *testing.T) {
 	data2, _ := MarshalYAML(m)
 
 	assert.Equal(t, string(data1), string(data2), "YAML output should be deterministic")
+}
+
+// TestYAMLSerializer_CrossFormatRoundTrip parses examples/nexus.unm (DSL), serializes
+// to YAML, then parses the YAML back and verifies key entity counts match.
+// This catches regressions where the YAML serializer drops or corrupts data compared
+// to what the DSL parser produces.
+func TestYAMLSerializer_CrossFormatRoundTrip(t *testing.T) {
+	// Parse the DSL source file
+	dslPath := "../../../../examples/nexus.unm"
+	src, err := os.Open(dslPath)
+	if err != nil {
+		t.Skipf("nexus.unm not found at %s — skipping cross-format test", dslPath)
+	}
+	defer src.Close()
+
+	m1, err := parser.NewDSLParser().Parse(src)
+	require.NoError(t, err, "parse DSL source")
+
+	// Serialize to YAML
+	yamlData, err := MarshalYAML(m1)
+	require.NoError(t, err, "serialize to YAML")
+	require.NotEmpty(t, yamlData)
+
+	// Parse the YAML back
+	m2, err := parser.NewYAMLParser().Parse(strings.NewReader(string(yamlData)))
+	require.NoError(t, err, "parse serialized YAML")
+
+	// Key entity counts must be preserved across format conversion
+	assert.Equal(t, m1.System.Name, m2.System.Name, "system name must survive cross-format round-trip")
+	assert.Len(t, m2.Actors, len(m1.Actors), "actor count mismatch after cross-format round-trip")
+	assert.Len(t, m2.Needs, len(m1.Needs), "need count mismatch after cross-format round-trip")
+	assert.Len(t, m2.Capabilities, len(m1.Capabilities), "capability count mismatch after cross-format round-trip")
+	assert.Len(t, m2.Services, len(m1.Services), "service count mismatch after cross-format round-trip")
+	assert.Len(t, m2.Teams, len(m1.Teams), "team count mismatch after cross-format round-trip")
+	assert.Len(t, m2.Interactions, len(m1.Interactions), "interaction count mismatch after cross-format round-trip")
+	assert.Len(t, m2.ExternalDependencies, len(m1.ExternalDependencies), "external dependency count mismatch after cross-format round-trip")
 }

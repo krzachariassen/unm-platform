@@ -1,0 +1,257 @@
+{
+  "architecture_layer": {
+    "capabilities_fragmented_across_teams": [
+      {
+        "capability_name": "Async Entity Writing",
+        "team_count": 2,
+        "teams": [
+          "nexus-publisher-dev",
+          "nexus-core-dev"
+        ],
+        "visibility": "infrastructure"
+      },
+      {
+        "capability_name": "Data Transformation \u0026 Conversion",
+        "team_count": 2,
+        "teams": [
+          "nexus-conversion-dev",
+          "nexus-quality-dev"
+        ],
+        "visibility": "domain"
+      }
+    ],
+    "capabilities_not_connected_to_any_need": [
+      {
+        "capability_name": "Data Transformation \u0026 Conversion",
+        "visibility": "domain"
+      },
+      {
+        "capability_name": "Product Entity Enrichment",
+        "visibility": "domain"
+      },
+      {
+        "capability_name": "Social Media Content Ingestion",
+        "visibility": "domain"
+      },
+      {
+        "capability_name": "Warehouse Data Ingestion",
+        "visibility": "domain"
+      },
+      {
+        "capability_name": "Entity Construction",
+        "visibility": "foundational"
+      },
+      {
+        "capability_name": "Product Indexing",
+        "visibility": "foundational"
+      },
+      {
+        "capability_name": "Registry \u0026 Configuration Management",
+        "visibility": "foundational"
+      }
+    ],
+    "user_facing_caps_with_cross_team_services": []
+  },
+  "health": {
+    "architecture_risk": "amber",
+    "org_risk": "red",
+    "ux_risk": "red"
+  },
+  "organization_layer": {
+    "critical_bottleneck_services": [
+      {
+        "fan_in": 20,
+        "service_name": "nexus-core"
+      }
+    ],
+    "critical_external_deps": [
+      {
+        "dep_name": "temporal",
+        "is_critical": true,
+        "is_warning": false,
+        "service_count": 12,
+        "services": [
+          "nexus-backup",
+          "nexus-cache-worker",
+          "nexus-conversion-worker",
+          "nexus-feed-adhoc-worker",
+          "nexus-feed-worker",
+          "nexus-indexer-worker",
+          "nexus-publisher-worker",
+          "nexus-realtime-stats",
+          "nexus-scrubber",
+          "nexus-social-ingester",
+          "nexus-transformer",
+          "nexus-warehouse-ingester"
+        ]
+      },
+      {
+        "dep_name": "datastore",
+        "is_critical": false,
+        "is_warning": true,
+        "service_count": 3,
+        "services": [
+          "nexus-blob",
+          "nexus-core",
+          "nexus-serving-ingestor"
+        ]
+      },
+      {
+        "dep_name": "feature-flags",
+        "is_critical": false,
+        "is_warning": true,
+        "service_count": 3,
+        "services": [
+          "nexus-core",
+          "nexus-feed-worker",
+          "nexus-publisher"
+        ]
+      }
+    ],
+    "low_coherence_teams": [
+      {
+        "capability_count": 0,
+        "coherence_score": 0.3333333333333333,
+        "overall_level": "",
+        "service_count": 0,
+        "team_name": "nexus-ingestion-dev",
+        "team_type": ""
+      },
+      {
+        "capability_count": 0,
+        "overall_level": "",
+        "service_count": 0,
+        "team_name": "nexus-publisher-dev",
+        "team_type": ""
+      }
+    ],
+    "top_teams_by_structural_load": [
+      {
+        "capability_count": 4,
+        "coherence_score": 0.3333333333333333,
+        "overall_level": "high",
+        "service_count": 5,
+        "team_name": "nexus-ingestion-dev",
+        "team_type": "stream-aligned"
+      },
+      {
+        "capability_count": 7,
+        "overall_level": "high",
+        "service_count": 7,
+        "team_name": "nexus-core-dev",
+        "team_type": "platform"
+      },
+      {
+        "capability_count": 4,
+        "overall_level": "high",
+        "service_count": 6,
+        "team_name": "nexus-publisher-dev",
+        "team_type": "stream-aligned"
+      },
+      {
+        "capability_count": 4,
+        "overall_level": "medium",
+        "service_count": 5,
+        "team_name": "nexus-observability-dev",
+        "team_type": "complicated-subsystem"
+      }
+    ]
+  },
+  "user_experience_layer": {
+    "needs_at_risk": [
+      {
+        "actor_names": [
+          "Nexus Platform Engineer"
+        ],
+        "need_name": "Debug entity state and trace feed processing history in production",
+        "team_span": 2,
+        "teams": [
+          "nexus-core-dev",
+          "nexus-platform-dev"
+        ]
+      },
+      {
+        "actor_names": [
+          "Seller / Vendor Partner"
+        ],
+        "need_name": "Ensure product images are correctly associated and render properly",
+        "team_span": 2,
+        "teams": [
+          "nexus-core-dev",
+          "nexus-ingestion-dev"
+        ]
+      },
+      {
+        "actor_names": [
+          "Nexus Platform Engineer"
+        ],
+        "need_name": "Perform safe bulk corrections on catalog data",
+        "team_span": 2,
+        "teams": [
+          "nexus-core-dev",
+          "nexus-publisher-dev"
+        ]
+      },
+      {
+        "actor_names": [
+          "Downstream Platform Team"
+        ],
+        "need_name": "Receive real-time notifications of catalog entity changes",
+        "team_span": 1,
+        "teams": [
+          "nexus-core-dev"
+        ]
+      },
+      {
+        "actor_names": [
+          "Downstream Platform Team"
+        ],
+        "need_name": "Reliably access current catalog data to build downstream features",
+        "team_span": 2,
+        "teams": [
+          "nexus-core-dev",
+          "nexus-quality-dev"
+        ]
+      },
+      {
+        "actor_names": [
+          "Seller / Vendor Partner"
+        ],
+        "need_name": "Understand why a feed failed and correct the issue",
+        "team_span": 2,
+        "teams": [
+          "nexus-ingestion-dev",
+          "nexus-observability-dev"
+        ]
+      }
+    ],
+    "needs_requiring_3plus_teams": [
+      {
+        "actor_names": [
+          "Seller / Vendor Partner"
+        ],
+        "need_name": "Submit catalog changes and see them live for shoppers within SLA",
+        "team_span": 3,
+        "teams": [
+          "nexus-ingestion-dev",
+          "nexus-publisher-dev",
+          "nexus-serving-dev"
+        ]
+      },
+      {
+        "actor_names": [
+          "Shopper / Buyer"
+        ],
+        "need_name": "View accurate, up-to-date catalogs when browsing",
+        "team_span": 3,
+        "teams": [
+          "nexus-conversion-dev",
+          "nexus-quality-dev",
+          "nexus-serving-dev"
+        ]
+      }
+    ],
+    "needs_with_no_capability_backing": []
+  },
+  "view_type": "signals"
+}

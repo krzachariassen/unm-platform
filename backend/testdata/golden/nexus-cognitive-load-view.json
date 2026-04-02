@@ -1,0 +1,372 @@
+{
+  "team_loads": [
+    {
+      "capabilities": [
+        "Feed Ingestion \u0026 Processing",
+        "Feed Submission \u0026 Job Tracking",
+        "Media Processing \u0026 Management",
+        "Warehouse Data Ingestion"
+      ],
+      "capability_count": 4,
+      "dependency_count": 9,
+      "dependency_load": {
+        "level": "high",
+        "value": 9
+      },
+      "domain_spread": {
+        "level": "medium",
+        "value": 4
+      },
+      "interaction_count": 5,
+      "interaction_load": {
+        "level": "high",
+        "value": 9
+      },
+      "interaction_score": 9,
+      "overall_level": "high",
+      "service_count": 5,
+      "service_load": {
+        "level": "low",
+        "value": 1
+      },
+      "services": [
+        "nexus-feed-adhoc-worker",
+        "nexus-feed-api",
+        "nexus-feed-worker",
+        "nexus-media",
+        "nexus-warehouse-ingester"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-ingestion-dev",
+        "type": "stream-aligned"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Administrative \u0026 Bulk Operations",
+        "Async Entity Writing",
+        "Entity CRUD \u0026 Lifecycle",
+        "Entity Change Event Emission",
+        "Object Storage",
+        "Product Indexing",
+        "Registry \u0026 Configuration Management"
+      ],
+      "capability_count": 7,
+      "dependency_count": 5,
+      "dependency_load": {
+        "level": "medium",
+        "value": 5
+      },
+      "domain_spread": {
+        "level": "high",
+        "value": 7
+      },
+      "interaction_count": 8,
+      "interaction_load": {
+        "level": "high",
+        "value": 8
+      },
+      "interaction_score": 8,
+      "overall_level": "high",
+      "service_count": 7,
+      "service_load": {
+        "level": "low",
+        "value": 1.4
+      },
+      "services": [
+        "nexus-admin",
+        "nexus-async-writer",
+        "nexus-blob",
+        "nexus-core",
+        "nexus-indexer",
+        "nexus-indexer-worker",
+        "nexus-registry"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-core-dev",
+        "type": "platform"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Data Scrubbing \u0026 Cleanup",
+        "Entity Construction",
+        "Entity Publishing \u0026 Validation",
+        "Product Entity Enrichment"
+      ],
+      "capability_count": 4,
+      "dependency_count": 10,
+      "dependency_load": {
+        "level": "high",
+        "value": 10
+      },
+      "domain_spread": {
+        "level": "medium",
+        "value": 4
+      },
+      "interaction_count": 4,
+      "interaction_load": {
+        "level": "medium",
+        "value": 4
+      },
+      "interaction_score": 4,
+      "overall_level": "high",
+      "service_count": 6,
+      "service_load": {
+        "level": "low",
+        "value": 1.2
+      },
+      "services": [
+        "nexus-async",
+        "nexus-enricher",
+        "nexus-entity-builder",
+        "nexus-publisher",
+        "nexus-publisher-worker",
+        "nexus-scrubber"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-publisher-dev",
+        "type": "stream-aligned"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Anomaly Detection \u0026 Statistical Analysis",
+        "Backup \u0026 Point-in-Time Recovery",
+        "Issue Tracking \u0026 Management",
+        "Platform Health Monitoring"
+      ],
+      "capability_count": 4,
+      "dependency_count": 4,
+      "dependency_load": {
+        "level": "low",
+        "value": 4
+      },
+      "domain_spread": {
+        "level": "medium",
+        "value": 4
+      },
+      "interaction_count": 3,
+      "interaction_load": {
+        "level": "low",
+        "value": 3
+      },
+      "interaction_score": 3,
+      "overall_level": "medium",
+      "service_count": 5,
+      "service_load": {
+        "level": "low",
+        "value": 1
+      },
+      "services": [
+        "nexus-anomaly-detector",
+        "nexus-backup",
+        "nexus-issue-store",
+        "nexus-realtime-stats",
+        "nexus-status"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-observability-dev",
+        "type": "complicated-subsystem"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Catalog Cache Generation",
+        "Data Transformation \u0026 Conversion"
+      ],
+      "capability_count": 2,
+      "dependency_count": 2,
+      "dependency_load": {
+        "level": "low",
+        "value": 2
+      },
+      "domain_spread": {
+        "level": "low",
+        "value": 2
+      },
+      "interaction_count": 2,
+      "interaction_load": {
+        "level": "low",
+        "value": 2
+      },
+      "interaction_score": 2,
+      "overall_level": "low",
+      "service_count": 2,
+      "service_load": {
+        "level": "low",
+        "value": 0.4
+      },
+      "services": [
+        "nexus-cache-worker",
+        "nexus-conversion-worker"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-conversion-dev",
+        "type": "stream-aligned"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Debug Interface",
+        "Operational CLI Tooling"
+      ],
+      "capability_count": 2,
+      "dependency_count": 4,
+      "dependency_load": {
+        "level": "low",
+        "value": 4
+      },
+      "domain_spread": {
+        "level": "low",
+        "value": 2
+      },
+      "interaction_count": 0,
+      "interaction_load": {
+        "level": "low",
+        "value": 0
+      },
+      "interaction_score": 0,
+      "overall_level": "low",
+      "service_count": 2,
+      "service_load": {
+        "level": "low",
+        "value": 0.4
+      },
+      "services": [
+        "nexus-mcp",
+        "nexus-tool"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-platform-dev",
+        "type": "stream-aligned"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Real-time Product Serving",
+        "Serving Data Synchronization"
+      ],
+      "capability_count": 2,
+      "dependency_count": 2,
+      "dependency_load": {
+        "level": "low",
+        "value": 2
+      },
+      "domain_spread": {
+        "level": "low",
+        "value": 2
+      },
+      "interaction_count": 1,
+      "interaction_load": {
+        "level": "low",
+        "value": 1
+      },
+      "interaction_score": 1,
+      "overall_level": "low",
+      "service_count": 3,
+      "service_load": {
+        "level": "low",
+        "value": 0.6
+      },
+      "services": [
+        "nexus-serving",
+        "nexus-serving-gateway",
+        "nexus-serving-ingestor"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-serving-dev",
+        "type": "stream-aligned"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Data Transformation \u0026 Conversion",
+        "Indexed Product Query"
+      ],
+      "capability_count": 2,
+      "dependency_count": 1,
+      "dependency_load": {
+        "level": "low",
+        "value": 1
+      },
+      "domain_spread": {
+        "level": "low",
+        "value": 2
+      },
+      "interaction_count": 2,
+      "interaction_load": {
+        "level": "low",
+        "value": 2
+      },
+      "interaction_score": 2,
+      "overall_level": "low",
+      "service_count": 2,
+      "service_load": {
+        "level": "low",
+        "value": 0.4
+      },
+      "services": [
+        "nexus-query",
+        "nexus-transformer"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "nexus-quality-dev",
+        "type": "complicated-subsystem"
+      },
+      "team_size": 5
+    },
+    {
+      "capabilities": [
+        "Social Media Content Ingestion"
+      ],
+      "capability_count": 1,
+      "dependency_count": 1,
+      "dependency_load": {
+        "level": "low",
+        "value": 1
+      },
+      "domain_spread": {
+        "level": "low",
+        "value": 1
+      },
+      "interaction_count": 1,
+      "interaction_load": {
+        "level": "low",
+        "value": 1
+      },
+      "interaction_score": 1,
+      "overall_level": "low",
+      "service_count": 1,
+      "service_load": {
+        "level": "low",
+        "value": 0.2
+      },
+      "services": [
+        "nexus-social-ingester"
+      ],
+      "size_is_explicit": true,
+      "team": {
+        "name": "partner-eng",
+        "type": "stream-aligned"
+      },
+      "team_size": 5
+    }
+  ],
+  "view_type": "cognitive-load"
+}

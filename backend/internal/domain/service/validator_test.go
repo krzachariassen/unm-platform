@@ -3,6 +3,8 @@ package service_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
 	"github.com/krzachariassen/unm-platform/internal/domain/valueobject"
@@ -815,4 +817,170 @@ func TestValidationResult_HasWarnings(t *testing.T) {
 	if !r.HasWarnings() {
 		t.Error("result with warnings should report HasWarnings true")
 	}
+}
+
+// ── Phase 12.3.1 — Error locality ────────────────────────────────────────────
+
+// TestValidate_ErrorMessage_IncludesEntityContext verifies that validation error
+// messages include contextual information (which entity references what) so
+// engineers can pinpoint the problem without hunting through the model.
+func TestValidate_ErrorMessage_IncludesEntityContext(t *testing.T) {
+	engine := service.NewValidationEngine()
+	m := entity.NewUNMModel("Context Test", "")
+
+	// Need with no capability — error message should name the need
+	actor, _ := entity.NewActor("a", "User", "")
+	_ = m.AddActor(&actor)
+	need := mustNewNeed(t, "n1", "Pay for order", "User", "")
+	// intentionally no SupportedBy
+	_ = m.AddNeed(need)
+
+	result := engine.Validate(m)
+	require.False(t, result.IsValid())
+
+	var needErr *service.ValidationError
+	for i := range result.Errors {
+		if result.Errors[i].Code == service.ErrNeedNoCapability {
+			needErr = &result.Errors[i]
+			break
+		}
+	}
+	require.NotNil(t, needErr, "should have ErrNeedNoCapability error")
+	// Error message must mention the need name for locality
+	assert.Contains(t, needErr.Message, "Pay for order", "error message must name the offending need")
+	assert.Equal(t, "Pay for order", needErr.Entity)
+}
+
+func TestValidate_ServiceNoOwner_ErrorMessageNamesService(t *testing.T) {
+	engine := service.NewValidationEngine()
+	m := entity.NewUNMModel("Owner Test", "")
+
+	svc, _ := entity.NewService("svc-orphan", "orphan-api", "", "")
+	_ = m.AddService(svc)
+
+	result := engine.Validate(m)
+	require.False(t, result.IsValid())
+
+	var ownerErr *service.ValidationError
+	for i := range result.Errors {
+		if result.Errors[i].Code == service.ErrServiceNoOwner {
+			ownerErr = &result.Errors[i]
+			break
+		}
+	}
+	require.NotNil(t, ownerErr, "should have ErrServiceNoOwner error")
+	assert.Contains(t, ownerErr.Message, "orphan-api", "error message must name the offending service")
+}
+
+// ── Phase 12.3.2 — Severity levels ───────────────────────────────────────────
+
+// TestValidate_Errors_HaveErrorSeverity verifies that validation errors carry
+// Severity == "error" to distinguish them from warnings and info diagnostics.
+func TestValidate_Errors_HaveErrorSeverity(t *testing.T) {
+	engine := service.NewValidationEngine()
+	m := entity.NewUNMModel("Severity Test", "")
+
+	actor, _ := entity.NewActor("a", "User", "")
+	_ = m.AddActor(&actor)
+	need := mustNewNeed(t, "n1", "No cap need", "User", "")
+	_ = m.AddNeed(need)
+
+	result := engine.Validate(m)
+	require.False(t, result.IsValid())
+
+	for _, e := range result.Errors {
+		assert.Equal(t, service.SeverityError, e.Severity,
+			"all validation errors must have Severity == %q, got %q for %q",
+			service.SeverityError, e.Severity, e.Code)
+	}
+}
+
+// TestValidate_Warnings_HaveWarningSeverity verifies that validation warnings carry
+// Severity == "warning".
+func TestValidate_Warnings_HaveWarningSeverity(t *testing.T) {
+	engine := service.NewValidationEngine()
+	m := buildValidModel(t)
+
+	// Add an orphan service (no capabilities) to trigger WarnOrphanService
+	orphan := mustNewService(t, "orphan", "orphan-svc", "payments-team")
+	_ = m.AddService(orphan)
+
+	result := engine.Validate(m)
+
+	// filter to only the WarnOrphanService warning
+	found := false
+	for _, w := range result.Warnings {
+		if w.Code == service.WarnOrphanService {
+			assert.Equal(t, service.SeverityWarning, w.Severity,
+				"warning %q must have Severity == %q", w.Code, service.SeverityWarning)
+			found = true
+		}
+	}
+	assert.True(t, found, "WarnOrphanService must be produced")
+}
+
+// ── Phase 12.3.3 — Orphaned entity diagnostics ───────────────────────────────
+
+// TestValidate_OrphanActor_ProducesInfoDiagnostic verifies that an actor with no needs
+// produces an info-level diagnostic (not an error or warning).
+func TestValidate_OrphanActor_ProducesInfoDiagnostic(t *testing.T) {
+	engine := service.NewValidationEngine()
+	m := buildValidModel(t)
+
+	// Add an actor with no needs
+	lonely, _ := entity.NewActor("lonely", "Lonely Actor", "")
+	_ = m.AddActor(&lonely)
+
+	result := engine.Validate(m)
+	// Model should still be valid (orphan actor is info-level only)
+	assert.True(t, result.IsValid(), "orphan actor must not produce an error")
+
+	found := false
+	for _, w := range result.Warnings {
+		if w.Code == service.InfoOrphanActor && w.Entity == "Lonely Actor" {
+			assert.Equal(t, service.SeverityInfo, w.Severity,
+				"orphan actor diagnostic must be info severity")
+			found = true
+		}
+	}
+	assert.True(t, found, "InfoOrphanActor warning must be produced for actor with no needs")
+}
+
+// TestValidate_TeamOwnsNothing_ProducesInfoDiagnostic verifies that a team owning no
+// services or capabilities generates an info-level diagnostic.
+func TestValidate_TeamOwnsNothing_ProducesInfoDiagnostic(t *testing.T) {
+	engine := service.NewValidationEngine()
+	m := buildValidModel(t)
+
+	// Add a team that owns nothing
+	empty, _ := entity.NewTeam("empty", "Empty Team", "", valueobject.StreamAligned)
+	empty.SizeExplicit = true
+	_ = m.AddTeam(empty)
+
+	result := engine.Validate(m)
+	assert.True(t, result.IsValid(), "empty team must not produce an error")
+
+	found := false
+	for _, w := range result.Warnings {
+		if w.Code == service.InfoOrphanTeam && w.Entity == "Empty Team" {
+			assert.Equal(t, service.SeverityInfo, w.Severity,
+				"orphan team diagnostic must be info severity")
+			found = true
+		}
+	}
+	assert.True(t, found, "InfoOrphanTeam warning must be produced for team with no services/capabilities")
+}
+
+// TestValidate_UnreferencedService_ProducesInfoDiagnostic is superseded by WarnOrphanService
+// which already exists. We verify WarnOrphanService is still present (unchanged behaviour).
+func TestValidate_UnreferencedService_WarnOrphanService(t *testing.T) {
+	engine := service.NewValidationEngine()
+	m := buildValidModel(t)
+
+	orphan := mustNewService(t, "orph", "unreferenced-api", "payments-team")
+	_ = m.AddService(orphan)
+
+	result := engine.Validate(m)
+	assert.True(t, result.IsValid(), "unreferenced service is a warning, not an error")
+	assert.True(t, hasWarning(result, service.WarnOrphanService), "WarnOrphanService must be produced")
 }
