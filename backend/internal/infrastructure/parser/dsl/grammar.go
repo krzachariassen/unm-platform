@@ -341,13 +341,6 @@ func (p *parser) parseCapability() (*CapabilityNode, error) {
 				return nil, p.errorf("capability parent: %s", err.Error())
 			}
 			node.Parent = v
-		case "realizedBy":
-			p.readToken()
-			rel, err := p.parseRelationship()
-			if err != nil {
-				return nil, p.errorf("capability realizedBy: %s", err.Error())
-			}
-			node.RealizedBy = append(node.RealizedBy, rel)
 		case "dependsOn":
 			p.readToken()
 			rel, err := p.parseRelationship()

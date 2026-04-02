@@ -57,21 +57,13 @@ func (p *YAMLParser) Parse(r io.Reader) (*entity.UNMModel, error) {
 // ---------------------------------------------------------------------------
 
 type yamlDocument struct {
-	System yamlSystem  `yaml:"system"`
-	Actors []yamlActor `yaml:"actors"`
-	// Scenarios section is ignored (deprecated in 1.9.1) — field kept for backward-compat YAML parsing.
-	Scenarios            []yamlScenario           `yaml:"scenarios"`
+	System               yamlSystem               `yaml:"system"`
+	Actors               []yamlActor              `yaml:"actors"`
 	Needs                []yamlNeed               `yaml:"needs"`
 	Capabilities         []yamlCapability         `yaml:"capabilities"`
 	Services             []yamlService            `yaml:"services"`
 	Teams                []yamlTeam               `yaml:"teams"`
 	Platforms            []yamlPlatform           `yaml:"platforms"`
-	Interactions         []yamlInteraction        `yaml:"interactions"`
-	// Signals, PainPoints, and Inferred sections are ignored (removed in DSL v2.0).
-	// These are now computed by the platform's analyzers, not user-authored.
-	Signals    []map[string]any   `yaml:"signals"`
-	PainPoints []map[string]any   `yaml:"pain_points"`
-	Inferred   []map[string]any   `yaml:"inferred"`
 	DataAssets           []yamlDataAssetFlex      `yaml:"data_assets"`
 	ExternalDependencies []yamlExternalDependency `yaml:"external_dependencies"`
 }
@@ -83,13 +75,6 @@ type yamlSystem struct {
 
 type yamlActor struct {
 	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-}
-
-// yamlScenario is kept for backward-compatible YAML parsing but scenarios are not imported into the model.
-type yamlScenario struct {
-	Name        string `yaml:"name"`
-	Actor       string `yaml:"actor"`
 	Description string `yaml:"description"`
 }
 
@@ -113,10 +98,8 @@ func (f *flexActors) UnmarshalYAML(value *yaml.Node) error {
 }
 
 type yamlNeed struct {
-	Name  string     `yaml:"name"`
-	Actor flexActors `yaml:"actor"`
-	// Scenario field is ignored (deprecated in 1.9.1) — kept for backward-compat YAML parsing.
-	Scenario    string             `yaml:"scenario"`
+	Name        string     `yaml:"name"`
+	Actor       flexActors `yaml:"actor"`
 	Outcome     string             `yaml:"outcome"`
 	SupportedBy []flexRelationship `yaml:"supportedBy"`
 }
@@ -126,23 +109,15 @@ type yamlCapability struct {
 	Description string             `yaml:"description"`
 	Visibility  string             `yaml:"visibility"`
 	Parent      string             `yaml:"parent"`      // 9.1: flat form parent reference
-	OwnedBy     string             `yaml:"ownedBy"`     // 9.6: deprecated, triggers warning
 	Children    []yamlCapability   `yaml:"children"`
-	RealizedBy  []flexRelationship `yaml:"realizedBy"`
 	DependsOn   []flexRelationship `yaml:"dependsOn"`
 }
 
 type yamlService struct {
 	Name        string `yaml:"name"`
-	Type        string `yaml:"type"`
 	Description string `yaml:"description"`
 	OwnedBy     string `yaml:"ownedBy"`
-	// Supports, DataAssets, ExternalDependsOn are deprecated (1.9.4) and silently ignored.
-	// TODO: emit deprecation warnings in a future version.
-	Supports          []flexRelationship `yaml:"supports"`
 	DependsOn         []flexRelationship `yaml:"dependsOn"`
-	ExternalDependsOn []flexRelationship `yaml:"externalDependsOn"`
-	DataAssets        []yamlDataAssetRef `yaml:"dataAssets"`
 	Realizes          []flexRelationship `yaml:"realizes"`    // 9.3: service declares what it realizes
 	ExternalDeps      []string           `yaml:"externalDeps"` // 9.4: service declares its external deps
 }
@@ -153,11 +128,6 @@ type yamlDataAssetFlex struct {
 	Type        string   `yaml:"type"`
 	Description string   `yaml:"description"`
 	UsedBy      []string `yaml:"usedBy"`
-}
-
-type yamlDataAssetRef struct {
-	Target string `yaml:"target"`
-	Access string `yaml:"access"`
 }
 
 type yamlTeam struct {
@@ -183,18 +153,9 @@ type yamlPlatform struct {
 	Teams       []string `yaml:"teams"`
 }
 
-type yamlInteraction struct {
-	From        string `yaml:"from"`
-	To          string `yaml:"to"`
-	Mode        string `yaml:"mode"`
-	Via         string `yaml:"via"`
-	Description string `yaml:"description"`
-}
-
 type yamlExternalDependency struct {
-	Name        string             `yaml:"name"`
-	Description string             `yaml:"description"`
-	UsedBy      []flexRelationship `yaml:"usedBy"`
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +195,6 @@ func buildModel(raw *yamlDocument) (*entity.UNMModel, error) {
 	if err := addActors(model, raw.Actors); err != nil {
 		return nil, err
 	}
-	// raw.Scenarios is silently ignored (deprecated in 1.9.1).
 	if err := addNeeds(model, raw.Needs); err != nil {
 		return nil, err
 	}
@@ -254,20 +214,12 @@ func buildModel(raw *yamlDocument) (*entity.UNMModel, error) {
 		return nil, err
 	}
 
-	// 9.5: Process inline team interactions before legacy interactions
+	// 9.5: Process inline team interactions
 	teamInterWarnings, err := addTeamInlineInteractions(model, raw.Teams)
 	if err != nil {
 		return nil, err
 	}
 	warnings = append(warnings, teamInterWarnings...)
-
-	// 9.5: Legacy interactions section — emit deprecation warning if non-empty
-	if len(raw.Interactions) > 0 {
-		warnings = append(warnings, "parser: top-level interactions: section is deprecated; use team.interacts instead")
-	}
-	if err := addInteractions(model, raw.Interactions, &warnings); err != nil {
-		return nil, err
-	}
 
 	// 9.8: Data assets with flex usedBy
 	dataWarnings, err := addDataAssetsFromFlex(model, raw.DataAssets)
@@ -276,12 +228,10 @@ func buildModel(raw *yamlDocument) (*entity.UNMModel, error) {
 	}
 	warnings = append(warnings, dataWarnings...)
 
-	// 9.4: External dependencies — detect legacy usedBy
-	extWarnings, err := addExternalDependencies(model, raw.ExternalDependencies)
-	if err != nil {
+	// External dependencies (definition only — no legacy usedBy)
+	if err := addExternalDependencies(model, raw.ExternalDependencies); err != nil {
 		return nil, err
 	}
-	warnings = append(warnings, extWarnings...)
 
 	// 9.3: Post-process service.realizes — wire into capability.RealizedBy
 	realizeWarnings, err := processServiceRealizes(model, raw.Services)
@@ -329,7 +279,6 @@ func addNeeds(model *entity.UNMModel, needs []yamlNeed) error {
 		if len(n.Actor.names) == 0 {
 			return fmt.Errorf("parser: need %q: need.actor is required", n.Name)
 		}
-		// n.Scenario is silently ignored (deprecated in 1.9.1).
 		var need *entity.Need
 		var err error
 		if len(n.Actor.names) == 1 {
@@ -463,16 +412,6 @@ func buildCapabilityWithWarnings(yc yamlCapability) ([]string, *entity.Capabilit
 		}
 	}
 
-	// 9.6: ownedBy deprecation warning
-	if yc.OwnedBy != "" {
-		warnings = append(warnings, fmt.Sprintf("parser: capability %q uses deprecated ownedBy field; use team.owns instead", yc.Name))
-	}
-
-	// 9.3: realizedBy deprecation warning
-	if len(yc.RealizedBy) > 0 {
-		warnings = append(warnings, fmt.Sprintf("parser: capability %q uses deprecated realizedBy field; use service.realizes instead", yc.Name))
-	}
-
 	// Build children first (bottom-up for nested form)
 	for _, child := range yc.Children {
 		childWarnings, childCap, err := buildCapabilityWithWarnings(child)
@@ -481,14 +420,6 @@ func buildCapabilityWithWarnings(yc yamlCapability) ([]string, *entity.Capabilit
 		}
 		warnings = append(warnings, childWarnings...)
 		cap.AddChild(childCap)
-	}
-
-	for _, rel := range yc.RealizedBy {
-		r, err := buildRelationship(rel)
-		if err != nil {
-			return nil, nil, fmt.Errorf("parser: capability %q realizedBy: %w", yc.Name, err)
-		}
-		cap.AddRealizedBy(r)
 	}
 
 	for _, rel := range yc.DependsOn {
@@ -507,12 +438,10 @@ func addServices(model *entity.UNMModel, services []yamlService) error {
 		if s.Name == "" {
 			return fmt.Errorf("parser: service.name is required")
 		}
-		// s.Type is silently ignored (deprecated in 1.10) — kept in schema for backward compat.
 		svc, err := entity.NewService(s.Name, s.Name, s.Description, s.OwnedBy)
 		if err != nil {
 			return fmt.Errorf("parser: service %q: %w", s.Name, err)
 		}
-		// s.Supports, s.DataAssets, s.ExternalDependsOn are silently ignored (deprecated in 1.9.4).
 		for _, rel := range s.DependsOn {
 			r, err := buildRelationship(rel)
 			if err != nil {
@@ -528,7 +457,6 @@ func addServices(model *entity.UNMModel, services []yamlService) error {
 }
 
 // processServiceRealizes wires service.realizes into capability.RealizedBy.
-// Returns warnings for conflicts with existing capability.realizedBy declarations.
 func processServiceRealizes(model *entity.UNMModel, services []yamlService) ([]string, error) {
 	var warnings []string
 	for _, s := range services {
@@ -537,21 +465,6 @@ func processServiceRealizes(model *entity.UNMModel, services []yamlService) ([]s
 			cap, ok := model.Capabilities[capName]
 			if !ok {
 				// Will be caught by reference validation (9.7), skip silently here
-				continue
-			}
-			// Check for duplicate with existing realizedBy entries
-			duplicate := false
-			for _, existing := range cap.RealizedBy {
-				if existing.TargetID.String() == s.Name {
-					duplicate = true
-					break
-				}
-			}
-			if duplicate {
-				warnings = append(warnings, fmt.Sprintf(
-					"parser: duplicate realizes relationship between service %q and capability %q (declared in both service.realizes and capability.realizedBy); keeping one",
-					s.Name, capName,
-				))
 				continue
 			}
 			// Build the relationship with service name as target
@@ -634,7 +547,6 @@ func addTeams(model *entity.UNMModel, teams []yamlTeam) error {
 }
 
 // addTeamInlineInteractions processes team.interacts and adds them to model.Interactions.
-// Returns warnings for deduplication with legacy interactions.
 func addTeamInlineInteractions(model *entity.UNMModel, teams []yamlTeam) ([]string, error) {
 	var warnings []string
 	for _, t := range teams {
@@ -673,44 +585,6 @@ func addPlatforms(model *entity.UNMModel, platforms []yamlPlatform) error {
 	return nil
 }
 
-// interactionKey returns a deduplification key for an interaction.
-func interactionKey(from, to, mode string) string {
-	return fmt.Sprintf("%s->%s->%s", from, to, mode)
-}
-
-// addInteractions adds legacy top-level interactions to the model.
-// Deduplicates against interactions already added from team.interacts only.
-// Does NOT deduplicate within the legacy list itself (preserves backward compat).
-func addInteractions(model *entity.UNMModel, interactions []yamlInteraction, warnings *[]string) error {
-	// Build a set of existing interaction keys from team.interacts that were already added.
-	teamInteractKeys := make(map[string]bool)
-	for _, inter := range model.Interactions {
-		teamInteractKeys[interactionKey(inter.FromTeamName, inter.ToTeamName, inter.Mode.String())] = true
-	}
-
-	for i, inter := range interactions {
-		key := interactionKey(inter.From, inter.To, inter.Mode)
-		mode, err := valueobject.NewInteractionMode(inter.Mode)
-		if err != nil {
-			return fmt.Errorf("parser: interaction[%d] mode: %w", i, err)
-		}
-		if teamInteractKeys[key] {
-			*warnings = append(*warnings, fmt.Sprintf(
-				"parser: duplicate interaction from %q to %q with mode %q (already declared in team.interacts); keeping one",
-				inter.From, inter.To, inter.Mode,
-			))
-			continue
-		}
-		id := fmt.Sprintf("%s->%s->%s", inter.From, inter.To, inter.Via)
-		interaction, err := entity.NewInteraction(id, inter.From, inter.To, mode, inter.Via, inter.Description)
-		if err != nil {
-			return fmt.Errorf("parser: interaction[%d]: %w", i, err)
-		}
-		model.AddInteraction(interaction)
-	}
-	return nil
-}
-
 // addDataAssetsFromFlex handles the full parse of data_assets including compact usedBy syntax.
 func addDataAssetsFromFlex(model *entity.UNMModel, assets []yamlDataAssetFlex) ([]string, error) {
 	var warnings []string
@@ -732,31 +606,20 @@ func addDataAssetsFromFlex(model *entity.UNMModel, assets []yamlDataAssetFlex) (
 	return warnings, nil
 }
 
-func addExternalDependencies(model *entity.UNMModel, deps []yamlExternalDependency) ([]string, error) {
-	var warnings []string
+func addExternalDependencies(model *entity.UNMModel, deps []yamlExternalDependency) error {
 	for _, d := range deps {
 		if d.Name == "" {
-			return nil, fmt.Errorf("parser: external_dependency.name is required")
+			return fmt.Errorf("parser: external_dependency.name is required")
 		}
 		ext, err := entity.NewExternalDependency(d.Name, d.Name, d.Description)
 		if err != nil {
-			return nil, fmt.Errorf("parser: external_dependency %q: %w", d.Name, err)
-		}
-		// 9.4: legacy usedBy — emit deprecation warning
-		if len(d.UsedBy) > 0 {
-			warnings = append(warnings, fmt.Sprintf(
-				"parser: external_dependency %q uses deprecated usedBy field; use service.externalDeps instead",
-				d.Name,
-			))
-			for _, u := range d.UsedBy {
-				ext.AddUsedBy(u.Target, u.Description)
-			}
+			return fmt.Errorf("parser: external_dependency %q: %w", d.Name, err)
 		}
 		if err := model.AddExternalDependency(ext); err != nil {
-			return nil, fmt.Errorf("parser: %w", err)
+			return fmt.Errorf("parser: %w", err)
 		}
 	}
-	return warnings, nil
+	return nil
 }
 
 // validateReferences checks model integrity after full build and returns warnings

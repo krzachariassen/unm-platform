@@ -98,8 +98,8 @@ func TestTransform_CapabilityHierarchy(t *testing.T) {
 				Children: []*CapabilityNode{
 					{
 						Name: "Payment Capture",
-						RealizedBy: []RelationshipNode{
-							{Target: "capture-service"},
+						DependsOn: []RelationshipNode{
+							{Target: "Other Cap"},
 						},
 					},
 				},
@@ -521,14 +521,14 @@ need "Accept Payments" {
 }
 capability "Payment Processing" {
   visibility user-facing
-  realizedBy "payment-service" { description "Core handler" role primary }
   capability "Payment Capture" {
-    realizedBy "capture-service"
+    description "Captures payments"
   }
 }
 service "payment-service" {
   ownedBy "payments-team"
   dependsOn "fraud-service"
+  realizes "Payment Processing" role "primary"
 }
 team "payments-team" {
   type stream-aligned
@@ -600,8 +600,11 @@ signal "Bottleneck" {
 		t.Errorf("expected 1 signal, got %d", len(model.Signals))
 	}
 
-	// Verify relationship role
+	// Verify relationship role via service.realizes
 	cap := model.Capabilities["Payment Processing"]
+	if len(cap.RealizedBy) != 1 {
+		t.Fatalf("expected 1 realizedBy on Payment Processing, got %d", len(cap.RealizedBy))
+	}
 	if cap.RealizedBy[0].Role.String() != "primary" {
 		t.Errorf("expected role %q, got %q", "primary", cap.RealizedBy[0].Role.String())
 	}

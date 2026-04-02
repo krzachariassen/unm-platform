@@ -28,20 +28,11 @@ needs:
 capabilities:
   - name: "Search Capability"
     description: "Provides search functionality"
-    realizedBy:
-      - "search-service"
-      - target: "search-index-service"
-        description: "Underlying index management"
-        role: "supporting"
     dependsOn:
       - "Catalog Capability"
 
   - name: "Catalog Capability"
     description: "Provides catalog management"
-    realizedBy:
-      - target: "catalog-service"
-        role: "primary"
-        description: "Main catalog service"
 
 services:
   - name: "search-service"
@@ -51,14 +42,24 @@ services:
       - "catalog-service"
       - target: "search-index-service"
         description: "Reads from index"
+    realizes:
+      - "Search Capability"
 
   - name: "search-index-service"
     description: "Manages the search index"
     ownedBy: "Platform Team"
+    realizes:
+      - target: "Search Capability"
+        description: "Underlying index management"
+        role: "supporting"
 
   - name: "catalog-service"
     description: "Manages catalog data"
     ownedBy: "Catalog Team"
+    realizes:
+      - target: "Catalog Capability"
+        role: "primary"
+        description: "Main catalog service"
 
 teams:
   - name: "Platform Team"
@@ -72,10 +73,8 @@ teams:
     description: "Owns catalog domain"
     owns:
       - "Catalog Capability"
-
-interactions:
-  - from: "Platform Team"
-    to: "Catalog Team"
-    mode: "x-as-a-service"
-    via: "Catalog Capability"
-    description: "Platform uses catalog as a service"
+    interacts:
+      - with: "Platform Team"
+        mode: "x-as-a-service"
+        via: "Catalog Capability"
+        description: "Platform uses catalog as a service"

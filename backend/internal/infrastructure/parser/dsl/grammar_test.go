@@ -141,7 +141,6 @@ func TestParse_CapabilityBlock(t *testing.T) {
 capability "Payment Processing" {
   visibility user-facing
   description "Handles payments"
-  realizedBy "payment-service"
   dependsOn "Fraud Detection"
 }
 `
@@ -159,12 +158,6 @@ capability "Payment Processing" {
 	if c.Visibility != "user-facing" {
 		t.Errorf("expected visibility %q, got %q", "user-facing", c.Visibility)
 	}
-	if len(c.RealizedBy) != 1 {
-		t.Fatalf("expected 1 realizedBy, got %d", len(c.RealizedBy))
-	}
-	if c.RealizedBy[0].Target != "payment-service" {
-		t.Errorf("expected realizedBy target %q, got %q", "payment-service", c.RealizedBy[0].Target)
-	}
 	if len(c.DependsOn) != 1 {
 		t.Fatalf("expected 1 dependsOn, got %d", len(c.DependsOn))
 	}
@@ -175,10 +168,10 @@ func TestParse_CapabilityBlock_WithChildren(t *testing.T) {
 capability "Payment Processing" {
   visibility domain
   capability "Payment Capture" {
-    realizedBy "capture-service"
+    description "Captures payments"
   }
   capability "Payment Auth" {
-    realizedBy "auth-service"
+    description "Authorizes payments"
   }
 }
 `
@@ -405,24 +398,25 @@ signal "Fragmentation risk" {
 
 func TestParse_RelationshipWithModifiers(t *testing.T) {
 	src := `
-capability "Payment Processing" {
-  realizedBy "gateway-service" { description "Handles routing" role primary }
+need "Accept Payments" {
+  actor "Merchant"
+  supportedBy "Payment Processing" { description "Handles routing" role primary }
 }
 `
 	f, err := Parse(src)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(f.Capabilities) != 1 {
-		t.Fatalf("expected 1 capability, got %d", len(f.Capabilities))
+	if len(f.Needs) != 1 {
+		t.Fatalf("expected 1 need, got %d", len(f.Needs))
 	}
-	c := f.Capabilities[0]
-	if len(c.RealizedBy) != 1 {
-		t.Fatalf("expected 1 realizedBy, got %d", len(c.RealizedBy))
+	n := f.Needs[0]
+	if len(n.SupportedBy) != 1 {
+		t.Fatalf("expected 1 supportedBy, got %d", len(n.SupportedBy))
 	}
-	rel := c.RealizedBy[0]
-	if rel.Target != "gateway-service" {
-		t.Errorf("expected target %q, got %q", "gateway-service", rel.Target)
+	rel := n.SupportedBy[0]
+	if rel.Target != "Payment Processing" {
+		t.Errorf("expected target %q, got %q", "Payment Processing", rel.Target)
 	}
 	if rel.Description != "Handles routing" {
 		t.Errorf("expected description %q, got %q", "Handles routing", rel.Description)
@@ -609,15 +603,15 @@ need "Accept Payments" {
 
 capability "Payment Processing" {
   visibility user-facing
-  realizedBy "payment-service" { description "Core handler" role primary }
   capability "Payment Capture" {
-    realizedBy "capture-service"
+    description "Captures payments"
   }
 }
 
 service "payment-service" {
   ownedBy "payments-team"
   dependsOn "fraud-service"
+  realizes "Payment Processing"
 }
 
 team "payments-team" {
@@ -1083,7 +1077,6 @@ interaction "service-a" -> "service-b" {
 func TestParse_RelationshipColonShorthand(t *testing.T) {
 	src := `
 capability "Payment" {
-  realizedBy "payment-service" : "primary implementation"
   dependsOn "fraud-service" : "risk checks"
 }`
 	f, err := Parse(src)
@@ -1094,11 +1087,8 @@ capability "Payment" {
 		t.Fatalf("expected 1 capability, got %d", len(f.Capabilities))
 	}
 	cap := f.Capabilities[0]
-	if len(cap.RealizedBy) != 1 {
-		t.Fatalf("expected 1 realizedBy, got %d", len(cap.RealizedBy))
-	}
-	if cap.RealizedBy[0].Description != "primary implementation" {
-		t.Errorf("expected realizedBy description %q, got %q", "primary implementation", cap.RealizedBy[0].Description)
+	if len(cap.DependsOn) != 1 {
+		t.Fatalf("expected 1 dependsOn, got %d", len(cap.DependsOn))
 	}
 	if cap.DependsOn[0].Description != "risk checks" {
 		t.Errorf("expected dependsOn description %q, got %q", "risk checks", cap.DependsOn[0].Description)

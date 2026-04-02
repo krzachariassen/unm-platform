@@ -270,11 +270,11 @@ func TestMarshalDSL_EmbeddedDoubleQuotesReplacedWithSingleQuotes(t *testing.T) {
 	assert.Equal(t, "Has 'quotes' inside", m2.System.Name)
 }
 
-// TestMarshalDSL_RoundTrip_ICA tests round-trip through the inca model if it exists.
+// TestMarshalDSL_RoundTrip_Nexus tests round-trip through the nexus model.
 func TestMarshalDSL_RoundTrip_Inca(t *testing.T) {
-	m, err := parser.ParseFile("../../../../examples/inca.unm.yaml")
+	m, err := parser.ParseFile("../../../../examples/nexus.unm.yaml")
 	if err != nil {
-		t.Skip("inca.unm.yaml not found — skipping")
+		t.Skip("nexus.unm.yaml not found — skipping")
 	}
 
 	data, err := MarshalDSL(m)

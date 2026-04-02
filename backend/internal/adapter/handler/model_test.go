@@ -55,11 +55,11 @@ needs:
       - "Test Cap"
 capabilities:
   - name: "Test Cap"
-    realizedBy:
-      - "Test Svc"
 services:
   - name: "Test Svc"
     ownedBy: "Team One"
+    realizes:
+      - "Test Cap"
 teams:
   - name: "Team One"
     type: "stream-aligned"
@@ -91,12 +91,12 @@ need "Test Need" {
 
 capability "Test Cap" {
   description "Core capability"
-  realizedBy "Test Svc"
 }
 
 service "Test Svc" {
   description "Core service"
   ownedBy "Team One"
+  realizes "Test Cap"
 }
 
 team "Team One" {

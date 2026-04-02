@@ -61,7 +61,6 @@ type CapabilityNode struct {
 	Description string
 	Visibility  string
 	Parent      string // flat parent reference (9.1.2)
-	RealizedBy  []RelationshipNode
 	DependsOn   []RelationshipNode
 	Children    []*CapabilityNode
 }

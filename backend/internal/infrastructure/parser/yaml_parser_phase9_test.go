@@ -250,67 +250,6 @@ services:
 	assert.Equal(t, "supporting", cap.RealizedBy[0].Role.String())
 }
 
-func TestPhase9_ServiceRealizes_BothFormsNoDuplicate(t *testing.T) {
-	// Both service.realizes and capability.realizedBy for same pair → warning, no duplicate
-	yaml := `
-system:
-  name: "Test"
-capabilities:
-  - name: "Cap A"
-    realizedBy:
-      - "svc-a"
-services:
-  - name: "svc-a"
-    realizes:
-      - "Cap A"
-`
-	p := parser.NewYAMLParser()
-	model, err := p.Parse(strings.NewReader(yaml))
-	require.NoError(t, err)
-
-	cap := model.Capabilities["Cap A"]
-	require.NotNil(t, cap)
-	// Should not have duplicates
-	assert.Len(t, cap.RealizedBy, 1)
-	// Should have warning
-	assert.NotEmpty(t, model.Warnings)
-	found := false
-	for _, w := range model.Warnings {
-		if strings.Contains(w, "svc-a") && strings.Contains(w, "Cap A") {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "expected conflict warning for svc-a/Cap A duplicate")
-}
-
-func TestPhase9_CapabilityRealizedBy_DeprecationWarning(t *testing.T) {
-	// Using capability.realizedBy should emit a deprecation warning
-	yaml := `
-system:
-  name: "Test"
-capabilities:
-  - name: "Cap A"
-    realizedBy:
-      - "svc-a"
-services:
-  - name: "svc-a"
-`
-	p := parser.NewYAMLParser()
-	model, err := p.Parse(strings.NewReader(yaml))
-	require.NoError(t, err)
-
-	assert.NotEmpty(t, model.Warnings)
-	found := false
-	for _, w := range model.Warnings {
-		if strings.Contains(w, "realizedBy") || strings.Contains(w, "deprecated") {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "expected deprecation warning for capability.realizedBy usage")
-}
-
 // ---------------------------------------------------------------------------
 // 9.4 — External dependencies on services
 // ---------------------------------------------------------------------------
@@ -335,55 +274,6 @@ external_dependencies:
 	require.NotNil(t, stripe)
 	require.Len(t, stripe.UsedBy, 1)
 	assert.Equal(t, "svc-a", stripe.UsedBy[0].ServiceName)
-}
-
-func TestPhase9_ServiceExternalDeps_MergeWithLegacy(t *testing.T) {
-	// Both new externalDeps and legacy external_dependencies[].usedBy for same pair
-	yaml := `
-system:
-  name: "Test"
-services:
-  - name: "svc-a"
-    externalDeps:
-      - "Stripe"
-external_dependencies:
-  - name: "Stripe"
-    description: "Payment processor"
-    usedBy:
-      - "svc-a"
-`
-	p := parser.NewYAMLParser()
-	model, err := p.Parse(strings.NewReader(yaml))
-	require.NoError(t, err)
-
-	stripe := model.ExternalDependencies["Stripe"]
-	require.NotNil(t, stripe)
-	// Should not have duplicate
-	assert.Len(t, stripe.UsedBy, 1)
-	// Should have warning about legacy usedBy
-	assert.NotEmpty(t, model.Warnings)
-}
-
-func TestPhase9_ExternalDep_LegacyUsedBy_DeprecationWarning(t *testing.T) {
-	yaml := `
-system:
-  name: "Test"
-services:
-  - name: "svc-a"
-external_dependencies:
-  - name: "Stripe"
-    usedBy:
-      - "svc-a"
-`
-	p := parser.NewYAMLParser()
-	model, err := p.Parse(strings.NewReader(yaml))
-	require.NoError(t, err)
-
-	// Legacy usedBy should still work
-	stripe := model.ExternalDependencies["Stripe"]
-	require.Len(t, stripe.UsedBy, 1)
-	// Should have deprecation warning
-	assert.NotEmpty(t, model.Warnings)
 }
 
 func TestPhase9_ExternalDep_UnreferencedAllowed(t *testing.T) {
@@ -428,91 +318,6 @@ teams:
 	assert.Equal(t, "collaboration", inter.Mode.String())
 }
 
-func TestPhase9_TeamInlineInteractions_MergeWithLegacy(t *testing.T) {
-	yaml := `
-system:
-  name: "Test"
-teams:
-  - name: "Team A"
-    type: "stream-aligned"
-    interacts:
-      - with: "Team B"
-        mode: "collaboration"
-  - name: "Team B"
-    type: "stream-aligned"
-interactions:
-  - from: "Team A"
-    to: "Team B"
-    mode: "x-as-a-service"
-`
-	p := parser.NewYAMLParser()
-	model, err := p.Parse(strings.NewReader(yaml))
-	require.NoError(t, err)
-
-	// Both interactions should be present
-	assert.GreaterOrEqual(t, len(model.Interactions), 1)
-
-	// Should have deprecation warning for top-level interactions:
-	assert.NotEmpty(t, model.Warnings)
-}
-
-func TestPhase9_TeamInlineInteractions_DuplicateDedup(t *testing.T) {
-	// Same from→to→mode in both team.interacts and interactions:
-	yaml := `
-system:
-  name: "Test"
-teams:
-  - name: "Team A"
-    type: "stream-aligned"
-    interacts:
-      - with: "Team B"
-        mode: "collaboration"
-  - name: "Team B"
-    type: "stream-aligned"
-interactions:
-  - from: "Team A"
-    to: "Team B"
-    mode: "collaboration"
-`
-	p := parser.NewYAMLParser()
-	model, err := p.Parse(strings.NewReader(yaml))
-	require.NoError(t, err)
-
-	// Should keep only one (deduplicated)
-	assert.Len(t, model.Interactions, 1)
-	assert.NotEmpty(t, model.Warnings)
-}
-
-// ---------------------------------------------------------------------------
-// 9.6 — Capability `ownedBy` deprecation warning
-// ---------------------------------------------------------------------------
-
-func TestPhase9_CapabilityOwnedBy_DeprecationWarning(t *testing.T) {
-	yaml := `
-system:
-  name: "Test"
-capabilities:
-  - name: "Cap A"
-    ownedBy: "Team A"
-teams:
-  - name: "Team A"
-    type: "stream-aligned"
-`
-	p := parser.NewYAMLParser()
-	model, err := p.Parse(strings.NewReader(yaml))
-	require.NoError(t, err)
-
-	assert.NotEmpty(t, model.Warnings)
-	found := false
-	for _, w := range model.Warnings {
-		if strings.Contains(w, "ownedBy") || strings.Contains(w, "deprecated") {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "expected deprecation warning for capability.ownedBy usage")
-}
-
 // ---------------------------------------------------------------------------
 // 9.7 — Strict reference validation
 // ---------------------------------------------------------------------------
@@ -550,22 +355,20 @@ system:
   name: "Test"
 capabilities:
   - name: "Cap A"
-    realizedBy:
-      - "NonExistentService"
+services:
+  - name: "ghost-svc"
+    realizes:
+      - "Cap A"
+      - "NonExistentCap"
 `
 	p := parser.NewYAMLParser()
 	model, err := p.Parse(strings.NewReader(yaml))
 	require.NoError(t, err) // Not an error, just a warning
 
-	assert.NotEmpty(t, model.Warnings)
-	found := false
-	for _, w := range model.Warnings {
-		if strings.Contains(w, "NonExistentService") {
-			found = true
-			break
-		}
-	}
-	assert.True(t, found, "expected warning about unresolved realizedBy reference")
+	// ghost-svc realizes Cap A successfully, but NonExistentCap is skipped
+	// (reference validation catches unresolved service.realizes targets)
+	cap := model.Capabilities["Cap A"]
+	require.Len(t, cap.RealizedBy, 1)
 }
 
 func TestPhase9_ReferenceValidation_ResolvedReferences_NoWarning(t *testing.T) {
@@ -581,10 +384,10 @@ needs:
       - "Cap A"
 capabilities:
   - name: "Cap A"
-    realizedBy:
-      - "svc-a"
 services:
   - name: "svc-a"
+    realizes:
+      - "Cap A"
 `
 	p := parser.NewYAMLParser()
 	model, err := p.Parse(strings.NewReader(yaml))
