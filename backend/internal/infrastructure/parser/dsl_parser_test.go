@@ -40,11 +40,11 @@ need "Process Orders" {
 
 capability "Order Processing" {
   visibility domain
-  realizedBy "order-service" { role primary }
 }
 
 service "order-service" {
   ownedBy "orders-team"
+  realizes "Order Processing" role "primary"
 }
 
 team "orders-team" {

@@ -161,20 +161,6 @@ capabilities:
 	require.Error(t, err)
 }
 
-func TestYAMLParser_CapabilityWithInvalidRealizedByTarget(t *testing.T) {
-	yaml := `
-system:
-  name: "Test"
-capabilities:
-  - name: "Search"
-    realizedBy:
-      - target: ""
-`
-	p := parser.NewYAMLParser()
-	_, err := p.Parse(strings.NewReader(yaml))
-	require.Error(t, err)
-}
-
 func TestYAMLParser_CapabilityWithInvalidDependsOnTarget(t *testing.T) {
 	yaml := `
 system:
@@ -321,19 +307,23 @@ platforms:
 // Error-path tests for addInteractions
 // ---------------------------------------------------------------------------
 
-func TestYAMLParser_InvalidInteractionMode(t *testing.T) {
+func TestYAMLParser_InvalidTeamInteractionMode(t *testing.T) {
 	yaml := `
 system:
   name: "Test"
-interactions:
-  - from: "Team A"
-    to: "Team B"
-    mode: "not-a-mode"
+teams:
+  - name: "Team A"
+    type: "stream-aligned"
+    interacts:
+      - with: "Team B"
+        mode: "not-a-mode"
+  - name: "Team B"
+    type: "stream-aligned"
 `
 	p := parser.NewYAMLParser()
 	_, err := p.Parse(strings.NewReader(yaml))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "interaction")
+	assert.Contains(t, err.Error(), "interacts")
 }
 
 func TestYAMLParser_DataAssets(t *testing.T) {
@@ -395,12 +385,13 @@ func TestYAMLParser_ExternalDependencies(t *testing.T) {
 	yaml := `
 system:
   name: "Test"
+services:
+  - name: "payment-svc"
+    externalDeps:
+      - "Stripe"
 external_dependencies:
   - name: "Stripe"
     description: "Payment processing"
-    usedBy:
-      - target: "payment-svc"
-        description: "Charges customers via Stripe API"
 `
 	p := parser.NewYAMLParser()
 	model, err := p.Parse(strings.NewReader(yaml))

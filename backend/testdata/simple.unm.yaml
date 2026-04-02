@@ -16,14 +16,14 @@ needs:
 capabilities:
   - name: "Core Capability"
     description: "The core capability of the system"
-    realizedBy:
-      - target: "core-service"
-        description: "Main implementation"
 
 services:
   - name: "core-service"
     description: "The core service"
     ownedBy: "Core Team"
+    realizes:
+      - target: "Core Capability"
+        description: "Main implementation"
 
 teams:
   - name: "Core Team"

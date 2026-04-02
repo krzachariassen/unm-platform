@@ -23,11 +23,11 @@ needs:
       - "Browsing"
 capabilities:
   - name: "Browsing"
-    realizedBy:
-      - "browse-svc"
 services:
   - name: "browse-svc"
     ownedBy: "Team Alpha"
+    realizes:
+      - "Browsing"
 teams:
   - name: "Team Alpha"
     type: "stream-aligned"

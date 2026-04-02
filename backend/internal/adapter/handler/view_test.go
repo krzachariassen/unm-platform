@@ -38,36 +38,40 @@ needs:
 capabilities:
   - name: "Catalog Ingestion"
     visibility: "domain"
-    realizedBy:
-      - "feed-api"
-      - "catalog-worker"
   - name: "Menu Display"
     visibility: "user-facing"
-    realizedBy:
-      - "menu-service"
   - name: "Auth"
     visibility: "infrastructure"
   - name: "Search"
     visibility: "domain"
-    realizedBy:
-      - "search-service"
     dependsOn:
       - "Auth"
 services:
   - name: "feed-api"
     ownedBy: "Catalog Team"
+    realizes:
+      - "Catalog Ingestion"
   - name: "catalog-worker"
     ownedBy: "Catalog Team"
+    realizes:
+      - "Catalog Ingestion"
   - name: "menu-service"
     ownedBy: "Menu Team"
+    realizes:
+      - "Menu Display"
   - name: "search-service"
     ownedBy: "Search Team"
+    realizes:
+      - "Search"
   - name: "orphan-svc"
 teams:
   - name: "Catalog Team"
     type: "stream-aligned"
     owns:
       - "Catalog Ingestion"
+    interacts:
+      - with: "Search Team"
+        mode: "x-as-a-service"
   - name: "Menu Team"
     type: "stream-aligned"
     owns:
@@ -76,10 +80,6 @@ teams:
     type: "complicated-subsystem"
     owns:
       - "Search"
-interactions:
-  - from: "Catalog Team"
-    to: "Search Team"
-    mode: "x-as-a-service"
 `
 
 // setupEnrichedTestModel parses the enriched YAML and stores it.
@@ -558,16 +558,23 @@ needs:
 capabilities:
   - name: "Catalog Ingestion"
     visibility: "domain"
-    realizedBy:
-      - "feed-api"
-      - "catalog-worker"
 services:
   - name: "feed-api"
     ownedBy: "Catalog Team"
+    realizes:
+      - "Catalog Ingestion"
+    externalDeps:
+      - "Stripe"
   - name: "catalog-worker"
     ownedBy: "Catalog Team"
+    realizes:
+      - "Catalog Ingestion"
+    externalDeps:
+      - "SendGrid"
   - name: "other-svc"
     ownedBy: "Other Team"
+    externalDeps:
+      - "Stripe"
 teams:
   - name: "Catalog Team"
     type: "stream-aligned"
@@ -578,16 +585,8 @@ teams:
 external_dependencies:
   - name: "Stripe"
     description: "Payment gateway"
-    usedBy:
-      - target: "feed-api"
-        description: "Charges merchants"
-      - target: "other-svc"
-        description: "Also uses Stripe"
   - name: "SendGrid"
     description: "Email provider"
-    usedBy:
-      - target: "catalog-worker"
-        description: "Sends notifications"
 `
 
 // setupExtDepTestModel parses the external deps YAML and returns a router + stored model ID.

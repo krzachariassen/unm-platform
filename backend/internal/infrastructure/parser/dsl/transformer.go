@@ -224,13 +224,6 @@ func buildEntityCapability(n *CapabilityNode) (*entity.Capability, error) {
 		}
 		cap.AddChild(childCap)
 	}
-	for _, rel := range n.RealizedBy {
-		r, err := buildEntityRelationship(rel)
-		if err != nil {
-			return nil, fmt.Errorf("transform: capability %q realizedBy: %w", n.Name, err)
-		}
-		cap.AddRealizedBy(r)
-	}
 	for _, rel := range n.DependsOn {
 		r, err := buildEntityRelationship(rel)
 		if err != nil {

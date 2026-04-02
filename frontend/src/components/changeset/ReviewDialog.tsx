@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { X, Trash2, ArrowRight, Check, Loader2, AlertTriangle, Sparkles, Bot } from 'lucide-react'
 import { useModel } from '@/lib/model-context'
 import { useChangeset } from '@/lib/changeset-context'
+import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { api } from '@/lib/api'
 import type { ImpactDelta } from '@/types/changeset'
 import { ImpactPanel } from './ImpactPanel'
@@ -35,6 +36,7 @@ interface ReviewDialogProps {
 export function ReviewDialog({ open, onClose }: ReviewDialogProps) {
   const { modelId, parseResult, setModel } = useModel()
   const { actions, description, removeAction, discardAll } = useChangeset()
+  const aiEnabled = useAIEnabled()
 
   const [tab, setTab] = useState<Tab>('changes')
   const [phase, setPhase] = useState<CommitPhase>('idle')
@@ -146,7 +148,7 @@ export function ReviewDialog({ open, onClose }: ReviewDialogProps) {
   const tabs: { id: Tab; label: string; disabled: boolean }[] = [
     { id: 'changes', label: 'Changes', disabled: false },
     { id: 'impact', label: 'Impact', disabled: false },
-    { id: 'ai', label: 'AI Insights', disabled: false },
+    ...(aiEnabled ? [{ id: 'ai' as Tab, label: 'AI Insights', disabled: false }] : []),
   ]
 
   return (
