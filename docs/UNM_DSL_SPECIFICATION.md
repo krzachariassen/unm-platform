@@ -1,4 +1,4 @@
-# UNM DSL Specification v0.1
+# UNM DSL Specification v2
 
 ## Overview
 
@@ -15,7 +15,9 @@ The UNM DSL (User Needs Mapping Domain-Specific Language) is a textual modeling 
 2. **Explicit relationships** — All connections are declared, not implied
 3. **Layered abstraction** — Support for L1 (enterprise) through L5 (team/transition) views
 4. **AI-assisted** — The platform analyzes the data layer and generates findings; the DSL file is the authoritative data source
-5. **Composable** — Models can import and reference other models
+5. **Source-of-truth direction** — Services declare what they realize and which external dependencies they use; reverse lookups are computed by the system
+
+> **For the complete field reference** — including which fields are authored vs. derived, relationship directions, and the v2 freeze removal table — see [`META_MODEL_REFERENCE.md`](META_MODEL_REFERENCE.md).
 
 ---
 
@@ -27,71 +29,31 @@ The UNM DSL (User Needs Mapping Domain-Specific Language) is a textual modeling 
 |--------|-------------|-----------------|
 | `system` | Top-level boundary (product, platform, org unit) | name, description |
 | `actor` | A person or external system with needs | name, description |
-| `need` | What an actor is trying to achieve (includes `outcome` as a field) | name, actor, outcome |
+| `need` | What an actor is trying to achieve | name, actor, outcome |
 | `capability` | What the system/org must be able to do | name, description, visibility |
-| `service` | Concrete implementation realizing capabilities | name, description |
-| `team` | Organizational unit owning services/capabilities | name, type |
-| `platform` | Grouping of platform teams | name, teams |
+| `service` | Concrete implementation realizing capabilities | name, ownedBy |
+| `team` | Organizational unit owning capabilities | name, type |
+| `platform` | Grouping of platform teams | name |
 | `interaction` | How two teams work together | from, to, mode |
-| `data_asset` | Storage/messaging infrastructure shared by services | name, type, usedBy |
+| `data_asset` | Storage/messaging infrastructure shared by services | name, type |
 | `external_dependency` | System outside the modeled boundary | name, description |
 
-### Relationship Types
+### Relationship Types (v2 — source-of-truth direction)
 
-Every relationship in the model can carry a **description** — a human-readable label that explains *what* the relationship means, not just *that* it exists. Descriptions are rendered as edge labels in visualizations.
+| Relationship | Authored On | Semantics |
+|-------------|-------------|-----------|
+| `need.supportedBy` | Need | Need is fulfilled by this capability |
+| `service.realizes` | Service | Service implements this capability (source of truth) |
+| `service.externalDeps` | Service | Service depends on this external dependency (source of truth) |
+| `service.dependsOn` | Service | Service calls this other service |
+| `service.ownedBy` | Service | Team responsible for this service |
+| `team.owns` | Team | Team owns this capability |
+| `team.interacts` | Team | Team interacts with another team (primary authoring path) |
+| `capability.dependsOn` | Capability | Capability requires another capability |
+| `capability.parent` | Capability | Flat-form parent reference for hierarchy |
+| `data_asset.usedBy` | Data Asset | Which services use this data asset |
 
-| Relationship | From | To | Semantics | Description Example |
-|-------------|------|-----|-----------|---------------------|
-| `hasNeed` | Actor | Need | Actor has this need | — |
-| `supportedBy` | Need | Capability | Need is fulfilled by capability | "Ingestion enables initial catalog upload" |
-| `realizedBy` | Capability | Service | Capability is implemented by service | "Handles feed parsing and normalization" |
-| `ownedBy` | Service/Capability | Team | Team is responsible for this | "Primary maintainer since Q2 2024" |
-| `dependsOn` | Capability/Service | Capability/Service | Requires this to function | "Calls validation API before persisting" |
-| `decomposesTo` | Capability | Capability[] | Breaks down into sub-capabilities | — |
-| `provides` | Platform/Team | Capability | Makes this capability available | "Exposes as self-service API" |
-| `interactsWith` | Team | Team | Teams have interaction | "Weekly sync on schema changes" |
-
-### Described Relationship
-
-All relationships support two forms:
-
-**Short form** (just the reference):
-```yaml
-dependsOn:
-  - "catalog-parser"
-```
-
-**Long form** (with description, optional role, and metadata):
-```yaml
-dependsOn:
-  - target: "catalog-parser"
-    description: "Sends raw feed data for format-specific parsing"
-  - target: "schema-validator"
-    description: "Validates parsed output against merchant schema rules"
-```
-
-**With role** (for service-to-capability and team-to-capability):
-```yaml
-realizedBy:
-  - target: "core"
-    role: "primary"
-    description: "Authoritative CRUD store for all entity types"
-  - target: "registry"
-    role: "supporting"
-    description: "Provides catalog context for entity operations"
-  - target: "publisher"
-    role: "consuming"
-    description: "Reads entities during publishing pipeline"
-```
-
-Roles distinguish how a service or team relates to a capability:
-- **primary** — this is the main implementation or owner
-- **supporting** — contributes to but does not own the capability
-- **consuming** — uses the capability as a client
-
-Both forms can be mixed in the same list. The parser treats a plain string as short form and an object as long form.
-
-This applies to all list-type relationships: `dependsOn`, `realizedBy`, `supportedBy`, `owns`, `provides`, and `usedBy`.
+> **Derived (not authored):** `capability.realizedBy` is computed by the system from `service.realizes` declarations. Do not author `realizedBy` in model files.
 
 ### Value Types
 
@@ -105,14 +67,49 @@ Visibility       = "user-facing" | "domain" | "foundational" | "infrastructure"
 
 #### Visibility (UNM Value Chain Position)
 
-The `visibility` field on capabilities represents position in the UNM vertical value chain — the defining characteristic of a User Needs Map. The user sits at the top; capabilities are positioned by how visible they are to the user. This enables rendering a proper UNM map where dependency arrows flow downward from visible to invisible.
+The `visibility` field on capabilities represents position in the UNM vertical value chain. The user sits at the top; capabilities are positioned by how visible they are to the user. This enables rendering a proper UNM map where dependency arrows flow downward from visible to invisible.
 
 | Level | Meaning | Examples |
 |-------|---------|----------|
-| `user-facing` | Directly experienced by end users | Order Submission, Product Search (API surface) |
-| `domain` | Core business processing, not directly visible | Publishing, Indexing, Validation, Bulk Actions |
-| `foundational` | Internal capabilities that underpin domain logic | Entity CRUD, Registry, Backup & Restore |
-| `infrastructure` | Deep infrastructure, fully invisible | Data storage, external systems, shared packages |
+| `user-facing` | Directly experienced by end users | Order Submission, Product Search |
+| `domain` | Core business processing, not directly visible | Publishing, Indexing, Validation |
+| `foundational` | Internal capabilities that underpin domain logic | Entity CRUD, Registry, Backup |
+| `infrastructure` | Deep infrastructure, fully invisible | Data storage, external systems |
+
+**Visibility inheritance:** When a child capability has no `visibility` set, it inherits the parent's visibility. Set `visibility` explicitly on a child to override.
+
+### Described Relationships
+
+All list-type relationships support two forms that can be mixed freely:
+
+**Short form** (just the reference):
+```yaml
+dependsOn:
+  - "catalog-parser"
+```
+
+**Long form** (with description and optional role):
+```yaml
+dependsOn:
+  - target: "catalog-parser"
+    description: "Sends raw feed data for format-specific parsing"
+```
+
+**With role** (for `service.realizes`):
+```yaml
+realizes:
+  - target: "Search"
+    role: "primary"
+    description: "Full-text search implementation"
+  - target: "Catalog"
+    role: "supporting"
+    description: "Reads catalog data for indexing"
+```
+
+Roles distinguish how a service relates to a capability:
+- **primary** — main implementation
+- **supporting** — contributes to but does not own
+- **consuming** — uses the capability as a client
 
 ---
 
@@ -126,8 +123,7 @@ system "BookShelf" {
 }
 ```
 
-The system block also supports version metadata fields, managed automatically
-by the platform when models are edited through the API:
+The system block also supports version metadata managed automatically by the platform:
 
 ```unm
 system "BookShelf" {
@@ -161,7 +157,7 @@ need "Find and purchase books easily" {
 }
 ```
 
-Multiple actors can share a need using comma-separated values:
+**Multi-actor needs** — multiple actors can share a need:
 
 ```unm
 need "View catalog data" {
@@ -171,13 +167,20 @@ need "View catalog data" {
 }
 ```
 
-> **Note**: Earlier versions of the DSL included a `scenario` entity as an intermediary between actors and needs. This has been removed. UNM follows a direct **Actor → Need → Capability** chain. Contextual information belongs in the need's `description` field. YAML files containing a `scenarios` section will parse with a deprecation warning.
+In YAML, use either a single string or a list:
+
+```yaml
+needs:
+  - name: "View catalog data"
+    actor: "Reader"                  # single actor
+
+  - name: "Manage inventory"
+    actor: ["Reader", "Author"]      # multi-actor list
+```
 
 ### 2.4 Capabilities (with visibility and hierarchical decomposition)
 
-Capabilities carry a `visibility` field representing their position in the UNM vertical value chain. Parent capabilities group children and inherit visibility from their most user-facing child if not explicitly set. Only leaf capabilities have `realizedBy` service references — parent capabilities are realized through their children.
-
-All relationships within capabilities support an optional description using `:` syntax.
+Capabilities carry a `visibility` field representing their position in the UNM vertical value chain. Services declare which capabilities they realize — capabilities do not declare their own `realizedBy`.
 
 ```unm
 capability "Catalog & Inventory" {
@@ -187,18 +190,14 @@ capability "Catalog & Inventory" {
   capability "Catalog CRUD" {
     description "Create, read, update, delete book records"
     visibility "foundational"
-    realizedBy "catalog-api" : "Primary entity persistence"
   }
 
   capability "Catalog Search" {
     description "Full-text search across the catalog"
     visibility "user-facing"
-    realizedBy "search-service" : "Indexes and queries book data"
   }
 }
 ```
-
-Relationships without `:` are still valid — the description is optional.
 
 Alternatively, use flat `parent` references instead of nesting:
 
@@ -212,34 +211,63 @@ capability "Catalog CRUD" {
   description "Create, read, update, delete book records"
   visibility "foundational"
   parent "Catalog & Inventory"
-  realizedBy "catalog-api"
 }
 ```
 
-### 2.5 Services
-
-Services are concrete implementations that realize capabilities. A service has a name, description, team owner, and service-to-service dependencies.
+Capabilities can also declare dependencies on other capabilities:
 
 ```unm
-service "catalog-api" {
-  description "Authoritative book catalog CRUD service"
-  ownedBy "Storefront"
-  dependsOn "order-service" : "Validates stock availability on order placement"
+capability "Search & Discovery" {
+  description "Help readers find books"
+  visibility "user-facing"
+  dependsOn "Catalog Management"
 }
+```
 
+**Visibility inheritance:** Child capabilities with no `visibility` inherit from their parent. Set `visibility` on a child to override.
+
+### 2.5 Services
+
+Services are concrete implementations that realize capabilities. A service declares its owner, the capabilities it realizes, any external dependencies it uses, and its service-to-service dependencies.
+
+```unm
 service "search-service" {
   description "Full-text search engine for the book catalog"
   ownedBy "Discovery"
+  realizes "Catalog Search" : "Indexes and queries book data"
+  externalDeps "Elasticsearch"
   dependsOn "catalog-api" : "Indexes book data from the catalog"
+}
+
+service "catalog-api" {
+  description "Authoritative book catalog CRUD service"
+  ownedBy "Storefront"
+  realizes "Catalog CRUD"
 }
 
 service "notification-service" {
   description "Multi-channel notification dispatch service"
   ownedBy "Platform"
+  realizes "Notification Delivery"
+  externalDeps "Email Provider"
 }
 ```
 
-> **Note**: Earlier versions included `type` (service classification) and `supports` (service→capability) fields on services. These are removed. The parser derives reverse lookups at query time. YAML files containing these deprecated fields will parse with warnings.
+`realizes` supports the same short/long/role forms as all other relationships:
+
+```unm
+// Simple
+realizes "Search & Discovery"
+
+// With description
+realizes "Catalog Search" : "Full-text search implementation"
+
+// With role and description (block form)
+realizes "Catalog Search" {
+  role "primary"
+  description "Full-text search implementation"
+}
+```
 
 ### 2.6 Teams (with Team Topologies types)
 
@@ -248,7 +276,7 @@ team "Storefront" {
   type "stream-aligned"
   description "Owns the catalog browsing experience and author tools"
   size 6
-  owns "Catalog Management"
+  owns "Catalog CRUD"
   owns "Author Dashboard"
 }
 
@@ -260,26 +288,39 @@ team "Platform" {
 }
 ```
 
-Teams can declare inline interactions:
+Teams declare inline interactions using `interacts` — this is the primary authoring path for team interactions:
 
 ```unm
 team "Discovery" {
   type "stream-aligned"
   description "Owns search and recommendations"
   size 4
-  owns "Search & Discovery"
-  interacts "Storefront" mode "x-as-a-service" via "Catalog Management" description "Consumes catalog APIs"
+  owns "Catalog Search"
+  interacts "Storefront" mode "x-as-a-service" via "Catalog CRUD" description "Consumes catalog APIs"
 }
 ```
 
-### 2.7 Team Interactions
+In YAML, `interacts` uses an object form:
 
-Interactions use arrow syntax to connect two teams:
+```yaml
+teams:
+  - name: "Discovery"
+    type: "stream-aligned"
+    interacts:
+      - target: "Storefront"
+        mode: "x-as-a-service"
+        via: "Catalog CRUD"
+        description: "Consumes catalog APIs"
+```
+
+### 2.7 Team Interactions (standalone form — DSL only)
+
+In the DSL, interactions can also be declared as standalone top-level blocks using arrow syntax. This is ergonomic for expressing interactions outside of team blocks:
 
 ```unm
 interaction "Discovery" -> "Storefront" {
   mode "x-as-a-service"
-  via "Catalog Management"
+  via "Catalog CRUD"
   description "Discovery team consumes catalog APIs for indexing"
 }
 
@@ -291,6 +332,8 @@ interaction "Fulfillment" -> "Platform" {
 ```
 
 **Modes:** `x-as-a-service`, `collaboration`, `facilitating`
+
+> **Note:** The top-level `interactions:` section has been removed from YAML. In YAML, declare all interactions via `team.interacts`. Standalone arrow-syntax blocks remain available in the DSL format only.
 
 ### 2.8 Platform Groupings
 
@@ -325,21 +368,53 @@ Data asset types: `database`, `cache`, `event-stream`, `blob-storage`, `search-i
 
 ### 2.10 External Dependencies
 
-External dependencies model systems outside the modeled boundary. They show blast radius and cross-team coupling.
+External dependencies define systems outside the modeled boundary. They are **definition-only** (name + description). The edges that show which services use them come from `service.externalDeps` declarations.
 
 ```unm
 external_dependency "Payment Gateway" {
   description "Third-party payment processing provider"
-  usedBy "order-service" : "Processes credit card and wallet payments"
+}
+
+external_dependency "Elasticsearch" {
+  description "Search engine cluster for full-text indexing"
 }
 
 external_dependency "Email Provider" {
   description "Transactional email delivery service"
-  usedBy "notification-service" : "Sends order confirmations and author notifications"
 }
 ```
 
-The `usedBy` field supports an optional description using `:` syntax.
+Services declare their use of external dependencies:
+
+```unm
+service "order-service" {
+  ownedBy "Fulfillment"
+  realizes "Order Processing"
+  externalDeps "Payment Gateway"
+}
+
+service "search-service" {
+  ownedBy "Discovery"
+  realizes "Catalog Search"
+  externalDeps "Elasticsearch"
+}
+```
+
+In YAML:
+
+```yaml
+external_dependencies:
+  - name: "Payment Gateway"
+    description: "Third-party payment processing provider"
+
+services:
+  - name: "order-service"
+    ownedBy: "Fulfillment"
+    realizes:
+      - "Order Processing"
+    externalDeps:
+      - "Payment Gateway"
+```
 
 ### 2.11 Transition Modeling
 
@@ -348,12 +423,12 @@ transition "Consolidate catalog ownership" {
   description "Move from fragmented to single-team catalog ownership"
 
   current {
-    capability "Catalog Management" ownedBy team "Team A"
-    capability "Catalog Management" ownedBy team "Team B"
+    capability "Catalog CRUD" ownedBy team "Team A"
+    capability "Catalog CRUD" ownedBy team "Team B"
   }
 
   target {
-    capability "Catalog Management" ownedBy team "Storefront"
+    capability "Catalog CRUD" ownedBy team "Storefront"
   }
 
   step 1 "Merge teams" {
@@ -411,7 +486,7 @@ The same model generates multiple views:
 - Purpose: Strategy and product conversations
 - Filters by: actor
 
-### Capability View  
+### Capability View
 - Shows: capability hierarchy + dependencies
 - Purpose: Architecture and org design
 - Filters by: system, level
@@ -449,25 +524,22 @@ The parser enforces structural rules:
 
 ### Mandatory
 1. Every `need` must reference at least one `capability` via `supportedBy`
-2. Every leaf `capability` must be `realizedBy` at least one `service` OR `decomposesTo` sub-capabilities
-3. A parent capability must NOT have `realizedBy` — only leaf capabilities have services
-4. A `service` cannot `ownedBy` zero teams
-5. A `service` cannot own a `team` (reversed relationship)
-6. `interaction` must reference valid teams and a valid mode
+2. A `service` cannot have an empty `ownedBy`
+3. `team.interacts` must reference a valid interaction mode
+4. `capability.parent` must reference a capability that exists in the model
+5. Circular `parent` references are rejected
 
 ### Warnings
 1. Capability owned by more than 2 teams → fragmentation warning
 2. Team owning more than 6 capabilities → cognitive load warning
-3. Service not referenced by any capability's `realizedBy` → orphan warning
+3. Service not referenced by any capability's realized-by list → orphan warning
 4. Circular dependencies between capabilities → cycle warning
 5. Capability without `visibility` → missing visibility warning
-6. `scenarios` section present in YAML → deprecation warning (ignored, not parsed)
-7. `supports`, `dataAssets`, or `externalDependsOn` on services → deprecation warning (ignored, derived from source-of-truth entities)
-8. `signals`, `pain_points`, or `inferred` sections present → deprecation warning (ignored — these are platform-computed outputs, not user-authored data)
-9. Leaf capability not referenced by any `need.supportedBy` → unlinked capability warning (capability exists but no user need drives it — may indicate internal plumbing that should be `infrastructure` visibility, or a missing need)
-10. All team interactions use the same `mode` → interaction diversity warning (real Team Topologies models typically mix x-as-a-service, collaboration, and facilitating; uniform mode may indicate the model is incomplete or the teams have not been classified carefully)
-11. Critical dependency chain depth > 4 → deep dependency chain warning (long chains increase blast radius and latency; report the full chain path)
-12. Team with cognitive load score > 20 (capabilities × 2 + services × 1 + outbound deps × 1 + interactions × 2) → cognitive load threshold warning
+6. Leaf capability not referenced by any `need.supportedBy` → unlinked capability warning
+7. All team interactions use the same `mode` → interaction diversity warning
+8. Critical dependency chain depth > 4 → deep dependency chain warning
+9. Team with cognitive load score > 20 → cognitive load threshold warning
+10. `service.externalDeps` references an external dependency not declared in `external_dependencies` → unresolved reference warning
 
 ### Configurable
 - Max capabilities per team (default: 6)
@@ -505,48 +577,57 @@ needs:
     actor: "Reader"
     outcome: "I can search for books and complete a purchase quickly"
     supportedBy:
-      - "Search & Discovery"                             # short form
-      - target: "Order Processing"                       # long form
+      - "Search & Discovery"
+      - target: "Order Processing"
         description: "Handles the purchase lifecycle"
 
 capabilities:
   - name: "Search & Discovery"
     description: "Help readers find books"
     visibility: "user-facing"
-    realizedBy:
-      - target: "search-service"
-        role: "primary"
-        description: "Full-text search across the catalog"
     dependsOn:
       - "Catalog Management"
 
   - name: "Order Processing"
     description: "Handle the purchase lifecycle"
     visibility: "user-facing"
-    realizedBy:
-      - "order-service"
+
+  - name: "Catalog CRUD"
+    description: "Create, read, update, delete book records"
+    visibility: "foundational"
+    parent: "Catalog Management"
 
   - name: "Catalog Management"
     description: "Maintain the authoritative book catalog"
     visibility: "domain"
-    realizedBy:
-      - "catalog-api"
 
 services:
-  - name: "catalog-api"
-    description: "Authoritative book catalog CRUD service"
-    ownedBy: "Storefront"
-
   - name: "search-service"
     description: "Full-text search engine for the book catalog"
     ownedBy: "Discovery"
+    realizes:
+      - target: "Search & Discovery"
+        role: "primary"
+        description: "Full-text search across the catalog"
+    externalDeps:
+      - "Elasticsearch"
     dependsOn:
       - target: "catalog-api"
         description: "Indexes book data from the catalog"
 
+  - name: "catalog-api"
+    description: "Authoritative book catalog CRUD service"
+    ownedBy: "Storefront"
+    realizes:
+      - "Catalog CRUD"
+
   - name: "order-service"
     description: "Manages cart, checkout, and payment"
     ownedBy: "Fulfillment"
+    realizes:
+      - "Order Processing"
+    externalDeps:
+      - "Payment Gateway"
 
 teams:
   - name: "Storefront"
@@ -558,29 +639,28 @@ teams:
     type: "stream-aligned"
     owns:
       - "Search & Discovery"
+    interacts:
+      - target: "Storefront"
+        mode: "x-as-a-service"
+        via: "Catalog Management"
+        description: "Discovery team consumes catalog APIs for indexing"
 
   - name: "Fulfillment"
     type: "stream-aligned"
     owns:
       - "Order Processing"
 
-interactions:
-  - from: "Discovery"
-    to: "Storefront"
-    mode: "x-as-a-service"
-    via: "Catalog Management"
-    description: "Discovery team consumes catalog APIs for indexing"
-
 external_dependencies:
+  - name: "Elasticsearch"
+    description: "Search engine cluster for full-text indexing"
+
   - name: "Payment Gateway"
     description: "Third-party payment processing provider"
-    usedBy:
-      - target: "order-service"
-        description: "Processes credit card and wallet payments"
 ```
 
-**Key schema rules**:
-- **Unidirectional relationships**: Capabilities declare `realizedBy` services (source of truth). Services do NOT declare `supports`. Data assets declare `usedBy` services. External dependencies declare `usedBy` services. Reverse lookups are derived at query time.
-- **Visibility is required**: Every capability should have a `visibility` level for proper UNM value chain rendering.
-- **Hierarchy**: Parent capabilities group children via `children` field. Only leaf capabilities have `realizedBy`.
-- **Relationship forms**: short string and long object (`target` + `description` + optional `role`) can be mixed freely in any list.
+**Key schema rules:**
+- **Service-side authoring:** Services declare `realizes` (which capabilities they implement) and `externalDeps` (which external systems they use). Capabilities do NOT declare `realizedBy`.
+- **Team-side interactions:** Teams declare `interacts` inline. There is no top-level `interactions:` section in YAML.
+- **Visibility is required:** Every capability should have a `visibility` level for proper UNM value chain rendering. Children inherit from parents if not set.
+- **Hierarchy:** Use `parent` (flat form) or `children` (nested form) to group capabilities. Both produce the same model.
+- **Relationship forms:** Short string and long object (`target` + `description` + optional `role`) can be mixed freely in any list.

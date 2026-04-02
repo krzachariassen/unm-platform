@@ -152,7 +152,7 @@ Each agent's `MEMORY.md` is subject to these guardrails:
 - `docs/BACKLOG.md` -- Work items, phased roadmap, and Recently Completed
 - `.claude/agents/AGENT_OWNERSHIP.md` -- Agent ownership, curation policy, metrics
 - `docs/UNM_DSL_SPECIFICATION.md` -- DSL syntax and meta-model
-- `examples/inca.unm.yaml` -- Reference model
+- `examples/nexus.unm.yaml` -- Reference model
 
 ## What NOT to Do
 

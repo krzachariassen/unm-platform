@@ -4,7 +4,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-02_
+_Last updated: 2026-04-02 (Phase 11 docs complete)_
 _Priority: Phase 10 (model freeze) → Phase 11 (docs) → Phase 12 (tests/CI)
 → Phase 13 (code quality) → Phase 14 (persistence) → Phase 15 (auth/tenancy)
 → Phase 16 (collaboration) → Phase 17 (hardening) → Phase 18 (ecosystem)._
@@ -18,6 +18,7 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
+- [x] **docs(phase-11): 11.1-11.5** — Documentation alignment: rewrote UNM_DSL_SPECIFICATION.md to v2-only (service.realizes, team.interacts, external deps definition-only, removed realizedBy/usedBy/interactions/scenarios); rewrote YAML_GUIDE.md and DSL_GUIDE.md to v2-only patterns; created META_MODEL_REFERENCE.md (authored vs derived fields, v2 removal table); fixed inca.unm.yaml → nexus.unm.yaml in CLAUDE.md and CONFIGURATION.md (2026-04-02)
 - [x] **refactor(phase-10): 10.6-10.8** — Clean up examples, AI templates, README: rewrote bookshelf.unm to use `realizes` on services (removed `realizedBy` from capability blocks); verified nexus.unm.yaml is already v2-clean; updated extract-actions.tmpl and recommendations.tmpl display strings from `realizedBy` to `realizes`; verified ai_context_builder.go has no user-facing `realizedBy`; updated README DSL example to v2 pattern (2026-04-02)
 - [x] **refactor(phase-10): 10.1-10.5** — Model Freeze: removed capability.realizedBy, capability.ownedBy, top-level interactions:, external_dependencies.usedBy, scenarios, signals, pain_points, inferred, need.scenario, service.type/supports/dataAssets/externalDependsOn from YAML parser; updated all tests and testdata; fixed inca.unm.yaml reference in dsl_serializer_test.go (2026-04-02)
 - [x] **refactor(phase-10): 10.2** — Removed realizedBy keyword from DSL grammar, RealizedBy field from CapabilityNode AST, transformer processing; updated DSL grammar/transformer tests (2026-04-02)
@@ -145,36 +146,36 @@ After Phase 10, only v2 patterns exist. Docs must reflect this single reality.
 The spec currently documents `realizedBy` as the authoring pattern and does
 not mention `service.realizes`, `service.externalDeps`, or `team.interacts`.
 
-- [ ] **11.1.1** — Rewrite §2.4 (Capabilities): remove `realizedBy`, add
+- [x] **11.1.1** — Rewrite §2.4 (Capabilities): remove `realizedBy`, add
       `parent` field, document visibility inheritance.
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
-- [ ] **11.1.2** — Rewrite §2.5 (Services): add `realizes` (with roles),
+- [x] **11.1.2** — Rewrite §2.5 (Services): add `realizes` (with roles),
       `externalDeps`, `dependsOn`. Update required/optional fields table.
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
-- [ ] **11.1.3** — Rewrite §2.6/§2.7 (Interactions): document `team.interacts`
+- [x] **11.1.3** — Rewrite §2.6/§2.7 (Interactions): document `team.interacts`
       as primary. Decide whether standalone arrow syntax stays in DSL.
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
-- [ ] **11.1.4** — Rewrite §2.10 (External Dependencies): remove `usedBy`,
+- [x] **11.1.4** — Rewrite §2.10 (External Dependencies): remove `usedBy`,
       document as name+description definitions only (edges from services).
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
-- [ ] **11.1.5** — Update meta-model table (§1): add all service fields
+- [x] **11.1.5** — Update meta-model table (§1): add all service fields
       (`realizes`, `externalDeps`, `dependsOn`, `ownedBy`).
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
-- [ ] **11.1.6** — Remove `scenarios` from spec (currently says "deprecation
+- [x] **11.1.6** — Remove `scenarios` from spec (currently says "deprecation
       warning" but parser silently ignores).
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
-- [ ] **11.1.7** — Add multi-actor needs syntax to spec.
+- [x] **11.1.7** — Add multi-actor needs syntax to spec.
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
 
 ### 11.2 — Rewrite YAML Guide
 
-- [ ] **11.2.1** — Rewrite YAML guide using v2-only patterns throughout.
+- [x] **11.2.1** — Rewrite YAML guide using v2-only patterns throughout.
       Remove all `realizedBy`, `usedBy`, top-level `interactions` examples.
       _File: `docs/YAML_GUIDE.md`_ (#docs)
 
 ### 11.3 — Rewrite DSL Guide
 
-- [ ] **11.3.1** — Rewrite DSL guide using v2-only patterns throughout.
+- [x] **11.3.1** — Rewrite DSL guide using v2-only patterns throughout.
       _File: `docs/DSL_GUIDE.md`_ (#docs)
 
 ### 11.4 — Derived vs Authored Field Reference
@@ -183,21 +184,21 @@ Review 2 §5: "You need explicit derived vs authored fields." Without this,
 the meta-model freeze is incomplete — users and AI need to know which
 fields they author and which the system computes.
 
-- [ ] **11.4.1** — Create `docs/META_MODEL_REFERENCE.md`: a single table
+- [x] **11.4.1** — Create `docs/META_MODEL_REFERENCE.md`: a single table
       listing every entity field, whether it is authored (written in .unm
       file) or derived (computed by the system), the canonical relationship
       direction, and which fields were removed in the v2 freeze.
       _File: `docs/META_MODEL_REFERENCE.md`_ (#docs)
-- [ ] **11.4.2** — Update DSL Specification to reference the meta-model
+- [x] **11.4.2** — Update DSL Specification to reference the meta-model
       table and explicitly mark derived fields (e.g., reverse lookups like
       `GetCapabilitiesForService` are derived, not authored).
       _File: `docs/UNM_DSL_SPECIFICATION.md`_ (#docs)
 
 ### 11.5 — Fix Stale References
 
-- [ ] **11.5.1** — Audit `CLAUDE.md` for stale example file references.
+- [x] **11.5.1** — Audit `CLAUDE.md` for stale example file references.
       _File: `CLAUDE.md`_ (#docs)
-- [ ] **11.5.2** — Audit `docs/CONFIGURATION.md` for stale paths.
+- [x] **11.5.2** — Audit `docs/CONFIGURATION.md` for stale paths.
       _File: `docs/CONFIGURATION.md`_ (#docs)
 
 ---
