@@ -1,4 +1,5 @@
 # Go
+backend/server
 backend/bin/
 backend/tmp/
 *.exe
