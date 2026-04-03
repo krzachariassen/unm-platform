@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	domainservice "github.com/krzachariassen/unm-platform/internal/domain/service"
 )
 
 // ErrNotFound is returned by repository Get methods when the requested resource does not exist.
@@ -18,6 +19,7 @@ type StoredModel struct {
 	Model          *entity.UNMModel
 	CreatedAt      time.Time
 	LastAccessedAt time.Time
+	VersionCount   int // number of persisted versions (always 1 for memory store)
 }
 
 // StoredChangeset holds a changeset with its assigned ID, model association, and timestamps.
@@ -26,6 +28,15 @@ type StoredChangeset struct {
 	ModelID   string
 	Changeset *entity.Changeset
 	CreatedAt time.Time
+}
+
+// ModelVersionMeta holds metadata for a single model version (no raw content).
+type ModelVersionMeta struct {
+	ID            string
+	ModelID       string
+	Version       int
+	CommitMessage string
+	CommittedAt   time.Time
 }
 
 // ModelRepository is the persistence contract for UNM models.
@@ -42,7 +53,11 @@ type ModelRepository interface {
 	// Returns ErrNotFound if the ID does not exist.
 	Replace(id string, newModel *entity.UNMModel) error
 
-	// List returns all stored models.
+	// ReplaceWithMessage is like Replace but records a commit message in the version row.
+	// Memory store ignores the message; PG store persists it.
+	ReplaceWithMessage(id string, newModel *entity.UNMModel, message string) error
+
+	// List returns all stored models with version counts populated.
 	List() ([]*StoredModel, error)
 
 	// Delete removes a model by ID. Idempotent — does not error if the model does not exist.
@@ -57,6 +72,17 @@ type ModelRepository interface {
 
 	// StopEviction stops background TTL eviction (no-op for persistent stores).
 	StopEviction()
+
+	// ListVersions returns metadata for all versions of a model, oldest first.
+	// Memory store returns a single entry (version 1).
+	ListVersions(modelID string) ([]ModelVersionMeta, error)
+
+	// GetVersion retrieves the model as it was at a specific version number.
+	// Returns ErrNotFound if the model or version does not exist.
+	GetVersion(modelID string, version int) (*entity.UNMModel, error)
+
+	// DiffVersions computes a structured diff between two version numbers of a model.
+	DiffVersions(modelID string, fromV, toV int) (*domainservice.ModelDiff, error)
 }
 
 // ChangesetRepository is the persistence contract for UNM changesets.

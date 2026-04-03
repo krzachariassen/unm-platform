@@ -365,3 +365,166 @@ func TestHandleValidate_ResponseIncludesWarningsArray(t *testing.T) {
 	_, hasWarnings := resp["warnings"]
 	assert.True(t, hasWarnings, "response must contain 'warnings' array")
 }
+
+// ── GET /api/models ────────────────────────────────────────────────────────────
+
+func TestHandleListModels_Returns200(t *testing.T) {
+	h := newTestHandler(t)
+	// Store a model first.
+	parseAndStoreModel(t, h, validYAML)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+
+	models, ok := resp["models"].([]any)
+	require.True(t, ok, "response must contain 'models' array")
+	assert.GreaterOrEqual(t, len(models), 1)
+
+	total, ok := resp["total"].(float64)
+	require.True(t, ok, "response must contain numeric 'total'")
+	assert.GreaterOrEqual(t, int(total), 1)
+
+	// Each model entry must have id, name, version_count.
+	first := models[0].(map[string]any)
+	assert.NotEmpty(t, first["id"])
+	assert.NotEmpty(t, first["name"])
+	_, hasVC := first["version_count"]
+	assert.True(t, hasVC, "model entry must have version_count")
+}
+
+func TestHandleListModels_Empty(t *testing.T) {
+	h := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+
+	models, ok := resp["models"].([]any)
+	require.True(t, ok)
+	assert.Empty(t, models)
+	assert.EqualValues(t, 0, resp["total"])
+}
+
+// ── GET /api/models/{id}/history ──────────────────────────────────────────────
+
+func TestHandleListVersions_Returns200(t *testing.T) {
+	h := newTestHandler(t)
+	modelID := parseAndStoreModel(t, h, validYAML)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models/"+modelID+"/history", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+
+	assert.Equal(t, modelID, resp["model_id"])
+	versions, ok := resp["versions"].([]any)
+	require.True(t, ok, "response must contain 'versions' array")
+	assert.GreaterOrEqual(t, len(versions), 1)
+
+	v := versions[0].(map[string]any)
+	assert.NotEmpty(t, v["id"])
+	assert.EqualValues(t, 1, v["version"])
+}
+
+func TestHandleListVersions_UnknownModel_Returns404(t *testing.T) {
+	h := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models/nonexistent-id/history", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// ── GET /api/models/{id}/versions/{v} ─────────────────────────────────────────
+
+func TestHandleGetVersion_ValidVersion_Returns200(t *testing.T) {
+	h := newTestHandler(t)
+	modelID := parseAndStoreModel(t, h, validYAML)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models/"+modelID+"/versions/1", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+
+	assert.Equal(t, "Test System", resp["system_name"])
+	_, hasValidation := resp["validation"]
+	assert.True(t, hasValidation, "response must contain 'validation'")
+}
+
+func TestHandleGetVersion_InvalidVersion_Returns404(t *testing.T) {
+	h := newTestHandler(t)
+	modelID := parseAndStoreModel(t, h, validYAML)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models/"+modelID+"/versions/99", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestHandleGetVersion_BadVersionParam_Returns400(t *testing.T) {
+	h := newTestHandler(t)
+	modelID := parseAndStoreModel(t, h, validYAML)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models/"+modelID+"/versions/bad", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// ── GET /api/models/{id}/diff ──────────────────────────────────────────────────
+
+func TestHandleDiffVersions_Returns200(t *testing.T) {
+	h := newTestHandler(t)
+	modelID := parseAndStoreModel(t, h, validYAML)
+
+	// Memory store only has version 1; diff v1→v1 is valid and returns empty change sets.
+	req := httptest.NewRequest(http.MethodGet, "/api/models/"+modelID+"/diff?from=1&to=1", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+
+	assert.Equal(t, modelID, resp["model_id"])
+	assert.EqualValues(t, 1, resp["from_version"])
+	assert.EqualValues(t, 1, resp["to_version"])
+	_, hasAdded := resp["added"]
+	assert.True(t, hasAdded, "response must contain 'added'")
+	_, hasRemoved := resp["removed"]
+	assert.True(t, hasRemoved, "response must contain 'removed'")
+}
+
+func TestHandleDiffVersions_MissingParams_Returns400(t *testing.T) {
+	h := newTestHandler(t)
+	modelID := parseAndStoreModel(t, h, validYAML)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/models/"+modelID+"/diff", nil)
+	w := httptest.NewRecorder()
+	NewRouter(h).ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}

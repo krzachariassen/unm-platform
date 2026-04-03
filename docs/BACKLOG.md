@@ -4,8 +4,8 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-03 (Phase 14A complete: PostgreSQL foundation, repository interfaces, contract tests)_
-_Priority: **Phase 14** (persistence) → Phase 15 (auth/tenancy) → Phase 16 (collaboration) → Phase 17 (hardening) → Phase 18 (ecosystem)._
+_Last updated: 2026-04-03 (Phase 14B backend complete; frontend 14B.6–14B.7 pending)_
+_Priority: **Phase 14** (persistence) → F1/F2 (frontend restructure) → Phase 15 (auth/tenancy) → F3 (new views) → Phase 16 (collaboration) → Phase 17 (hardening) → Phase 18 (ecosystem)._
 
 _Context: Two independent external reviews identified migration completion,
 meta-model stability, analyzer trust, test infrastructure, persistence, and
@@ -15,6 +15,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 ---
 
 ## Recently Completed
+
+- [x] **feat(phase-14b): Model History & Multi-Model (backend)** — `ReplaceWithMessage` added to `ModelRepository` interface; changeset commit now stores description as `commit_message` in `model_versions`; `GET /api/models` list endpoint with version counts; `GET /api/models/{id}/history` with per-version metadata; `GET /api/models/{id}/versions/{v}` retrieves model at specific version; `GET /api/models/{id}/diff?from=&to=` computes structural diff (added/removed/changed by entity type); `domain/service/model_diff.go` with `Diff()` and `DiffEntities`; memory store stubs for all new interface methods; PG store queries `model_versions` table for real multi-version history; 14B.8 eviction scoped to memory-only (log note added for postgres path); handler tests and contract tests for all new endpoints/methods. 14B.1–14B.5, 14B.8 complete. (2026-04-03)
 
 - [x] **feat(phase-14a): PostgreSQL Foundation** — Repository interfaces (`usecase.ModelRepository`, `usecase.ChangesetRepository`) extracted to usecase package; `StoredModel`/`StoredChangeset` DTOs moved to usecase; all handlers updated to depend on interfaces not concrete types; `PGModelStore` and `PGChangesetStore` implemented (pgx v5, golang-migrate, soft delete, system user/workspace bootstrap); initial SQL migration for 8 tables (users, organizations, workspaces, models, model_versions, changesets, memberships); `StorageConfig` added to entity config; `docker-compose.yml` updated with postgres:16-alpine service; `main.go` wired to select memory or postgres driver at startup; contract test suite runs same tests against both implementations (28 tests, all pass including against real postgres). Items 14A.1–14A.10 complete. (2026-04-03)
 
@@ -35,11 +37,15 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Phase 14: Persistence, Auth & Multi-Tenancy
 
-**Architecture document: `docs/ARCHITECTURE_EVOLUTION.md`**
-Read that document first. It defines the data hierarchy (Organization →
-Workspace → Model → Version), tenancy model, authorization matrix, API
-route evolution, and database choice. The backlog items below implement
-that design.
+**Architecture documents:**
+- Backend: `docs/ARCHITECTURE_EVOLUTION.md` — data hierarchy, tenancy,
+  auth, API routes, database choice
+- Frontend: `docs/FRONTEND_EVOLUTION.md` — navigation layers, tab
+  structure, new views, platform chrome
+
+Read both documents first. Backend phases (14–16) build the APIs.
+Frontend phases (F1–F6) build the UI. They interleave — see Execution
+Order at the bottom for the dependency graph.
 
 ### 14A — Repository Interfaces & PostgreSQL Foundation
 
@@ -75,27 +81,24 @@ that design.
 
 ### 14B — Model History & Multi-Model
 
-- [ ] **14B.1** — On changeset commit, create a new `ModelVersion` record
-      with raw content and commit message.
+- [x] **14B.1** — On changeset commit, create a new `ModelVersion` record
+      with raw content and commit message. (2026-04-03)
       _File: `handler/changeset.go`_ (#backend)
-- [ ] **14B.2** — API: `GET .../models` — list models in workspace.
+- [x] **14B.2** — API: `GET .../models` — list models in workspace. (2026-04-03)
       _File: `handler/model.go`_ (#backend)
-- [ ] **14B.3** — API: `GET .../models/{id}/history` — list versions.
+- [x] **14B.3** — API: `GET .../models/{id}/history` — list versions. (2026-04-03)
       _File: `handler/model.go`_ (#backend)
-- [ ] **14B.4** — API: `GET .../models/{id}/versions/{v}` — get version.
+- [x] **14B.4** — API: `GET .../models/{id}/versions/{v}` — get version. (2026-04-03)
       _File: `handler/model.go`_ (#backend)
-- [ ] **14B.5** — API: `GET .../models/{id}/diff?from={v1}&to={v2}` —
+- [x] **14B.5** — API: `GET .../models/{id}/diff?from={v1}&to={v2}` —
       structured diff between two model versions. Returns added/removed/
-      changed entities grouped by type. Without diff, history is just a
-      list of dates.
+      changed entities grouped by type. (2026-04-03)
       _File: `handler/model.go`, `domain/service/model_diff.go`_ (#backend)
-- [ ] **14B.6** — Frontend: Model list page (all models in workspace).
-      _File: `pages/ModelsPage.tsx`_ (#frontend)
-- [ ] **14B.7** — Frontend: Version history panel with inline diff viewer.
-      _File: `components/model/VersionHistory.tsx`_ (#frontend)
-- [ ] **14B.8** — Remove session TTL eviction. Make eviction opt-in for
-      memory-only mode.
+- [x] **14B.6** — Eviction scoped to memory-only; log note added when
+      driver=postgres and SessionTTL > 0. (2026-04-03)
       _File: `cmd/server/main.go`_ (#backend)
+
+_Frontend for model list and version history is in Phase F4._
 
 ### 15A — Authentication
 
@@ -119,15 +122,7 @@ that design.
 - [ ] **15A.7** — Local dev mode: when `auth.enabled: false`, inject default
       user + default org + default workspace context into all requests.
       _File: `handler/middleware.go`_ (#backend)
-- [ ] **15A.8** — Frontend: Login page with "Sign in with Google."
-      _File: `pages/LoginPage.tsx`_ (#frontend)
-- [ ] **15A.9** — Frontend: Auth context (check `/api/me`, redirect to
-      login on 401, store user info).
-      _File: `lib/auth-context.tsx`_ (#frontend)
-- [ ] **15A.10** — Frontend: Protected route wrapper.
-      _File: `App.tsx`_ (#frontend)
-- [ ] **15A.11** — Frontend: User info in TopBar (name, avatar, logout).
-      _File: `components/layout/TopBar.tsx`_ (#frontend)
+_Frontend for login, auth context, protected routes, and TopBar is in Phase F5._
 
 ### 15B — Organizations & Workspaces
 
@@ -142,12 +137,7 @@ that design.
       _File: `handler/router.go`_ (#backend)
 - [ ] **15B.4** — Onboarding flow: first login creates org + default
       workspace. _File: `handler/auth.go`_ (#backend)
-- [ ] **15B.5** — Frontend: Org selector (if user has multiple orgs).
-      _File: `components/layout/OrgSelector.tsx`_ (#frontend)
-- [ ] **15B.6** — Frontend: Workspace management page.
-      _File: `pages/WorkspacePage.tsx`_ (#frontend)
-- [ ] **15B.7** — Frontend: Update API client with org/workspace path
-      scoping. _File: `services/api/client.ts`_ (#frontend)
+_Frontend for org selector, workspace page, and API client scoping is in Phase F5._
 
 ### 15C — Authorization
 
@@ -177,11 +167,8 @@ Builds on the auth + tenancy foundation from Phases 14-15.
 - [ ] **16.1.1** — Changeset comments: `changeset_comments` table,
       `POST/GET .../changesets/{id}/comments` API.
       _File: `handler/changeset.go`, `persistence/pg_changeset_store.go`_ (#backend)
-- [ ] **16.1.2** — Frontend: comment thread on changeset review dialog.
-      _File: `components/changeset/ChangesetComments.tsx`_ (#frontend)
-- [ ] **16.1.3** — Author attribution: show who created/committed each
-      changeset and model version.
-      _File: `components/changeset/ChangesetList.tsx`_ (#frontend)
+
+_Frontend for comments, author attribution, and review UI is in Phase F6._
 
 ### 16.2 — Changeset Review Workflow
 
@@ -195,9 +182,7 @@ multi-user, structural changes need approval, not just comments.
 - [ ] **16.2.2** — API: `POST .../changesets/{id}/review` with
       `{action: approve|reject|request_changes, comment: "..."}`.
       _File: `handler/changeset.go`_ (#backend)
-- [ ] **16.2.3** — Frontend: review status badges and approve/reject
-      actions on changeset dialog.
-      _File: `components/changeset/ReviewDialog.tsx`_ (#frontend)
+_Frontend for review status badges and approve/reject is in Phase F6._
 
 ### 16.3 — API Key Auth (CI/CD Integration)
 
@@ -212,6 +197,137 @@ multi-user, structural changes need approval, not just comments.
       _File: `actions/` directory_ (#infra)
 - [ ] **16.3.4** — CLI `validate` command with machine-readable JSON output.
       _File: `cmd/cli/`_ (#backend)
+
+---
+
+## Frontend Evolution (Phases F1–F6)
+
+**Architecture document: `docs/FRONTEND_EVOLUTION.md`**
+Read that document first. It defines the two-layer navigation (platform +
+model), tab grouping, new views from hidden analyzer data, interaction
+pattern standardization, and platform chrome for multi-tenancy.
+
+### F1 — View Regrouping & Tabs (no backend dependency)
+
+Frontend-only. Move existing views into grouped pages with horizontal tabs.
+
+- [ ] **F1.1** — Create shared `TabBar` and `TabbedPage` components.
+      `TabBar` syncs with URL `?tab=` for deep linking.
+      _Files: `components/ui/tab-bar.tsx`, `components/layout/TabbedPage.tsx`_ (#frontend)
+- [ ] **F1.2** — Create `NeedsPage` with tabs: Overview (NeedView),
+      Traceability (Realization ValueChain).
+      _File: `pages/NeedsPage.tsx`_ (#frontend)
+- [ ] **F1.3** — Create `CapabilitiesPage` with tabs: Hierarchy
+      (CapabilityView), Services (Realization ServiceTable).
+      _File: `pages/CapabilitiesPage.tsx`_ (#frontend)
+- [ ] **F1.4** — Create `TeamsPage` with tabs: Topology
+      (TeamTopologyView), Ownership (OwnershipView), Cognitive Load
+      (CognitiveLoadView).
+      _File: `pages/TeamsPage.tsx`_ (#frontend)
+- [ ] **F1.5** — Update sidebar: Architecture section becomes UNM Map,
+      Needs, Capabilities, Teams, Signals (8 items total, down from 12).
+      _Files: `components/layout/Sidebar.tsx`, `App.tsx`_ (#frontend)
+- [ ] **F1.6** — Delete standalone RealizationView and CognitiveLoadView
+      route entries. Keep components as tab content.
+      _File: `App.tsx`_ (#frontend)
+
+### F2 — Interaction Consistency (no backend dependency)
+
+Frontend-only. Standardize click/edit patterns across all views.
+
+- [ ] **F2.1** — Replace Ownership service popover with `SlidePanel`.
+      Remove `openSvcPopover` and custom `getBoundingClientRect()` logic.
+      _File: `pages/views/OwnershipView.tsx`_ (#frontend)
+- [ ] **F2.2** — Create unified `EntityDetailPanel` that adapts by
+      entity type (team, service, capability). Replace `AntiPatternPanel`
+      and feature-specific detail panels.
+      _File: `components/detail/EntityDetailPanel.tsx`_ (#frontend)
+- [ ] **F2.3** — Standardize QuickAction pencil opacity (0.7+ default,
+      not 0.35). Add QuickAction to Team Topology table rows.
+      _Files: `features/team-topology/GraphView.tsx`,
+      `features/team-topology/TableView.tsx`_ (#frontend)
+- [ ] **F2.4** — Add AI insights to Ownership detail panel.
+      _File: `features/ownership/TeamLane.tsx`_ (#frontend)
+- [ ] **F2.5** — Add cross-view entity navigation: clicking a team name
+      in Capability → navigates to Teams page; clicking a service in
+      Need View → navigates to Capabilities/Services tab.
+      _Files: multiple view components_ (#frontend)
+
+### F3 — New Analyzer Views (backend + frontend)
+
+Expose analyzer data that exists in the backend but has no frontend view.
+
+- [ ] **F3.1** — Backend: `GET /views/gaps` endpoint. Wrap `GapAnalyzer`
+      output. Include `orphan_services` (currently omitted from HTTP).
+      _File: `handler/view_gaps.go`, `usecase/analysis_runner.go`_ (#backend)
+- [ ] **F3.2** — Backend: `GET /views/dependencies` endpoint. Wrap
+      `DependencyAnalyzer`, include `Service.DependsOn` graph.
+      _File: `handler/view_dependencies.go`_ (#backend)
+- [ ] **F3.3** — Backend: `GET /views/interactions` endpoint. Wrap
+      `InteractionDiversityAnalyzer` output.
+      _File: `handler/view_interactions.go`_ (#backend)
+- [ ] **F3.4** — Frontend: Gaps tab in NeedsPage. Show unmapped needs,
+      unrealized caps, unowned services in categorized lists.
+      _File: `features/needs/GapsTab.tsx`_ (#frontend)
+- [ ] **F3.5** — Frontend: Dependencies tab in CapabilitiesPage. Graph
+      visualization of service dependencies with cycle highlighting.
+      _File: `features/capabilities/DependenciesTab.tsx`_ (#frontend)
+- [ ] **F3.6** — Frontend: Interactions tab in TeamsPage. Mode
+      distribution chart, isolated/over-reliant team indicators.
+      _File: `features/teams/InteractionsTab.tsx`_ (#frontend)
+
+### F4 — Model List & History UI (depends on Phase 14B)
+
+Frontend for multi-model and version history.
+
+- [ ] **F4.1** — Model list page: card grid with name, last updated,
+      version count, health score per model. "Add model" action.
+      _File: `pages/ModelsPage.tsx`_ (#frontend)
+- [ ] **F4.2** — Version history tab in ChangesPage: timeline of model
+      versions with commit message and author.
+      _File: `features/changes/HistoryTab.tsx`_ (#frontend)
+- [ ] **F4.3** — Inline diff viewer: compare two model versions,
+      show added/removed/changed entities grouped by type.
+      _File: `components/model/DiffViewer.tsx`_ (#frontend)
+
+### F5 — Platform Chrome (depends on Phase 15)
+
+Full multi-tenant UI shell.
+
+- [ ] **F5.1** — Breadcrumb component: Org > Workspace > Model.
+      Each segment clickable for navigation.
+      _File: `components/layout/Breadcrumb.tsx`_ (#frontend)
+- [ ] **F5.2** — TopBar redesign: breadcrumb replaces static title,
+      user avatar + dropdown (settings, logout).
+      _File: `components/layout/TopBar.tsx`_ (#frontend)
+- [ ] **F5.3** — Workspace dashboard page: model list, members,
+      quick actions (import, create). Replaces Upload as home.
+      _File: `pages/WorkspaceDashboardPage.tsx`_ (#frontend)
+- [ ] **F5.4** — Org selector page (only shown if user has multiple orgs).
+      _File: `pages/OrgSelectorPage.tsx`_ (#frontend)
+- [ ] **F5.5** — Settings pages: org settings (members, AI key),
+      workspace settings (members, API keys, visibility).
+      _Files: `pages/settings/OrgSettingsPage.tsx`,
+      `pages/settings/WorkspaceSettingsPage.tsx`_ (#frontend)
+- [ ] **F5.6** — URL structure migration: `/:orgSlug/:wsSlug/models/:id/...`
+      Update all routes, links, and API client path scoping.
+      _Files: `App.tsx`, `services/api/client.ts`_ (#frontend)
+- [ ] **F5.7** — Sidebar context switching: at workspace level show
+      workspace nav; at model level show architecture nav.
+      _File: `components/layout/Sidebar.tsx`_ (#frontend)
+
+### F6 — Collaboration UI (depends on Phase 16)
+
+- [ ] **F6.1** — Changeset list with review status badges and author
+      avatars. Filter by status (draft, in_review, approved).
+      _File: `features/changes/ChangesetListTab.tsx`_ (#frontend)
+- [ ] **F6.2** — Comment thread on changeset review dialog.
+      _File: `components/changeset/ChangesetComments.tsx`_ (#frontend)
+- [ ] **F6.3** — Author attribution on changesets and model versions.
+      _File: `components/changeset/ChangesetList.tsx`_ (#frontend)
+- [ ] **F6.4** — Approve/reject/request-changes actions on changeset
+      dialog.
+      _File: `components/changeset/ReviewDialog.tsx`_ (#frontend)
 
 ---
 
@@ -328,39 +444,54 @@ _(No open bugs)_
 ## Execution Order
 
 ```
-Phase 10 (Model Freeze)       ─── 1-2 days, pure removal, no new code
+Phase 10 (Model Freeze)       ─── DONE
     │
-Phase 11 (Docs)                ─── 1-2 days, meta-model ref + spec rewrite
+Phase 11 (Docs)                ─── DONE
     │
-Phase 12 (Tests & CI)          ─── 2-3 days, golden fixtures + validation depth
+Phase 12 (Tests & CI)          ─── DONE
     │
-Phase 13 (Code Quality)        ─── 2-3 days, handler decomp + view split +
-    │                                AI trust layering + explainability
+Phase 13 (Code Quality)        ─── DONE
     │
-    ├── ARCHITECTURE_EVOLUTION.md ─── APPROVED (all decisions resolved)
+    ├── ARCHITECTURE_EVOLUTION.md ─── APPROVED
+    ├── FRONTEND_EVOLUTION.md     ─── APPROVED
     │
-Phase 14A (PG Foundation)      ─── 3-4 days, schema + stores + migrations
+Phase 14A (PG Foundation)      ─── DONE
     │
-Phase 14B (History + Multi)    ─── 2-3 days, versions + diff + model list
+Phase 14B (History + Multi)    ─── backend: versions + diff + model list
     │
-Phase 15A (Auth)               ─── 2-3 days, Google OAuth + session + UI
+    ├── F1 (View Regrouping)   ─── frontend-only, can run parallel with 14B
+    ├── F2 (Interaction Fix)   ─── frontend-only, can run parallel with 14B
     │
-Phase 15B (Orgs + Workspaces)  ─── 3-4 days, tenancy + management + routes
+Phase 15A (Auth)               ─── backend: Google OAuth + session
     │
-Phase 15C (Authorization)      ─── 1-2 days, role checks + permissions
+Phase 15B (Orgs + Workspaces)  ─── backend: tenancy + management + routes
     │
-Phase 16 (Collaboration)      ─── 3-4 days, comments + review workflow +
-    │                                API keys + CI action
+Phase 15C (Authorization)      ─── backend: role checks + permissions
+    │
+    ├── F3 (New Analyzer Views)─── backend endpoints + frontend tabs
+    ├── F4 (Model List + History UI) ─── depends on 14B APIs
+    ├── F5 (Platform Chrome)   ─── depends on 15A + 15B APIs
+    │
+Phase 16 (Collaboration)      ─── backend: comments + review + API keys
+    │
+    ├── F6 (Collaboration UI)  ─── depends on Phase 16 APIs
     │
 Phase 17 (Hardening)          ─── ongoing, export + calibration + completeness
     │
 Phase 18 (Ecosystem)          ─── git integration, onboarding, import, notifications
 ```
 
-Phases 10–13: rapid cleanup, docs, tests, and decomposition. No new features,
-but critical preparation for what follows.
-Before Phase 14: **`ARCHITECTURE_EVOLUTION.md` approved** — all 6
-architecture decisions resolved (AD-1 through AD-6).
-Phases 14–16: structural additions, built on the architecture document.
+Phases 10–13: DONE. Rapid cleanup, docs, tests, and decomposition.
+
+**Architecture documents:**
+- `docs/ARCHITECTURE_EVOLUTION.md` — backend: data hierarchy, tenancy,
+  auth, API routes (APPROVED, all 6 decisions resolved)
+- `docs/FRONTEND_EVOLUTION.md` — frontend: navigation layers, tab
+  structure, new views, platform chrome (APPROVED)
+
+**Parallelism:** F1 and F2 are frontend-only with zero backend dependency.
+They can run in parallel with Phase 14B backend work. F3-F6 depend on
+their respective backend phases completing first.
+
 Phase 17: ongoing hardening, interleaved as needed.
 Phase 18: ecosystem integration — makes the platform usable in real workflows.
