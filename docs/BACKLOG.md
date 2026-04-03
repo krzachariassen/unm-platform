@@ -20,7 +20,7 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 - [x] **refactor(phase-13): 13.6.1-13.6.4, 13.7.1-13.7.4, 13.5.3, stale comment cleanup** — Removed `capability.RealizedBy` derived field and `AddRealizedBy()` from domain entity; all analyzers migrated to `GetServicesForCapability()`; stale `realizedBy` comments purged from yaml_parser, complexity, fragmentation; created `changeset_dto.go` DTO layer in handler, removed all `json:` tags from `entity.ChangeAction` / `entity.Changeset`; extracted `modelHandler`, `changesetHandler`, `viewHandler`, `aiHandler` sub-structs from monolithic Handler; added analyzer golden fixtures for bottleneck/coupling/complexity/fragmentation/gap/cognitive-load; added frontend trust badges (amber=analyzer, blue=AI) and `Explanation` text to all signal rows in SignalsView; added WhatIfPage and AdvisorPage smoke tests (78 total frontend tests pass). All 15 backend packages pass. (2026-04-03)
 - [x] **refactor(phase-13): 13.1, 13.3, 13.4, 13.5 (backend)** — Split `view_enriched.go` (1281 lines) into 7 focused files: `view_helpers.go`, `view_need.go`, `view_capability.go`, `view_team.go`, `view_ownership.go`, `view_realization.go`, `view_map.go`; deleted `view_enriched.go`; removed backward-compat `corsMiddleware` with `"*"`; added `Explanation` field to `Signal` and `SuggestedSignal` with human-readable threshold explanations in all 5 analyzer rules; defined `SourceType` enum (`model_fact`, `analyzer_finding`, `ai_interpretation`) in `domain/valueobject`; added `Source SourceType` to `Signal` entity and `SourceTag` to `SuggestedSignal` with `SourceAnalyzerFinding` tagging; all 14 packages pass. (2026-04-03)
-- [x] **test(phase-12): 12.6.1-12.6.3** — Frontend tests in CI: added `npm run test` step to `.github/workflows/ci.yml`; smoke tests for NeedView, TeamTopologyView, OwnershipView, RealizationView, CognitiveLoadView, DashboardPage, UploadPage (69 tests total across 16 test files, all passing). Deferred: 12.6.4 (WhatIfPage and AdvisorPage smoke tests), 12.1.3 (analyzer golden fixtures). (2026-04-02)
+- [x] **test(phase-12): 12.6.1-12.6.4** — Frontend tests in CI: added `npm run test` step to `.github/workflows/ci.yml`; smoke tests for NeedView, TeamTopologyView, OwnershipView, RealizationView, CognitiveLoadView, DashboardPage, UploadPage, WhatIfPage, AdvisorPage (78 tests total across 18 test files, all passing). (2026-04-02/03)
 - [x] **test(phase-12): 12.1.1-12.1.2, 12.2, 12.3, 12.5** — Test infrastructure: golden model fixtures for need/capability/ownership/team-topology/signals/cognitive-load views (nexus.unm.yaml source, UPDATE_GOLDEN=1 workflow); commit endpoint HTTP tests + UpdatesStoredModel; ChangesetStore CRUD tests; DSL→YAML cross-format round-trip; validation severity levels (error/warning/info) + orphan entity diagnostics (InfoOrphanActor, InfoOrphanTeam); DSL transformer warning parity for unresolved realizes and team interaction targets. (2026-04-02)
 - [x] **docs(phase-11): 11.1-11.5** — Documentation alignment: rewrote UNM_DSL_SPECIFICATION.md to v2-only (service.realizes, team.interacts, external deps definition-only, removed realizedBy/usedBy/interactions/scenarios); rewrote YAML_GUIDE.md and DSL_GUIDE.md to v2-only patterns; created META_MODEL_REFERENCE.md (authored vs derived fields, v2 removal table); fixed inca.unm.yaml → nexus.unm.yaml references in CLAUDE.md and CONFIGURATION.md. (2026-04-02)
 - [x] **refactor(phase-10): 10.1-10.8 (all items)** — Model Freeze: removed capability.realizedBy, capability.ownedBy, top-level interactions:, external_dependencies.usedBy, scenarios, signals, pain_points, inferred, need.scenario, service.type/supports/dataAssets/externalDependsOn from YAML parser; removed realizedBy keyword from DSL grammar and AST; updated all tests and testdata; rewrote bookshelf.unm to v2 (realizes on services); verified nexus.unm.yaml v2-clean; updated extract-actions.tmpl and recommendations.tmpl display strings; updated README DSL example to v2 pattern; fixed dsl_serializer_test.go to reference nexus.unm.yaml. (2026-04-02)
@@ -222,9 +222,7 @@ capture the expected REST API response shape (what the handler returns).
 - [x] **12.1.2** — Create golden fixtures for: capability view, ownership
       view, team-topology view, cognitive-load view, signals view.
       _File: `testdata/golden/`_ (#backend)
-- [ ] **12.1.3** — Create golden fixtures for analyzer outputs: fragmentation,
-      cognitive-load, bottleneck, gap, coupling reports against nexus model.
-      _File: `testdata/golden/`_ (#backend)
+- [x] **12.1.3** — Create golden fixtures for analyzer outputs: bottleneck, coupling, complexity (deterministic JSON golden files); fragmentation, gap, cognitive-load (structural tests via `golden_analyzer_test.go`). (2026-04-03)
 
 ### 12.2 — Missing Backend Tests
 
@@ -282,8 +280,7 @@ error quality to support real authoring at scale.
       _File: `frontend/src/pages/views/`_ (#frontend)
 - [x] **12.6.3** — Add smoke tests for DashboardPage and UploadPage.
       _File: `frontend/src/pages/`_ (#frontend)
-- [ ] **12.6.4** — Add smoke tests for WhatIfPage and AdvisorPage.
-      _File: `frontend/src/pages/`_ (#frontend)
+- [x] **12.6.4** — Add smoke tests for WhatIfPage and AdvisorPage. (2026-04-03)
 
 ---
 
