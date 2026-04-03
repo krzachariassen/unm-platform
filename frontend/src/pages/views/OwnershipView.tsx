@@ -5,6 +5,7 @@ import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { LoadingState, ErrorState } from '@/components/ViewState'
 import { AntiPatternPanel } from '@/components/AntiPatternPanel'
+import { SlidePanel, PanelSection, PanelField } from '@/components/ui/slide-panel'
 import { useModel } from '@/lib/model-context'
 import { useSearch, matchesQuery } from '@/lib/search-context'
 import { usePageInsights } from '@/hooks/usePageInsights'
@@ -13,7 +14,7 @@ import { TEAM_TYPE_BADGE } from '@/lib/team-type-styles'
 import { viewsApi } from '@/services/api'
 import { TeamLane } from '@/features/ownership/TeamLane'
 import { DomainView } from '@/features/ownership/DomainView'
-import type { NodeDetails, SvcPopoverData } from '@/features/ownership/TeamLane'
+import type { NodeDetails, SvcPanelData } from '@/features/ownership/TeamLane'
 import { cn } from '@/lib/utils'
 
 const ALL_TEAM_TYPES = ['stream-aligned', 'platform', 'enabling', 'complicated-subsystem'] as const
@@ -23,7 +24,7 @@ export function OwnershipView() {
   const { query, teamFilter } = useSearch()
   const [selectedNode, setSelectedNode] = useState<NodeDetails | null>(null)
   const [tab, setTab] = useState<'team' | 'domain'>('team')
-  const [svcPopover, setSvcPopover] = useState<SvcPopoverData | null>(null)
+  const [selectedSvc, setSelectedSvc] = useState<SvcPanelData | null>(null)
   const [filterCrossTeam, setFilterCrossTeam] = useState(false)
   const [filterOverloaded, setFilterOverloaded] = useState(false)
   const [filterUnowned, setFilterUnowned] = useState(false)
@@ -86,18 +87,13 @@ export function OwnershipView() {
   const unownedCount = viewData.unowned_capabilities.length
   const overloadedCount = viewData.overloaded_teams.length
 
-  function openSvcPopover(e: React.MouseEvent, svc: { id: string; label: string; team_label: string; cap_count: number; team_id: string }, currentLaneTeamId: string) {
-    e.stopPropagation()
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  function openSvcPanel(svc: { id: string; label: string; team_label: string; cap_count: number; team_id: string }, currentLaneTeamId: string) {
     const capList = svcCapMap.get(svc.id) ?? []
     const isHighSpan = svc.cap_count >= 3
     const isFromOtherTeam = Boolean(svc.team_id && svc.team_id !== currentLaneTeamId)
     const owningLane = viewData.lanes.find(l => l.team.label === svc.team_label)
     const teamType = owningLane?.team.data.type ?? ''
-    let x = rect.left, y = rect.bottom + 4
-    if (y > window.innerHeight * 0.7) y = rect.top - 154
-    if (x > window.innerWidth * 0.75) x = rect.right - 280
-    setSvcPopover({ label: svc.label, teamLabel: svc.team_label, teamType, x, y, capList, isHighSpan, isFromOtherTeam })
+    setSelectedSvc({ label: svc.label, teamLabel: svc.team_label, teamType, capList, isHighSpan, isFromOtherTeam })
   }
 
   const filterBtnCls = (active: boolean, activeColor: string) =>
@@ -182,7 +178,7 @@ export function OwnershipView() {
             <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))' }}>
               {filteredLanes.map(lane => (
                 <TeamLane key={lane.team.id} lane={lane} query={query} insights={insights}
-                  crossTeamCaps={viewData.cross_team_capabilities} onSelectNode={setSelectedNode} onOpenSvcPopover={openSvcPopover} />
+                  crossTeamCaps={viewData.cross_team_capabilities} onSelectNode={setSelectedNode} onOpenSvcPanel={openSvcPanel} />
               ))}
             </div>
             {viewData.unowned_capabilities.length > 0 && (
@@ -210,45 +206,48 @@ export function OwnershipView() {
             onSelectNode={setSelectedNode} onTabSwitch={setTab} onSetSearch={setLocalSearch} />
         )}
 
-        {/* Service popover */}
-        {svcPopover && (
-          <>
-            <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]" onClick={() => setSvcPopover(null)} aria-hidden />
-            <div
-              className="fixed z-50 min-w-[240px] max-w-[340px] rounded-lg bg-card border border-border shadow-lg p-3 text-xs"
-              style={{ left: svcPopover.x, top: svcPopover.y }}
-            >
-              <div className="font-mono font-bold mb-2 text-foreground text-sm">{svcPopover.label}</div>
-              <div className="flex items-center gap-1.5 mb-3 flex-wrap text-slate-500">
-                <span>Owned by:</span>
-                <span className="font-semibold text-slate-700">{svcPopover.teamLabel}</span>
-                {svcPopover.teamType && (() => {
-                  const b = TEAM_TYPE_BADGE[svcPopover.teamType] ?? { bg: '#f3f4f6', text: '#374151' }
-                  return <span className="text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: b.bg, color: b.text }}>{svcPopover.teamType}</span>
-                })()}
-              </div>
-              {svcPopover.capList.length > 0 && (
-                <div className="mb-2">
-                  <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Capabilities ({svcPopover.capList.length})</div>
+        {/* Service detail panel (replaces popover) */}
+        <SlidePanel
+          open={!!selectedSvc}
+          onClose={() => setSelectedSvc(null)}
+          title={selectedSvc?.label ?? ''}
+          subtitle={selectedSvc ? `Owned by ${selectedSvc.teamLabel}` : undefined}
+          badge={selectedSvc?.teamType ? (() => {
+            const b = TEAM_TYPE_BADGE[selectedSvc.teamType] ?? { bg: '#f3f4f6', text: '#374151' }
+            return <span className="text-[11px] font-semibold rounded-full px-2 py-0.5" style={{ background: b.bg, color: b.text }}>{selectedSvc.teamType}</span>
+          })() : undefined}
+        >
+          {selectedSvc && (
+            <>
+              {selectedSvc.capList.length > 0 && (
+                <PanelSection label={`Capabilities (${selectedSvc.capList.length})`}>
                   <ul className="space-y-1.5">
-                    {svcPopover.capList.map((cap, i) => {
+                    {selectedSvc.capList.map((cap, i) => {
                       const b = VIS_BADGE[cap.visibility] ?? { bg: '#f3f4f6', text: '#374151' }
                       return (
                         <li key={i} className="flex items-center gap-2">
                           <span className="text-slate-300">•</span>
-                          <span className="flex-1 min-w-0 font-medium text-slate-900">{cap.label}</span>
+                          <span className="flex-1 min-w-0 text-xs font-medium text-slate-900">{cap.label}</span>
                           {cap.visibility && <span className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 shrink-0" style={{ background: b.bg, color: b.text }}>{cap.visibility}</span>}
                         </li>
                       )
                     })}
                   </ul>
-                </div>
+                </PanelSection>
               )}
-              {svcPopover.isHighSpan && <div className="text-[11px] font-semibold text-amber-700 flex items-center gap-1 mt-2"><span title="High-span service" className="cursor-help">⚠</span> high-span service</div>}
-              {svcPopover.isFromOtherTeam && <div className="text-[11px] font-semibold text-amber-700 flex items-center gap-1 mt-1"><span title="Cross-team dependency" className="cursor-help">⚠</span> cross-team dependency</div>}
-            </div>
-          </>
-        )}
+              {(selectedSvc.isHighSpan || selectedSvc.isFromOtherTeam) && (
+                <PanelSection label="Signals">
+                  {selectedSvc.isHighSpan && (
+                    <PanelField label="High-span service" value="This service realizes 3+ capabilities — consider splitting responsibilities." />
+                  )}
+                  {selectedSvc.isFromOtherTeam && (
+                    <PanelField label="Cross-team dependency" value="This service is owned by a different team than the capability it realizes." />
+                  )}
+                </PanelSection>
+              )}
+            </>
+          )}
+        </SlidePanel>
 
         <AntiPatternPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
       </ContentContainer>

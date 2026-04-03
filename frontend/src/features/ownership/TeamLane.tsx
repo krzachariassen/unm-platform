@@ -8,9 +8,8 @@ type Lane = OwnershipViewResponse['lanes'][number]
 
 interface NodeDetails { id: string; label: string; nodeType: string; data: Record<string, unknown> }
 
-interface SvcPopoverData {
+interface SvcPanelData {
   label: string; teamLabel: string; teamType: string
-  x: number; y: number
   capList: Array<{ label: string; visibility: string }>
   isHighSpan: boolean; isFromOtherTeam: boolean
 }
@@ -21,13 +20,13 @@ function laneAccentGradient(isOverloaded: boolean, hasCrossTeam: boolean): strin
   return 'linear-gradient(90deg, #22c55e 0%, #4ade80 100%)'
 }
 
-export function TeamLane({ lane, query, insights, crossTeamCaps, onSelectNode, onOpenSvcPopover }: {
+export function TeamLane({ lane, query, insights, crossTeamCaps, onSelectNode, onOpenSvcPanel }: {
   lane: Lane
   query: string
   insights: Record<string, { explanation: string; suggestion: string }>
   crossTeamCaps: OwnershipViewResponse['cross_team_capabilities']
   onSelectNode: (n: NodeDetails) => void
-  onOpenSvcPopover: (e: React.MouseEvent, svc: Lane['caps'][number]['services'][number], laneTeamId: string) => void
+  onOpenSvcPanel: (svc: Lane['caps'][number]['services'][number], laneTeamId: string) => void
 }) {
   const teamType = lane.team.data.type ?? ''
   const isOverloaded = lane.team.data.is_overloaded
@@ -52,9 +51,9 @@ export function TeamLane({ lane, query, insights, crossTeamCaps, onSelectNode, o
       <div className="p-5 pb-3 border-b border-border bg-muted">
         <div className="flex items-start gap-2 flex-wrap mb-2"
           onMouseEnter={e => { const btn = e.currentTarget.querySelector('.qa-team') as HTMLElement; if (btn) btn.style.opacity = '1' }}
-          onMouseLeave={e => { const btn = e.currentTarget.querySelector('.qa-team') as HTMLElement; if (btn) btn.style.opacity = '0.35' }}>
+          onMouseLeave={e => { const btn = e.currentTarget.querySelector('.qa-team') as HTMLElement; if (btn) btn.style.opacity = '0.7' }}>
           <span className="font-bold text-base tracking-tight text-slate-900">{lane.team.label}</span>
-          <span className="qa-team" style={{ opacity: 0.35, transition: 'opacity 0.15s' }}>
+          <span className="qa-team" style={{ opacity: 0.7, transition: 'opacity 0.15s' }}>
             <QuickAction size={12} options={[
               { label: 'Change team type', action: { type: 'update_team_type', team_name: lane.team.label } },
               { label: 'Update team size', action: { type: 'update_team_size', team_name: lane.team.label } },
@@ -111,14 +110,14 @@ export function TeamLane({ lane, query, insights, crossTeamCaps, onSelectNode, o
                         return (
                           <span key={svc.id} className="inline-flex items-center gap-0.5"
                             onMouseEnter={e => { const btn = e.currentTarget.querySelector('.qa-svc') as HTMLElement; if (btn) btn.style.opacity = '1' }}
-                            onMouseLeave={e => { const btn = e.currentTarget.querySelector('.qa-svc') as HTMLElement; if (btn) btn.style.opacity = '0.35' }}>
-                            <button type="button" onClick={(e) => onOpenSvcPopover(e, svc, lane.team.id)}
+                            onMouseLeave={e => { const btn = e.currentTarget.querySelector('.qa-svc') as HTMLElement; if (btn) btn.style.opacity = '0.7' }}>
+                            <button type="button" onClick={() => onOpenSvcPanel(svc, lane.team.id)}
                               className="font-mono text-[11px] rounded-md px-2.5 py-1 cursor-pointer transition-transform hover:scale-[1.02]"
                               style={{ background: isFromOtherTeam ? '#fef3c7' : '#f1f5f9', border: isFromOtherTeam ? '1px solid #fde68a' : '1px solid #e2e8f0', color: isFromOtherTeam ? '#92400e' : '#334155' }}
                               title={isFromOtherTeam ? `Owned by ${svc.team_label}` : undefined}>
                               {svc.label}
                             </button>
-                            <span className="qa-svc" style={{ opacity: 0.35, transition: 'opacity 0.15s' }}>
+                            <span className="qa-svc" style={{ opacity: 0.7, transition: 'opacity 0.15s' }}>
                               <QuickAction size={11} options={[
                                 { label: `Move ${svc.label} to another team`, action: { type: 'move_service', service_name: svc.label, from_team_name: svc.team_label } },
                                 { label: `Rename ${svc.label}`, action: { type: 'rename_service', service_name: svc.label } },
@@ -150,5 +149,5 @@ export function TeamLane({ lane, query, insights, crossTeamCaps, onSelectNode, o
   )
 }
 
-export type { SvcPopoverData }
+export type { SvcPanelData }
 export type { NodeDetails }

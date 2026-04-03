@@ -18,6 +18,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 - [x] **fix(parse): auto-detect DSL vs YAML in parse/validate endpoints** — Sniff first 64 bytes of body; content starting with `system ` or `system"` is automatically routed to the DSL parser. Explicit `?format=dsl|yaml` still takes precedence. Two new handler tests added. (2026-04-03)
 
+- [x] **feat(phase-FA+FB.1+FB.3): Phase F — View Regrouping, Tabs & Interaction Consistency** — `UrlTabBar` component with URL ?tab= deep linking; `NeedsPage` (Overview/Traceability tabs), `CapabilitiesPage` (Hierarchy/Services tabs), `TeamsPage` (Topology/Ownership/Cognitive Load tabs); sidebar restructured from 12→10 items with new Architecture section; backward-compat redirects for all old routes; OwnershipView custom popover replaced with `SlidePanel`; QuickAction opacity standardized to 0.7 in TeamLane and GraphView; 14 new tests, 105 total pass. FA.1–FA.6, FB.1, FB.3 complete. (2026-04-03)
+
 - [x] **feat(phase-14c): Model List & History UI (frontend)** — ModelsPage with card grid (name, created_at, version_count, Load button, empty/loading states); ModelHistoryPage with version timeline (commit message, date, compare mode); DiffViewer component (added/removed/changed entities, green/red/amber color coding, per-entity-type grouping); API functions listModels, loadStoredModel, getHistory, getDiff added to services/api/models.ts; new types ModelListItem, VersionMeta, DiffEntities, DiffResult in types/model.ts; /models and /history routes; "All Models" and "History" sidebar entries; 13 new tests, all 91 tests pass. 14C.1–14C.3 complete. (2026-04-03)
 
 - [x] **feat(phase-14b): Model History & Multi-Model (backend)** — `ReplaceWithMessage` added to `ModelRepository` interface; changeset commit now stores description as `commit_message` in `model_versions`; `GET /api/models` list endpoint with version counts; `GET /api/models/{id}/history` with per-version metadata; `GET /api/models/{id}/versions/{v}` retrieves model at specific version; `GET /api/models/{id}/diff?from=&to=` computes structural diff (added/removed/changed by entity type); `domain/service/model_diff.go` with `Diff()` and `DiffEntities`; memory store stubs for all new interface methods; PG store queries `model_versions` table for real multi-version history; 14B.8 eviction scoped to memory-only (log note added for postgres path); handler tests and contract tests for all new endpoints/methods. 14B.1–14B.5, 14B.8 complete. (2026-04-03)
@@ -114,6 +116,60 @@ items together. See Execution Order at the bottom for dependencies.
       green/red/amber color coding. (2026-04-03)
       _File: `components/model/DiffViewer.tsx`_ (#frontend)
 
+### 14D — PostgreSQL Data Lifecycle (#backend)
+
+Background purge for soft-deleted rows and test data isolation.
+Must be done before Phase 15 — once real users/orgs exist, stale
+test data and soft-deleted rows must not leak into tenant queries.
+
+**Design decisions:**
+- Mirror the memory store's eviction pattern (ticker goroutine in
+  `StartEviction`, stop channel in `StopEviction`).
+- **5-minute interval** — same as memory store; lightweight since the
+  query hits indexed `deleted_at` columns and typically deletes 0 rows.
+- **7-day retention** — gives time to recover accidental deletes before
+  hard-delete. Configurable per deployment.
+- **Delete order matters** — FK constraints require children first:
+  `changesets → model_versions → models → workspaces`.
+- CI doesn't need special TTL — CI uses ephemeral postgres containers.
+  Test isolation is for **local dev** where the same DB persists.
+
+- [ ] **14D.1** — Add `PurgeRetention` (default `168h` = 7d) and
+      `PurgeInterval` (default `5m`) to `StorageConfig`. Set defaults in
+      `DefaultConfig()`.
+      _File: `entity/config.go`_ (#backend)
+      ```go
+      PurgeRetention time.Duration `koanf:"purge_retention"` // 7d
+      PurgeInterval  time.Duration `koanf:"purge_interval"`  // 5m
+      ```
+- [ ] **14D.2** — Implement background purge in `PGModelStore.StartEviction`:
+      ticker-based goroutine that hard-deletes rows where
+      `deleted_at < NOW() - $1`. SQL (executed in order):
+      _File: `persistence/pg_model_store.go`_ (#backend)
+      ```sql
+      DELETE FROM changesets     WHERE deleted_at < NOW() - $1;
+      DELETE FROM model_versions WHERE deleted_at < NOW() - $1;
+      DELETE FROM models         WHERE deleted_at < NOW() - $1;
+      DELETE FROM workspaces     WHERE deleted_at < NOW() - $1;
+      ```
+      Use the existing `stopCh` pattern from memory store. Log deletions.
+- [ ] **14D.3** — Wire purge config in `main.go`: call `StartEviction`
+      with `cfg.Storage.PurgeRetention` and `cfg.Storage.PurgeInterval`
+      when `driver=postgres`. Remove the "ignored for postgres" log line.
+      _File: `cmd/server/main.go`_ (#backend)
+- [ ] **14D.4** — Test isolation: add `setupTestOrgWorkspace(t, db)` helper
+      in contract tests. Creates a unique org (`test-{random}`) + workspace
+      per test run, returns IDs for store constructors. `t.Cleanup`
+      hard-deletes all data in that org via `DELETE FROM organizations
+      WHERE id = $1` (CASCADE handles children). Pass org/workspace IDs
+      to PGModelStore/PGChangesetStore so test data is scoped.
+      _File: `persistence/repository_contract_test.go`_ (#backend)
+- [ ] **14D.5** — Verify: run contract tests twice against same DB,
+      confirm `GET /api/models` returns no orphaned test data. Write a
+      unit test that soft-deletes a model, sets retention to 0, triggers
+      purge, and confirms the row is gone.
+      _File: `persistence/*_test.go`_ (#backend)
+
 ---
 
 ## Phase F: Frontend Restructure (no backend dependency)
@@ -127,41 +183,41 @@ can be built on top.
 
 Move existing views into grouped pages with horizontal tabs.
 
-- [ ] **FA.1** — Create shared `TabBar` and `TabbedPage` components.
+- [x] **FA.1** — Create shared `TabBar` and `TabbedPage` components.
       `TabBar` syncs with URL `?tab=` for deep linking.
-      _Files: `components/ui/tab-bar.tsx`, `components/layout/TabbedPage.tsx`_ (#frontend)
-- [ ] **FA.2** — Create `NeedsPage` with tabs: Overview (NeedView),
+      _Files: `components/ui/url-tab-bar.tsx`_ (#frontend) (2026-04-03)
+- [x] **FA.2** — Create `NeedsPage` with tabs: Overview (NeedView),
       Traceability (Realization ValueChain).
-      _File: `pages/NeedsPage.tsx`_ (#frontend)
-- [ ] **FA.3** — Create `CapabilitiesPage` with tabs: Hierarchy
+      _File: `pages/NeedsPage.tsx`_ (#frontend) (2026-04-03)
+- [x] **FA.3** — Create `CapabilitiesPage` with tabs: Hierarchy
       (CapabilityView), Services (Realization ServiceTable).
-      _File: `pages/CapabilitiesPage.tsx`_ (#frontend)
-- [ ] **FA.4** — Create `TeamsPage` with tabs: Topology
+      _File: `pages/CapabilitiesPage.tsx`_ (#frontend) (2026-04-03)
+- [x] **FA.4** — Create `TeamsPage` with tabs: Topology
       (TeamTopologyView), Ownership (OwnershipView), Cognitive Load
       (CognitiveLoadView).
-      _File: `pages/TeamsPage.tsx`_ (#frontend)
-- [ ] **FA.5** — Update sidebar: Architecture section becomes UNM Map,
+      _File: `pages/TeamsPage.tsx`_ (#frontend) (2026-04-03)
+- [x] **FA.5** — Update sidebar: Architecture section becomes UNM Map,
       Needs, Capabilities, Teams, Signals (8 items total, down from 12).
-      _Files: `components/layout/Sidebar.tsx`, `App.tsx`_ (#frontend)
-- [ ] **FA.6** — Delete standalone RealizationView and CognitiveLoadView
+      _Files: `components/layout/Sidebar.tsx`, `App.tsx`_ (#frontend) (2026-04-03)
+- [x] **FA.6** — Delete standalone RealizationView and CognitiveLoadView
       route entries. Keep components as tab content.
-      _File: `App.tsx`_ (#frontend)
+      _File: `App.tsx`_ (#frontend) (2026-04-03)
 
 ### FB — Interaction Consistency
 
 Standardize click/edit patterns across all views.
 
-- [ ] **FB.1** — Replace Ownership service popover with `SlidePanel`.
+- [x] **FB.1** — Replace Ownership service popover with `SlidePanel`.
       Remove `openSvcPopover` and custom `getBoundingClientRect()` logic.
-      _File: `pages/views/OwnershipView.tsx`_ (#frontend)
+      _File: `pages/views/OwnershipView.tsx`_ (#frontend) (2026-04-03)
 - [ ] **FB.2** — Create unified `EntityDetailPanel` that adapts by
       entity type (team, service, capability). Replace `AntiPatternPanel`
       and feature-specific detail panels.
       _File: `components/detail/EntityDetailPanel.tsx`_ (#frontend)
-- [ ] **FB.3** — Standardize QuickAction pencil opacity (0.7+ default,
+- [x] **FB.3** — Standardize QuickAction pencil opacity (0.7+ default,
       not 0.35). Add QuickAction to Team Topology table rows.
       _Files: `features/team-topology/GraphView.tsx`,
-      `features/team-topology/TableView.tsx`_ (#frontend)
+      `features/team-topology/TableView.tsx`_ (#frontend) (2026-04-03)
 - [ ] **FB.4** — Add AI insights to Ownership detail panel.
       _File: `features/ownership/TeamLane.tsx`_ (#frontend)
 - [ ] **FB.5** — Add cross-view entity navigation: clicking a team name
@@ -440,6 +496,20 @@ Review 1: "Building a comprehensive .unm model requires effort. The first
 
 ## Bugs
 
+- [ ] **BUG: Version diff returns empty on PostgreSQL** — `GET .../diff?from=1&to=2`
+      returns all-null added/removed/changed even after a `move_service` commit.
+      Likely cause: `GetVersion` deserializes the stored YAML but the round-trip
+      loses derived ownership mappings (team→service), so both versions look
+      identical to the diff logic. The diff needs to compare the fully-resolved
+      model (with ownership graph rebuilt), not just the raw parsed output.
+      _File: `persistence/pg_model_store.go`, `domain/service/model_diff.go`_ (#backend)
+- [ ] **BUG: No cleanup process for soft-deleted / stale PostgreSQL data** —
+      Soft-deleted models, versions, and changesets accumulate forever. Contract
+      tests leave nameless models in the DB. Need: (1) periodic background purge
+      of soft-deleted rows older than N days, (2) tests must clean up or use a
+      separate database, (3) consider hard-deleting nameless/empty models on
+      startup or via an admin endpoint.
+      _File: `persistence/pg_model_store.go`, `cmd/server/main.go`_ (#backend)
 - [x] **BUG: Parse endpoint requires manual `?format=dsl`** — Fixed: `handleParse`
       and `handleValidate` now sniff the first 64 bytes of the body. Content
       starting with `system ` or `system"` is auto-detected as DSL; everything
@@ -459,8 +529,10 @@ Phases 10–14A               ─── DONE
     │
 Phase 14B (History + Multi)    ─── DONE (backend)
     │
-Phase 14C (Model List + History UI) ─── frontend, depends on 14B APIs
-    │                                    (standalone pages, no tab infra needed)
+Phase 14C (Model List + History UI) ─── DONE (frontend)
+    │
+Phase 14D (Data Lifecycle)         ─── PG purge + test isolation
+    │                                    (must complete before Phase 15)
     │
 Phase F (Frontend Restructure) ─── no backend dependency
     │   FA (View Regrouping + Tabs)

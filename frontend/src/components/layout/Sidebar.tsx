@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  Upload, LayoutDashboard, Map, Users, Layers, Flag, Network,
-  Activity, GitBranch, AlertCircle, FlaskConical, Bot, FileText,
-  ChevronLeft, ChevronRight, Database, History,
+  Upload, LayoutDashboard, Map, Users, Layers, AlertCircle, Network,
+  FlaskConical, Bot, FileText, ChevronLeft, ChevronRight, Database, History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel } from '@/lib/model-context'
@@ -16,19 +15,16 @@ const NAV_SECTIONS = [
       { to: '/', label: 'Upload', icon: Upload, always: true, ai: false },
       { to: '/models', label: 'All Models', icon: Database, always: true, ai: false },
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, always: false, ai: false },
-      { to: '/signals', label: 'Signals', icon: AlertCircle, always: false, ai: false },
     ],
   },
   {
-    label: 'Views',
+    label: 'Architecture',
     items: [
       { to: '/unm-map', label: 'UNM Map', icon: Map, always: false, ai: false },
-      { to: '/need', label: 'Need View', icon: Users, always: false, ai: false },
-      { to: '/capability', label: 'Capability', icon: Layers, always: false, ai: false },
-      { to: '/ownership', label: 'Ownership', icon: Flag, always: false, ai: false },
-      { to: '/team-topology', label: 'Team Topology', icon: Network, always: false, ai: false },
-      { to: '/cognitive-load', label: 'Cognitive Load', icon: Activity, always: false, ai: false },
-      { to: '/realization', label: 'Realization', icon: GitBranch, always: false, ai: false },
+      { to: '/needs', label: 'Needs', icon: Users, always: false, ai: false },
+      { to: '/capabilities', label: 'Capabilities', icon: Layers, always: false, ai: false },
+      { to: '/teams', label: 'Teams', icon: Network, always: false, ai: false },
+      { to: '/signals', label: 'Signals', icon: AlertCircle, always: false, ai: false },
     ],
   },
   {
