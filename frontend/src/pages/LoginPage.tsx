@@ -1,6 +1,44 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/api/auth'
+import { useAuth } from '@/lib/auth-context'
+
+// In local dev (Vite dev server), show a "Dev Login" button.
+// The backend injects a dev user for all requests when auth.enabled=false,
+// so /api/me returns a user without any session needed.
+const IS_DEV = import.meta.env.DEV
 
 export function LoginPage() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [devLoading, setDevLoading] = useState(false)
+  const [devError, setDevError] = useState<string | null>(null)
+
+  // Already authenticated (dev mode) — shouldn't be on this page.
+  if (user) {
+    navigate('/', { replace: true })
+    return null
+  }
+
+  const handleDevLogin = async () => {
+    setDevLoading(true)
+    setDevError(null)
+    try {
+      const u = await authApi.getMe()
+      if (u) {
+        // Backend is running in dev mode — /api/me returned the injected dev user.
+        // Reload the page so AuthProvider re-fetches and sets the user.
+        window.location.href = '/'
+      } else {
+        setDevError('Backend not reachable or auth.enabled=true. Start the backend with auth.enabled=false.')
+      }
+    } catch {
+      setDevError('Could not reach backend at localhost:8080. Make sure it is running.')
+    } finally {
+      setDevLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-6 p-8 rounded-2xl border border-border bg-card shadow-sm max-w-sm w-full">
@@ -18,6 +56,29 @@ export function LoginPage() {
           <GoogleIcon />
           Sign in with Google
         </a>
+
+        {IS_DEV && (
+          <>
+            <div className="flex items-center gap-2 w-full">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">local dev</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDevLogin}
+              disabled={devLoading}
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg border border-dashed border-border bg-muted/30 hover:bg-muted transition-colors text-sm font-medium text-muted-foreground disabled:opacity-50"
+            >
+              {devLoading ? 'Connecting…' : 'Continue as Dev User'}
+            </button>
+
+            {devError && (
+              <p className="text-xs text-red-600 text-center">{devError}</p>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
