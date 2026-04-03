@@ -130,7 +130,7 @@ When updating agent rules in `.claude/`, keep `.cursor/rules/` in sync.
 - **TDD**: Red -> Green -> Refactor. No code without a failing test first.
 - **Clean Architecture**: Domain is pure Go with zero deps. Dependencies point inward.
 - **Agent Teams**: Parallelize independent work. See `.claude/rules/agent-teams.md`.
-- **Backlog**: Single source in `docs/BACKLOG.md`. **Every agent MUST update the backlog before creating a PR** — mark completed items `[x]`, add to Recently Completed, update the date. This is non-negotiable. Humans own structure and priorities; agents maintain completion state.
+- **Backlog**: Single source in `docs/BACKLOG.md`. Three states: `[ ]` not started, `[~]` in progress, `[x]` done. **Orchestrator MUST mark items `[~]` when work begins and `[x]` (with date) when merged.** Never bulk-update at the end — update after each item. Never mark `[x]` items that were skipped or deferred. This is non-negotiable. Use `/backlog-manager` to reconcile.
 - **Validation Pipeline**: Run `/validate` after all code changes. Mandatory, not optional.
 - **Security**: Read `.claude/agents/common/security.md`. No secrets in code. No PII in logs.
 
