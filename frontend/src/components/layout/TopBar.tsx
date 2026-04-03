@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Search, X, Download, Loader2 } from 'lucide-react'
+import { Search, X, Download, Loader2, CheckCircle2, AlertTriangle, LogOut } from 'lucide-react'
 import { useModel } from '@/lib/model-context'
 import { useSearch } from '@/lib/search-context'
 import { useChangeset } from '@/lib/changeset-context'
-import { usePageTabs } from '@/lib/page-tabs-context'
+import { useAuth } from '@/lib/auth-context'
 import { ReviewDialog } from '@/components/changeset/ReviewDialog'
 import { modelsApi } from '@/services/api'
 import { cn } from '@/lib/utils'
@@ -13,13 +12,14 @@ export function TopBar() {
   const { modelId, parseResult } = useModel()
   const { query, setQuery } = useSearch()
   const { actions } = useChangeset()
-  const { tabs } = usePageTabs()
+  const { user, logout } = useAuth()
 
-  const [searchParams, setSearchParams] = useSearchParams()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [exportingFormat, setExportingFormat] = useState<'yaml' | 'dsl' | null>(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!exportOpen) return
@@ -29,6 +29,15 @@ export function TopBar() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [exportOpen])
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [userMenuOpen])
 
   const handleExport = async (format: 'yaml' | 'dsl') => {
     if (!modelId) return
@@ -49,35 +58,31 @@ export function TopBar() {
     }
   }
 
-  const currentTab = searchParams.get('tab') ?? tabs[0]?.id
-  function activateTab(id: string) {
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev)
-      next.set('tab', id)
-      return next
-    }, { replace: true })
-  }
+  const summary = parseResult?.summary as Record<string, number> | undefined
+  const hasErrors = parseResult ? parseResult.validation.errors.length > 0 : false
+  const warningCount = parseResult?.validation.warnings.length ?? 0
 
   return (
     <header className="shrink-0 bg-background border-b border-border">
-      {/* Row 1 — model identity + actions */}
       <div className="flex items-center h-14 px-5 gap-3">
         {parseResult ? (
-          <div className="flex items-center gap-2.5">
-            <span className="text-base font-bold text-foreground">{parseResult.system_name}</span>
-            <span className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold',
-              parseResult.validation.is_valid
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
-            )}>
-              {parseResult.validation.is_valid ? 'Valid' : 'Invalid'}
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-base font-bold text-foreground truncate">{parseResult.system_name}</span>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {summary?.capabilities ?? 0} capabilities · {summary?.teams ?? 0} teams · {summary?.services ?? 0} services
             </span>
-            {parseResult.validation.warnings.length > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">
-                {parseResult.validation.warnings.length} {parseResult.validation.warnings.length === 1 ? 'warning' : 'warnings'}
-              </span>
-            )}
+            <div className={cn(
+              'flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0',
+              hasErrors ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+            )}>
+              {hasErrors
+                ? <><AlertTriangle className="w-3 h-3" /> Invalid</>
+                : <><CheckCircle2 className="w-3 h-3" /> Valid</>
+              }
+              {warningCount > 0 && (
+                <span className="text-amber-600 ml-1">· {warningCount} warning{warningCount !== 1 ? 's' : ''}</span>
+              )}
+            </div>
           </div>
         ) : (
           <span className="text-sm text-muted-foreground">No model loaded</span>
@@ -137,34 +142,45 @@ export function TopBar() {
               </button>
             )}
           </div>
+
+          {user && (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(o => !o)}
+                title={user.name}
+                className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden border border-border hover:ring-2 hover:ring-primary/30 transition-all"
+              >
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="w-full h-full flex items-center justify-center bg-muted text-xs font-semibold text-muted-foreground">
+                    {user.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </button>
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-52 rounded-lg shadow-lg border border-border bg-background py-1 z-50">
+                  <div className="px-3 py-2 border-b border-border">
+                    <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setUserMenuOpen(false); logout() }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <ReviewDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
       </div>
-
-      {/* Row 2 — page tabs (only when a page registers them) */}
-      {tabs.length > 0 && (
-        <div className="flex px-5 border-t border-border/40">
-          {tabs.map(tab => {
-            const isActive = tab.id === currentTab
-            return (
-              <button
-                key={tab.id}
-                onClick={() => activateTab(tab.id)}
-                className={cn(
-                  'relative px-4 py-2.5 text-sm whitespace-nowrap transition-colors',
-                  'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:transition-colors',
-                  isActive
-                    ? 'font-semibold text-foreground after:bg-primary'
-                    : 'font-medium text-muted-foreground hover:text-foreground after:bg-transparent'
-                )}
-              >
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-      )}
     </header>
   )
 }
