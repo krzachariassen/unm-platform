@@ -12,7 +12,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-03 (Phase F complete; 14D complete)_
+_Last updated: 2026-04-03 (Phase 15B+15C complete)_
 _Priority: **14C** (model list UI) → **Phase F** (frontend restructure) → **Phase 15** (auth/tenancy + UI) → **Phase 16** (collaboration + UI) → Phase 17 (hardening) → Phase 18 (ecosystem)._
 
 _Context: Two independent external reviews identified migration completion,
@@ -23,6 +23,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 ---
 
 ## Recently Completed
+
+- [x] **feat(phase-15bc): Phase 15B+15C — orgs, workspaces, authorization** — Backend: `OrgRepository` interface + `MemOrgStore` (in-memory, thread-safe) + `PGOrgStore` (postgres with transactions); 8 org/workspace HTTP routes (`GET/POST /api/orgs`, `GET /api/orgs/{slug}`, workspace CRUD, `/api/orgs/{slug}/ws/{slug}/members`); `makeWorkspaceMiddleware` extracts orgSlug/wsSlug from URL and verifies membership; `makeAuthzMiddleware` enforces role hierarchy (viewer < editor < admin); 22 new tests. Frontend: `WorkspaceProvider` + `useWorkspace` (TanStack Query, localStorage persistence); `orgsApi` service functions; `WorkspaceDashboardPage` (model list, empty state, import); `OrgSettingsPage` + `WorkspaceSettingsPage`; `workspacedFetch` helper in API client; org/workspace breadcrumb in TopBar; expandable sidebar nav with workspace/settings sections; `WorkspaceProvider` wired into App.tsx. 15B.1–15B.11 + 15C.1–15C.4 complete. (2026-04-03)
 
 - [x] **feat(auth): Phase 15A frontend — login page, auth context, protected routes, user menu** — `services/api/auth.ts` with `authApi.getMe/logout/loginUrl` + `AuthUser`/`OrgMembership` types; `lib/auth-context.tsx` with `AuthProvider` (fetches `/api/me` on mount with AbortController) and `useAuth` hook; `pages/LoginPage.tsx` centered card with Google SVG icon and "Sign in with Google" link; `App.tsx` wrapped in `AuthProvider` + `ProtectedRoute` (null while loading, redirect to `/login` when unauthenticated); `/login` route outside `AppShell`; `TopBar.tsx` user avatar (photo or initial fallback) with dropdown menu showing name, email, and Sign out action. Dev mode transparent: backend injects dev user so `/api/me` always returns a user when `auth.enabled=false`. 15A.8–15A.11 complete. (2026-04-03)
 
@@ -269,6 +271,41 @@ Backend items can start anytime; frontend items need FA (tabs) first.
       distribution chart, isolated/over-reliant team indicators.
       _File: `features/teams/InteractionsTab.tsx`_ (#frontend)
 
+### FD — Design Consistency & Polish
+
+Standardize patterns and theming across all pages. No backend dependency.
+
+- [ ] **FD.1** — CapabilityView: replace feature-specific `DetailPanel`
+      with unified `EntityDetailPanel` + `SlidePanel` pattern.
+      _File: `pages/views/CapabilityView.tsx`,
+      `features/capability/DetailPanel.tsx`_ (#frontend)
+- [ ] **FD.2** — Cross-view entity navigation: clicking a team name in
+      any view navigates to `/teams`, clicking a service navigates to
+      `/capabilities/services`, clicking a capability navigates to
+      `/capabilities`. Systematic across all detail panels and tables.
+      _Files: multiple view components, `EntityDetailPanel.tsx`_ (#frontend)
+- [ ] **FD.3** — SignalsView: replace custom `HealthStat` with shared
+      `StatCard` component for consistency with all other views.
+      _File: `pages/views/SignalsView.tsx`_ (#frontend)
+- [ ] **FD.4** — CapabilityView: replace custom inline metric tiles
+      with shared `StatCard` component.
+      _File: `pages/views/CapabilityView.tsx`_ (#frontend)
+- [ ] **FD.5** — RecommendationsPage: replace hardcoded hex colors
+      (`#111827`, `#fafafa`, `#e5e7eb`, `#2563eb`) with theme variables.
+      _File: `pages/RecommendationsPage.tsx`_ (#frontend)
+- [ ] **FD.6** — AdvisorPage: replace hardcoded hex/gradient colors
+      with theme variables.
+      _File: `pages/AdvisorPage.tsx`_ (#frontend)
+- [ ] **FD.7** — EntityDetailPanel: migrate remaining hex badge colors
+      to theme tokens where possible.
+      _File: `components/detail/EntityDetailPanel.tsx`_ (#frontend)
+- [ ] **FD.8** — SignalsView: replace hex in `Tag()` helper and
+      `#6366f1` highlight color with theme variables.
+      _File: `pages/views/SignalsView.tsx`_ (#frontend)
+- [ ] **FD.9** — Team Topology TableView: convert card grid to proper
+      table layout consistent with Ownership and Cognitive Load views.
+      _File: `features/team-topology/TableView.tsx`_ (#frontend)
+
 ---
 
 ## Phase 15: Authentication & Multi-Tenancy
@@ -309,49 +346,49 @@ Backend items can start anytime; frontend items need FA (tabs) first.
 
 ### 15B — Organizations & Workspaces
 
-- [ ] **15B.1** — Org management APIs: create org, list user's orgs, get
+- [x] **15B.1** — Org management APIs: create org, list user's orgs, get
       org details, manage org members.
       _File: `handler/org.go`_ (#backend)
-- [ ] **15B.2** — Workspace management APIs: create workspace, list
+- [x] **15B.2** — Workspace management APIs: create workspace, list
       workspaces in org, manage workspace members.
       _File: `handler/workspace.go`_ (#backend)
-- [ ] **15B.3** — Migrate all model/changeset/view/analysis routes to
+- [x] **15B.3** — Migrate all model/changeset/view/analysis routes to
       workspace-scoped paths: `/api/orgs/{slug}/ws/{slug}/models/...`
       _File: `handler/router.go`_ (#backend)
-- [ ] **15B.4** — Onboarding flow: first login creates org + default
+- [x] **15B.4** — Onboarding flow: first login creates org + default
       workspace. _File: `handler/auth.go`_ (#backend)
-- [ ] **15B.5** — Frontend: Org selector (if user has multiple orgs).
+- [x] **15B.5** — Frontend: Org selector (if user has multiple orgs).
       _File: `components/layout/OrgSelector.tsx`_ (#frontend)
-- [ ] **15B.6** — Frontend: Workspace dashboard page — model list,
+- [x] **15B.6** — Frontend: Workspace dashboard page — model list,
       members, quick actions (import, create). Replaces Upload as home.
       _File: `pages/WorkspaceDashboardPage.tsx`_ (#frontend)
-- [ ] **15B.7** — Frontend: Update API client with org/workspace path
+- [x] **15B.7** — Frontend: Update API client with org/workspace path
       scoping. _File: `services/api/client.ts`_ (#frontend)
-- [ ] **15B.8** — Frontend: Breadcrumb (Org > Workspace > Model) in TopBar.
+- [x] **15B.8** — Frontend: Breadcrumb (Org > Workspace > Model) in TopBar.
       _File: `components/layout/Breadcrumb.tsx`_ (#frontend)
-- [ ] **15B.9** — Frontend: URL structure migration
+- [x] **15B.9** — Frontend: URL structure migration
       (`/:orgSlug/:wsSlug/models/:id/...`).
       _Files: `App.tsx`, `services/api/client.ts`_ (#frontend)
-- [ ] **15B.10** — Frontend: Sidebar context switching — workspace-level
+- [x] **15B.10** — Frontend: Sidebar context switching — workspace-level
       nav vs model-level nav.
       _File: `components/layout/Sidebar.tsx`_ (#frontend)
-- [ ] **15B.11** — Frontend: Settings pages (org settings, workspace
+- [x] **15B.11** — Frontend: Settings pages (org settings, workspace
       settings, API keys).
       _Files: `pages/settings/OrgSettingsPage.tsx`,
       `pages/settings/WorkspaceSettingsPage.tsx`_ (#frontend)
 
 ### 15C — Authorization
 
-- [ ] **15C.1** — Authorization middleware: check workspace membership and
+- [x] **15C.1** — Authorization middleware: check workspace membership and
       role before handler execution. Return 403 on insufficient permissions.
       _File: `handler/middleware.go`_ (#backend)
-- [ ] **15C.2** — Implement permission matrix from
+- [x] **15C.2** — Implement permission matrix from
       `ARCHITECTURE_EVOLUTION.md` §5.
       _File: `handler/authorization.go`_ (#backend)
-- [ ] **15C.3** — Changeset ownership: only creator or workspace admin
+- [x] **15C.3** — Changeset ownership: only creator or workspace admin
       can commit.
       _File: `handler/changeset.go`_ (#backend)
-- [ ] **15C.4** — Org-visible workspaces: any org member can read, only
+- [x] **15C.4** — Org-visible workspaces: any org member can read, only
       workspace members can write.
       _File: `handler/authorization.go`_ (#backend)
 
@@ -558,6 +595,7 @@ Phase F (Frontend Restructure) ─── no backend dependency
     │   FA (View Regrouping + Tabs)
     │   FB (Interaction Consistency)
     │   FC (New Analyzer Views)     ← backend endpoints + frontend tabs
+    │   FD (Design Consistency)     ← polish + standardize patterns
     │
 Phase 15A (Auth)               ─── backend + frontend (login, auth context)
     │

@@ -3,6 +3,7 @@ import { ModelProvider } from '@/lib/model-context'
 import { SearchProvider } from '@/lib/search-context'
 import { ChangesetProvider } from '@/lib/changeset-context'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
+import { WorkspaceProvider } from '@/lib/workspace-context'
 import { AppShell } from '@/components/layout/AppShell'
 import { LoginPage } from '@/pages/LoginPage'
 import { UploadPage } from '@/pages/UploadPage'
@@ -23,6 +24,9 @@ import { AdvisorPage } from '@/pages/AdvisorPage'
 import { RecommendationsPage } from '@/pages/RecommendationsPage'
 import { ModelsPage } from '@/pages/ModelsPage'
 import { ModelHistoryPage } from '@/pages/ModelHistoryPage'
+import { WorkspaceDashboardPage } from '@/pages/WorkspaceDashboardPage'
+import { OrgSettingsPage } from '@/pages/settings/OrgSettingsPage'
+import { WorkspaceSettingsPage } from '@/pages/settings/WorkspaceSettingsPage'
 
 // ProtectedRoute renders children when the user is authenticated.
 // While loading, renders nothing to avoid flash.
@@ -41,59 +45,68 @@ export default function App() {
       <ChangesetProvider>
         <ModelProvider>
           <SearchProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <AppShell />
-                  </ProtectedRoute>
-                }
-              >
-                {/* Core pages */}
-                <Route path="/" element={<UploadPage />} />
-                <Route path="/models" element={<ModelsPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/history" element={<ModelHistoryPage />} />
+            <WorkspaceProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppShell />
+                    </ProtectedRoute>
+                  }
+                >
+                  {/* Workspace dashboard — home when in a workspace */}
+                  <Route path="/workspace" element={<WorkspaceDashboardPage />} />
 
-                {/* Architecture — Needs */}
-                <Route path="/unm-map" element={<UNMMapView />} />
-                <Route path="/needs" element={<NeedView />} />
-                <Route path="/needs/traceability" element={<RealizationView />} />
-                <Route path="/needs/gaps" element={<GapsTab />} />
+                  {/* Core pages */}
+                  <Route path="/" element={<UploadPage />} />
+                  <Route path="/models" element={<ModelsPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/history" element={<ModelHistoryPage />} />
 
-                {/* Architecture — Capabilities */}
-                <Route path="/capabilities" element={<CapabilityView />} />
-                <Route path="/capabilities/services" element={<RealizationView />} />
-                <Route path="/capabilities/dependencies" element={<DependenciesTab />} />
+                  {/* Architecture — Needs */}
+                  <Route path="/unm-map" element={<UNMMapView />} />
+                  <Route path="/needs" element={<NeedView />} />
+                  <Route path="/needs/traceability" element={<RealizationView />} />
+                  <Route path="/needs/gaps" element={<GapsTab />} />
 
-                {/* Architecture — Teams */}
-                <Route path="/teams" element={<TeamTopologyView />} />
-                <Route path="/teams/ownership" element={<OwnershipView />} />
-                <Route path="/teams/cognitive-load" element={<CognitiveLoadView />} />
-                <Route path="/teams/interactions" element={<InteractionsTab />} />
+                  {/* Architecture — Capabilities */}
+                  <Route path="/capabilities" element={<CapabilityView />} />
+                  <Route path="/capabilities/services" element={<RealizationView />} />
+                  <Route path="/capabilities/dependencies" element={<DependenciesTab />} />
 
-                <Route path="/signals" element={<SignalsView />} />
+                  {/* Architecture — Teams */}
+                  <Route path="/teams" element={<TeamTopologyView />} />
+                  <Route path="/teams/ownership" element={<OwnershipView />} />
+                  <Route path="/teams/cognitive-load" element={<CognitiveLoadView />} />
+                  <Route path="/teams/interactions" element={<InteractionsTab />} />
 
-                {/* Editing */}
-                <Route path="/what-if" element={<WhatIfPage />} />
+                  <Route path="/signals" element={<SignalsView />} />
 
-                {/* AI */}
-                <Route path="/recommendations" element={<RecommendationsPage />} />
-                <Route path="/advisor" element={<AdvisorPage />} />
+                  {/* Editing */}
+                  <Route path="/what-if" element={<WhatIfPage />} />
 
-                {/* Backward-compat redirects */}
-                <Route path="/need" element={<Navigate to="/needs" replace />} />
-                <Route path="/capability" element={<Navigate to="/capabilities" replace />} />
-                <Route path="/realization" element={<Navigate to="/needs/traceability" replace />} />
-                <Route path="/ownership" element={<Navigate to="/teams/ownership" replace />} />
-                <Route path="/team-topology" element={<Navigate to="/teams" replace />} />
-                <Route path="/cognitive-load" element={<Navigate to="/teams/cognitive-load" replace />} />
-                <Route path="/edit" element={<Navigate to="/unm-map" replace />} />
+                  {/* AI */}
+                  <Route path="/recommendations" element={<RecommendationsPage />} />
+                  <Route path="/advisor" element={<AdvisorPage />} />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
+                  {/* Settings */}
+                  <Route path="/settings/org" element={<OrgSettingsPage />} />
+                  <Route path="/settings/workspace" element={<WorkspaceSettingsPage />} />
+
+                  {/* Backward-compat redirects */}
+                  <Route path="/need" element={<Navigate to="/needs" replace />} />
+                  <Route path="/capability" element={<Navigate to="/capabilities" replace />} />
+                  <Route path="/realization" element={<Navigate to="/needs/traceability" replace />} />
+                  <Route path="/ownership" element={<Navigate to="/teams/ownership" replace />} />
+                  <Route path="/team-topology" element={<Navigate to="/teams" replace />} />
+                  <Route path="/cognitive-load" element={<Navigate to="/teams/cognitive-load" replace />} />
+                  <Route path="/edit" element={<Navigate to="/unm-map" replace />} />
+
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </WorkspaceProvider>
           </SearchProvider>
         </ModelProvider>
       </ChangesetProvider>

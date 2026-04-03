@@ -39,3 +39,18 @@ export async function apiFetchAllowConflict<T>(
   if (!res.ok) throw new Error(await extractError(res, `Request failed: ${path}`))
   return res.json() as Promise<T>
 }
+
+/**
+ * Workspace-scoped fetch helper.
+ * Prepends /orgs/{orgSlug}/ws/{wsSlug} to workspace-scoped API calls.
+ * Use this for endpoints that operate within a specific org + workspace context.
+ */
+export async function workspacedFetch<T>(
+  orgSlug: string,
+  wsSlug: string,
+  path: string,
+  options?: RequestInit & { signal?: AbortSignal }
+): Promise<T> {
+  const prefix = `/orgs/${encodeURIComponent(orgSlug)}/ws/${encodeURIComponent(wsSlug)}`
+  return apiFetch<T>(`${prefix}${path}`, options)
+}
