@@ -6,13 +6,13 @@ import "github.com/krzachariassen/unm-platform/internal/domain/entity"
 type GapReport struct {
 	// UnmappedNeeds are needs with no SupportedBy relationships.
 	UnmappedNeeds []*entity.Need
-	// UnrealizedCapabilities are leaf capabilities with no RealizedBy services.
+	// UnrealizedCapabilities are leaf capabilities with no services realizing them.
 	UnrealizedCapabilities []*entity.Capability
 	// UnownedServices are services with an empty OwnerTeamName.
 	UnownedServices []*entity.Service
 	// UnneededCapabilities are capabilities not referenced by any need's SupportedBy.
 	UnneededCapabilities []*entity.Capability
-	// OrphanServices are services not referenced by any capability's RealizedBy.
+	// OrphanServices are services not realizing any capability.
 	OrphanServices []*entity.Service
 }
 
@@ -61,9 +61,16 @@ func (a *GapAnalyzer) Analyze(m *entity.UNMModel) GapReport {
 	}
 
 	// UnrealizedCapabilities and UnneededCapabilities.
+	// Build a set of capability names that have at least one service realizing them.
+	realizedCaps := make(map[string]bool)
+	for _, svc := range m.Services {
+		for _, rel := range svc.Realizes {
+			realizedCaps[rel.TargetID.String()] = true
+		}
+	}
 	for _, cap := range m.Capabilities {
-		// UnrealizedCapabilities: leaf caps with no RealizedBy.
-		if cap.IsLeaf() && len(cap.RealizedBy) == 0 {
+		// UnrealizedCapabilities: leaf caps with no services realizing them.
+		if cap.IsLeaf() && !realizedCaps[cap.Name] {
 			report.UnrealizedCapabilities = append(report.UnrealizedCapabilities, cap)
 		}
 		// UnneededCapabilities: caps not in the needed set (including via ancestry).
@@ -79,7 +86,7 @@ func (a *GapAnalyzer) Analyze(m *entity.UNMModel) GapReport {
 		}
 	}
 
-	// OrphanServices: services not referenced by any capability's RealizedBy.
+	// OrphanServices: services not realizing any capability.
 	report.OrphanServices = m.GetOrphanServices()
 
 	return report

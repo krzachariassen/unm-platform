@@ -1,0 +1,69 @@
+{
+  "couplings": [
+    {
+      "data_asset": "catalog_item_v1",
+      "is_crossteam": true,
+      "services": [
+        "nexus-query",
+        "nexus-serving",
+        "nexus-serving-ingestor"
+      ],
+      "type": "database"
+    },
+    {
+      "data_asset": "catalog_product_v1",
+      "is_crossteam": false,
+      "services": [
+        "nexus-serving",
+        "nexus-serving-ingestor"
+      ],
+      "type": "database"
+    },
+    {
+      "data_asset": "external.store.catalog_update_v2",
+      "is_crossteam": false,
+      "services": [
+        "external-store",
+        "nexus-serving-ingestor"
+      ],
+      "type": "event-stream"
+    },
+    {
+      "data_asset": "nexus.anomalies",
+      "is_crossteam": false,
+      "services": [
+        "nexus-anomaly-detector",
+        "nexus-realtime-stats"
+      ],
+      "type": "event-stream"
+    },
+    {
+      "data_asset": "nexus.core.entity_change",
+      "is_crossteam": true,
+      "services": [
+        "nexus-core",
+        "nexus-serving-ingestor"
+      ],
+      "type": "event-stream"
+    },
+    {
+      "data_asset": "nexus.core.entity_change_nodedup",
+      "is_crossteam": true,
+      "services": [
+        "nexus-core",
+        "nexus-enricher"
+      ],
+      "type": "event-stream"
+    },
+    {
+      "data_asset": "nexus.regression.stats",
+      "is_crossteam": false,
+      "services": [
+        "nexus-anomaly-detector",
+        "nexus-realtime-stats"
+      ],
+      "type": "event-stream"
+    }
+  ],
+  "type": "coupling"
+}

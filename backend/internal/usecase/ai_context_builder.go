@@ -84,10 +84,9 @@ func (b *AIContextBuilder) BuildPromptData(m *entity.UNMModel, userQuestion stri
 
 	// Service-to-capabilities reverse index
 	svcToCaps := make(map[string][]string)
-	for _, cap := range m.Capabilities {
-		for _, rel := range cap.RealizedBy {
-			svcName := rel.TargetID.String()
-			svcToCaps[svcName] = append(svcToCaps[svcName], cap.Name)
+	for _, svc := range m.Services {
+		for _, rel := range svc.Realizes {
+			svcToCaps[svc.Name] = append(svcToCaps[svc.Name], rel.TargetID.String())
 		}
 	}
 
@@ -168,9 +167,14 @@ func (b *AIContextBuilder) BuildPromptData(m *entity.UNMModel, userQuestion stri
 				}
 			}
 		}
-		realizingServices := make([]string, 0, len(cap.RealizedBy))
-		for _, rel := range cap.RealizedBy {
-			realizingServices = append(realizingServices, rel.TargetID.String())
+		realizingServices := make([]string, 0)
+		for _, svc := range m.Services {
+			for _, rel := range svc.Realizes {
+				if rel.TargetID.String() == cap.Name {
+					realizingServices = append(realizingServices, svc.Name)
+					break
+				}
+			}
 		}
 		caps = append(caps, aiCapSummary{
 			Name:              cap.Name,
@@ -260,18 +264,10 @@ func (b *AIContextBuilder) BuildPromptData(m *entity.UNMModel, userQuestion stri
 		for _, rel := range n.SupportedBy {
 			capName := rel.TargetID.String()
 			vc.Capabilities = append(vc.Capabilities, capName)
-			for _, cap := range m.Capabilities {
-				if cap.Name == capName {
-					for _, rRel := range cap.RealizedBy {
-						svcName := rRel.TargetID.String()
-						vc.Services = append(vc.Services, svcName)
-						for _, svc := range m.Services {
-							if svc.Name == svcName {
-								teamSet[svc.OwnerTeamName] = true
-							}
-						}
-					}
-				}
+			svcs := m.GetServicesForCapability(capName)
+			for _, svc := range svcs {
+				vc.Services = append(vc.Services, svc.Name)
+				teamSet[svc.OwnerTeamName] = true
 			}
 		}
 		for t := range teamSet {

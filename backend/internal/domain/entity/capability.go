@@ -31,7 +31,6 @@ type Capability struct {
 	Description string
 	Visibility  string
 	Children    []*Capability
-	RealizedBy  []Relationship
 	DependsOn   []Relationship
 	// DecomposesTo is an alias for Children.
 	DecomposesTo []*Capability
@@ -51,7 +50,6 @@ func NewCapability(id, name, description string) (*Capability, error) {
 		Name:        name,
 		Description: description,
 		Children:    []*Capability{},
-		RealizedBy:  []Relationship{},
 		DependsOn:   []Relationship{},
 	}
 	c.DecomposesTo = c.Children
@@ -71,11 +69,6 @@ func (c *Capability) SetVisibility(v string) error {
 func (c *Capability) AddChild(child *Capability) {
 	c.Children = append(c.Children, child)
 	c.DecomposesTo = c.Children
-}
-
-// AddRealizedBy appends a Relationship to RealizedBy.
-func (c *Capability) AddRealizedBy(r Relationship) {
-	c.RealizedBy = append(c.RealizedBy, r)
 }
 
 // AddDependsOn appends a Relationship to DependsOn.

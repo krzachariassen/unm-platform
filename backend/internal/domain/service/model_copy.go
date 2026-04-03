@@ -39,7 +39,6 @@ func deepCopyModel(m *entity.UNMModel) *entity.UNMModel {
 	capCopies := make(map[string]*entity.Capability, len(m.Capabilities))
 	for k, v := range m.Capabilities {
 		copied := *v
-		copied.RealizedBy = copyRelationships(v.RealizedBy)
 		copied.DependsOn = copyRelationships(v.DependsOn)
 		copied.Children = nil
 		copied.DecomposesTo = nil
@@ -70,6 +69,7 @@ func deepCopyModel(m *entity.UNMModel) *entity.UNMModel {
 	for k, v := range m.Services {
 		copied := *v
 		copied.DependsOn = copyRelationships(v.DependsOn)
+		copied.Realizes = copyRelationships(v.Realizes)
 		result.Services[k] = &copied
 	}
 

@@ -235,15 +235,6 @@ func writeServicesDSL(b *strings.Builder, m *entity.UNMModel) {
 		return
 	}
 
-	// Build reverse realizes map: service name → list of capability names
-	realizesBySvc := map[string][]string{}
-	for _, cap := range m.Capabilities {
-		for _, rel := range cap.RealizedBy {
-			svcName := rel.TargetID.String()
-			realizesBySvc[svcName] = append(realizesBySvc[svcName], cap.Name)
-		}
-	}
-
 	// Build externalDeps map: service name → list of ext dep names
 	extDepsBySvc := map[string][]string{}
 	for _, ed := range m.ExternalDependencies {
@@ -290,7 +281,11 @@ func writeServicesDSL(b *strings.Builder, m *entity.UNMModel) {
 				b.WriteString(q(rel.TargetID.String()))
 				b.WriteString("\n")
 			}
-			if caps := realizesBySvc[svc.Name]; len(caps) > 0 {
+			if len(svc.Realizes) > 0 {
+				caps := make([]string, 0, len(svc.Realizes))
+				for _, rel := range svc.Realizes {
+					caps = append(caps, rel.TargetID.String())
+				}
 				sort.Strings(caps)
 				for _, capName := range caps {
 					b.WriteString("  realizes ")

@@ -155,17 +155,29 @@ func (v *ValidationEngine) checkNeeds(model *entity.UNMModel, result *Validation
 
 // checkCapabilities enforces ErrLeafCapNoService and WarnParentCapHasServices.
 func (v *ValidationEngine) checkCapabilities(model *entity.UNMModel, result *ValidationResult) {
+	// Build set of realized capability names from service.Realizes (canonical source).
+	realizedCaps := make(map[string]bool)
+	parentCapsWithServices := make(map[string]bool)
+	for _, svc := range model.Services {
+		for _, rel := range svc.Realizes {
+			capName := rel.TargetID.String()
+			realizedCaps[capName] = true
+			if cap, ok := model.Capabilities[capName]; ok && !cap.IsLeaf() {
+				parentCapsWithServices[capName] = true
+			}
+		}
+	}
 	for _, cap := range model.Capabilities {
-		if cap.IsLeaf() && len(cap.RealizedBy) == 0 {
+		if cap.IsLeaf() && !realizedCaps[cap.Name] {
 			addError(result, ErrLeafCapNoService,
 				cap.Name,
 				fmt.Sprintf("leaf capability %q is not realized by any service", cap.Name))
 		}
-		// Warn if a non-leaf capability also has RealizedBy entries (only leaf caps should have services).
-		if !cap.IsLeaf() && len(cap.RealizedBy) > 0 {
+		// Warn if a non-leaf capability is realized by services (only leaf caps should realize services).
+		if !cap.IsLeaf() && parentCapsWithServices[cap.Name] {
 			addWarning(result, WarnParentCapHasServices,
 				cap.Name,
-				fmt.Sprintf("non-leaf capability %q has RealizedBy entries; only leaf capabilities should realize services", cap.Name))
+				fmt.Sprintf("non-leaf capability %q has services realizing it; only leaf capabilities should realize services", cap.Name))
 		}
 	}
 }
@@ -178,7 +190,7 @@ func (v *ValidationEngine) checkServices(model *entity.UNMModel, result *Validat
 				svc.Name,
 				fmt.Sprintf("service %q has no owner team", svc.Name))
 		}
-		// Orphan check: service not referenced in any capability's RealizedBy.
+		// Orphan check: service not realizing any capability.
 		if len(model.GetCapabilitiesForService(svc.Name)) == 0 {
 			addWarning(result, WarnOrphanService,
 				svc.Name,

@@ -192,23 +192,6 @@ func serializeCapabilities(m *entity.UNMModel) []yamlCapability {
 }
 
 func serializeServices(m *entity.UNMModel) []yamlService {
-	// Build reverse realizes map: service name → list of cap names it realizes
-	realizesBySvc := map[string][]any{}
-	for _, cap := range m.Capabilities {
-		for _, rel := range cap.RealizedBy {
-			svcName := rel.TargetID.String()
-			if rel.Description == "" && rel.Role == "" {
-				realizesBySvc[svcName] = append(realizesBySvc[svcName], cap.Name)
-			} else {
-				realizesBySvc[svcName] = append(realizesBySvc[svcName], yamlRelationship{
-					Target:      cap.Name,
-					Description: rel.Description,
-					Role:        string(rel.Role),
-				})
-			}
-		}
-	}
-
 	// Build externalDeps map: service name → list of ext dep names
 	extDepsBySvc := map[string][]string{}
 	for _, ed := range m.ExternalDependencies {
@@ -225,7 +208,19 @@ func serializeServices(m *entity.UNMModel) []yamlService {
 			OwnedBy:     s.OwnerTeamName,
 		}
 		ys.DependsOn = serializeRelationships(s.DependsOn)
-		if realizes := realizesBySvc[s.Name]; len(realizes) > 0 {
+		if len(s.Realizes) > 0 {
+			realizes := make([]any, 0, len(s.Realizes))
+			for _, rel := range s.Realizes {
+				if rel.Description == "" && rel.Role == "" {
+					realizes = append(realizes, rel.TargetID.String())
+				} else {
+					realizes = append(realizes, yamlRelationship{
+						Target:      rel.TargetID.String(),
+						Description: rel.Description,
+						Role:        string(rel.Role),
+					})
+				}
+			}
 			sort.Slice(realizes, func(i, j int) bool {
 				ti, tj := fmt.Sprintf("%v", realizes[i]), fmt.Sprintf("%v", realizes[j])
 				return ti < tj

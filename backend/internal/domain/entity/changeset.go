@@ -49,58 +49,58 @@ const (
 // ChangeAction is a single proposed structural modification to a UNM model.
 // Each action is self-contained and carries all information needed to apply it.
 type ChangeAction struct {
-	Type ChangeActionType `json:"type"`
+	Type ChangeActionType
 
 	// MoveService: move a service from one team to another.
-	ServiceName  string `json:"service_name,omitempty"`
-	FromTeamName string `json:"from_team_name,omitempty"`
-	ToTeamName   string `json:"to_team_name,omitempty"`
+	ServiceName  string
+	FromTeamName string
+	ToTeamName   string
 
 	// SplitTeam: split one team into two, with explicit service assignments.
-	OriginalTeamName  string            `json:"original_team_name,omitempty"`
-	NewTeamAName      string            `json:"new_team_a_name,omitempty"`
-	NewTeamBName      string            `json:"new_team_b_name,omitempty"`
-	ServiceAssignment map[string]string `json:"service_assignment,omitempty"` // service → "a"|"b"
+	OriginalTeamName  string
+	NewTeamAName      string
+	NewTeamBName      string
+	ServiceAssignment map[string]string // service → "a"|"b"
 
 	// MergeTeams: merge two teams into one.
-	TeamAName   string `json:"team_a_name,omitempty"`
-	TeamBName   string `json:"team_b_name,omitempty"`
-	NewTeamName string `json:"new_team_name,omitempty"`
+	TeamAName   string
+	TeamBName   string
+	NewTeamName string
 
 	// AddCapability / RemoveCapability / ReassignCapability / LinkCapabilityService / UpdateCapabilityVisibility.
-	CapabilityName string `json:"capability_name,omitempty"`
-	OwnerTeamName  string `json:"owner_team_name,omitempty"`
-	Visibility     string `json:"visibility,omitempty"`
-	Role           string `json:"role,omitempty"`
+	CapabilityName string
+	OwnerTeamName  string
+	Visibility     string
+	Role           string
 
 	// AddInteraction / RemoveInteraction.
-	SourceTeamName  string `json:"source_team_name,omitempty"`
-	TargetTeamName  string `json:"target_team_name,omitempty"`
-	InteractionMode string `json:"interaction_mode,omitempty"`
+	SourceTeamName  string
+	TargetTeamName  string
+	InteractionMode string
 
 	// UpdateTeamSize / AddTeam / RemoveTeam / UpdateTeamType.
-	TeamName    string `json:"team_name,omitempty"`
-	NewSize     int    `json:"new_size,omitempty"`
-	TeamType    string `json:"team_type,omitempty"`
-	Description string `json:"description,omitempty"`
+	TeamName    string
+	NewSize     int
+	TeamType    string
+	Description string
 
 	// RenameService.
-	NewServiceName string `json:"new_service_name,omitempty"`
+	NewServiceName string
 
 	// AddNeed / RemoveNeed / LinkNeedCapability / UnlinkNeedCapability.
-	NeedName    string   `json:"need_name,omitempty"`
-	Outcome     string   `json:"outcome,omitempty"`
-	SupportedBy []string `json:"supported_by,omitempty"`
+	NeedName    string
+	Outcome     string
+	SupportedBy []string
 
 	// AddActor / RemoveActor.
-	ActorName string `json:"actor_name,omitempty"`
+	ActorName string
 
 	// AddServiceDependency / RemoveServiceDependency.
-	DependsOnService string `json:"depends_on_service,omitempty"`
+	DependsOnService string
 
 	// UpdateDescription: generic description update.
-	EntityType string `json:"entity_type,omitempty"`
-	EntityName string `json:"entity_name,omitempty"`
+	EntityType string
+	EntityName string
 }
 
 // Validate checks that the action has all required fields for its type.
@@ -345,9 +345,9 @@ func (a ChangeAction) Validate() error {
 // It is applied as a unit: all actions are applied sequentially to produce
 // a projected model. The source model is never mutated.
 type Changeset struct {
-	ID          string         `json:"id"`
-	Description string         `json:"description"`
-	Actions     []ChangeAction `json:"actions"`
+	ID          string
+	Description string
+	Actions     []ChangeAction
 }
 
 // NewChangeset constructs an empty changeset with the given description.

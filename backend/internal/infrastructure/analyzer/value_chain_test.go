@@ -39,15 +39,23 @@ func buildValueChainModel(t *testing.T, cfg valueChainTestCfg) *entity.UNMModel 
 		if err != nil {
 			t.Fatalf("NewCapability %s: %v", cap.name, err)
 		}
-		for _, svcName := range cap.realizedBy {
-			svcID, err := valueobject.NewEntityID(svcName)
-			if err != nil {
-				t.Fatalf("NewEntityID %s: %v", svcName, err)
-			}
-			c.AddRealizedBy(entity.NewRelationship(svcID, "", ""))
-		}
 		if err := m.AddCapability(c); err != nil {
 			t.Fatalf("AddCapability %s: %v", cap.name, err)
+		}
+	}
+
+	// Wire service.Realizes from cfg: for each capability, for each realizing service, add realizes.
+	for _, cap := range cfg.capabilities {
+		capID, err := valueobject.NewEntityID(cap.name)
+		if err != nil {
+			t.Fatalf("NewEntityID cap %s: %v", cap.name, err)
+		}
+		for _, svcName := range cap.realizedBy {
+			svc, ok := m.Services[svcName]
+			if !ok {
+				t.Fatalf("service %q not found in model for realizes wiring", svcName)
+			}
+			svc.AddRealizes(entity.NewRelationship(capID, "", ""))
 		}
 	}
 
@@ -444,14 +452,13 @@ func TestValueChainAnalyzer_CustomThresholds(t *testing.T) {
 	_ = m.AddNeed(need)
 
 	cap1, _ := entity.NewCapability("cap1", "cap1", "")
-	svcID1, _ := valueobject.NewEntityID("svc1")
-	svcID2, _ := valueobject.NewEntityID("svc2")
-	cap1.AddRealizedBy(entity.NewRelationship(svcID1, "", ""))
-	cap1.AddRealizedBy(entity.NewRelationship(svcID2, "", ""))
 	_ = m.AddCapability(cap1)
 
 	svc1, _ := entity.NewService("svc1", "svc1", "", "team-a")
 	svc2, _ := entity.NewService("svc2", "svc2", "", "team-b")
+	capID1, _ := valueobject.NewEntityID("cap1")
+	svc1.AddRealizes(entity.NewRelationship(capID1, "", ""))
+	svc2.AddRealizes(entity.NewRelationship(capID1, "", ""))
 	_ = m.AddService(svc1)
 	_ = m.AddService(svc2)
 

@@ -106,9 +106,9 @@ func hasWarning(result service.ValidationResult, code service.ValidationWarningC
 // buildValidModel constructs a minimal valid model:
 // - one actor, one need (supported by one capability)
 // - one leaf capability (realized by one service)
-// - one service (owned by one team)
+// - one service (owned by one team), with service.Realizes wired to the capability
 // - one team
-// Capability.RealizedBy is the canonical source of truth (top-down).
+// Service.Realizes is the canonical source of cap-service wiring.
 func buildValidModel(t *testing.T) *entity.UNMModel {
 	t.Helper()
 	m := entity.NewUNMModel("TestSystem", "")
@@ -128,13 +128,13 @@ func buildValidModel(t *testing.T) *entity.UNMModel {
 	}
 
 	cap := mustNewCapability(t, "cap-1", "Payment Processing", "")
-	// Capability.RealizedBy is canonical; service is referenced here.
-	cap.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	if err := m.AddCapability(cap); err != nil {
 		t.Fatalf("AddCapability: %v", err)
 	}
 
 	svc := mustNewService(t, "svc-1", "payment-service", "payments-team")
+	// service.Realizes is the canonical source of cap-service wiring
+	svc.AddRealizes(mustNewRelationship(t, "Payment Processing"))
 	if err := m.AddService(svc); err != nil {
 		t.Fatalf("AddService: %v", err)
 	}
@@ -228,17 +228,17 @@ func TestValidate_NonLeafCap_NoLeafServiceError(t *testing.T) {
 	engine := service.NewValidationEngine()
 	m := buildValidModel(t)
 
-	// parent cap with no RealizedBy — but not a leaf, so should NOT trigger ErrLeafCapNoService
+	// parent cap with no Realizes wiring — but not a leaf, so should NOT trigger ErrLeafCapNoService
 	parent := mustNewCapability(t, "cap-parent", "Payments Suite", "")
 	child := mustNewCapability(t, "cap-child", "Tokenisation", "")
-	child.AddRealizedBy(mustNewRelationship(t, "token-svc"))
 	parent.AddChild(child)
 	if err := m.AddCapability(parent); err != nil {
 		t.Fatalf("AddCapability parent: %v", err)
 	}
 
-	// add a service so Tokenisation child is realized
+	// add a service and wire it to realize Tokenisation
 	svc := mustNewService(t, "svc-token", "token-svc", "payments-team")
+	svc.AddRealizes(mustNewRelationship(t, "Tokenisation"))
 	if err := m.AddService(svc); err != nil {
 		t.Fatalf("AddService: %v", err)
 	}
@@ -260,9 +260,8 @@ func TestValidate_ServiceNoOwner_Error(t *testing.T) {
 
 	orphanSvc := mustNewService(t, "svc-2", "orphan-service", "some-team")
 	orphanSvc.OwnerTeamName = "" // forcibly clear
-	// Add to a capability's RealizedBy so we don't get WarnOrphanService too
-	cap := m.Capabilities["Payment Processing"]
-	cap.AddRealizedBy(mustNewRelationship(t, "orphan-service"))
+	// Wire to a capability so we don't get WarnOrphanService too
+	orphanSvc.AddRealizes(mustNewRelationship(t, "Payment Processing"))
 	if err := m.AddService(orphanSvc); err != nil {
 		t.Fatalf("AddService: %v", err)
 	}
@@ -420,11 +419,11 @@ func TestValidate_OverloadedTeam_Warning(t *testing.T) {
 		svcName := "extra-svc-" + string(rune('a'+i))
 		svcID := "svc-extra-" + string(rune('a'+i))
 		cap := mustNewCapability(t, capID, capName, "")
-		cap.AddRealizedBy(mustNewRelationship(t, svcName))
 		if err := m.AddCapability(cap); err != nil {
 			t.Fatalf("AddCapability extra: %v", err)
 		}
 		svc := mustNewService(t, svcID, svcName, "payments-team")
+		svc.AddRealizes(mustNewRelationship(t, capName))
 		if err := m.AddService(svc); err != nil {
 			t.Fatalf("AddService extra: %v", err)
 		}
@@ -521,8 +520,6 @@ func TestValidate_CircularDependency_Warning(t *testing.T) {
 	// cap-a → depends on cap-b → depends on cap-a (cycle)
 	capA := mustNewCapability(t, "cap-a", "Cap A", "")
 	capB := mustNewCapability(t, "cap-b", "Cap B", "")
-	capA.AddRealizedBy(mustNewRelationship(t, "payment-service"))
-	capB.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	capA.AddDependsOn(mustNewRelationship(t, "Cap B"))
 	capB.AddDependsOn(mustNewRelationship(t, "Cap A"))
 
@@ -532,6 +529,10 @@ func TestValidate_CircularDependency_Warning(t *testing.T) {
 	if err := m.AddCapability(capB); err != nil {
 		t.Fatalf("AddCapability capB: %v", err)
 	}
+	// Wire existing payment-service to realize both caps
+	paymentSvc := m.Services["payment-service"]
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Cap A"))
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Cap B"))
 
 	result := engine.Validate(m)
 	if !hasWarning(result, service.WarnCircularDep) {
@@ -556,8 +557,6 @@ func TestValidate_LinearDependency_NoWarning(t *testing.T) {
 	// cap-x → depends on cap-y (no cycle)
 	capX := mustNewCapability(t, "cap-x", "Cap X", "")
 	capY := mustNewCapability(t, "cap-y", "Cap Y", "")
-	capX.AddRealizedBy(mustNewRelationship(t, "payment-service"))
-	capY.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	capX.AddDependsOn(mustNewRelationship(t, "Cap Y"))
 
 	if err := m.AddCapability(capX); err != nil {
@@ -566,6 +565,10 @@ func TestValidate_LinearDependency_NoWarning(t *testing.T) {
 	if err := m.AddCapability(capY); err != nil {
 		t.Fatalf("AddCapability capY: %v", err)
 	}
+	// Wire payment-service to realize both caps
+	paymentSvc := m.Services["payment-service"]
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Cap X"))
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Cap Y"))
 
 	result := engine.Validate(m)
 	if hasWarning(result, service.WarnCircularDep) {
@@ -607,16 +610,16 @@ func TestValidate_ParentCapWithServices_Warning(t *testing.T) {
 	engine := service.NewValidationEngine()
 	m := buildValidModel(t)
 
-	// Parent capability with RealizedBy entries (should warn)
+	// Parent capability with services realizing it (should warn)
 	parent := mustNewCapability(t, "cap-parent", "Parent Cap", "")
 	child := mustNewCapability(t, "cap-child2", "Child Cap", "")
-	child.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	parent.AddChild(child)
-	// also add RealizedBy on the parent — this should trigger the warning
-	parent.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	if err := m.AddCapability(parent); err != nil {
 		t.Fatalf("AddCapability: %v", err)
 	}
+	// Wire payment-service to also realize the parent (non-leaf) → triggers WarnParentCapHasServices
+	paymentSvc := m.Services["payment-service"]
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Parent Cap"))
 
 	result := engine.Validate(m)
 	if !hasWarning(result, service.WarnParentCapHasServices) {
@@ -628,14 +631,16 @@ func TestValidate_ParentCapNoServices_NoWarning(t *testing.T) {
 	engine := service.NewValidationEngine()
 	m := buildValidModel(t)
 
-	// Parent with no RealizedBy — only child has services
+	// Parent with no service realizes wiring — only child has services
 	parent := mustNewCapability(t, "cap-parent2", "Parent Cap 2", "")
 	child := mustNewCapability(t, "cap-child3", "Child Cap 3", "")
-	child.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	parent.AddChild(child)
 	if err := m.AddCapability(parent); err != nil {
 		t.Fatalf("AddCapability: %v", err)
 	}
+	// Wire payment-service to realize only the child, not the parent
+	paymentSvc := m.Services["payment-service"]
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Child Cap 3"))
 
 	result := engine.Validate(m)
 	for _, w := range result.Warnings {
@@ -698,9 +703,8 @@ func TestValidate_ServiceSelfDependency_Warning(t *testing.T) {
 	// Service that depends on itself
 	selfSvc := mustNewService(t, "svc-self", "self-svc", "payments-team")
 	selfSvc.AddDependsOn(mustNewRelationship(t, "self-svc"))
-	// Wire it up to a capability so we don't get WarnOrphanService
-	cap := m.Capabilities["Payment Processing"]
-	cap.AddRealizedBy(mustNewRelationship(t, "self-svc"))
+	// Wire it to realize a capability so we don't get WarnOrphanService
+	selfSvc.AddRealizes(mustNewRelationship(t, "Payment Processing"))
 	if err := m.AddService(selfSvc); err != nil {
 		t.Fatalf("AddService: %v", err)
 	}
@@ -720,11 +724,13 @@ func TestValidate_CapabilitySelfDependency_Warning(t *testing.T) {
 
 	// Capability that depends on itself
 	selfCap := mustNewCapability(t, "cap-self", "Self Cap", "")
-	selfCap.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	selfCap.AddDependsOn(mustNewRelationship(t, "Self Cap"))
 	if err := m.AddCapability(selfCap); err != nil {
 		t.Fatalf("AddCapability: %v", err)
 	}
+	// Wire payment-service to realize Self Cap
+	paymentSvc := m.Services["payment-service"]
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Self Cap"))
 
 	result := engine.Validate(m)
 	if !hasWarning(result, service.WarnSelfDependency) {
@@ -741,8 +747,7 @@ func TestValidate_ServiceLegitDep_NoSelfDependencyWarning(t *testing.T) {
 
 	// Service with a legitimate dep on another service — no self-dependency warning
 	otherSvc := mustNewService(t, "svc-other", "other-svc", "payments-team")
-	cap := m.Capabilities["Payment Processing"]
-	cap.AddRealizedBy(mustNewRelationship(t, "other-svc"))
+	otherSvc.AddRealizes(mustNewRelationship(t, "Payment Processing"))
 	if err := m.AddService(otherSvc); err != nil {
 		t.Fatalf("AddService: %v", err)
 	}
@@ -764,8 +769,6 @@ func TestValidate_CapabilityRealCycle_CircularDepNotSelfDep(t *testing.T) {
 	// Two-node cycle: Cap C → Cap D → Cap C (genuine circular dep, not self-dep)
 	capC := mustNewCapability(t, "cap-c", "Cap C", "")
 	capD := mustNewCapability(t, "cap-d", "Cap D", "")
-	capC.AddRealizedBy(mustNewRelationship(t, "payment-service"))
-	capD.AddRealizedBy(mustNewRelationship(t, "payment-service"))
 	capC.AddDependsOn(mustNewRelationship(t, "Cap D"))
 	capD.AddDependsOn(mustNewRelationship(t, "Cap C"))
 
@@ -775,6 +778,11 @@ func TestValidate_CapabilityRealCycle_CircularDepNotSelfDep(t *testing.T) {
 	if err := m.AddCapability(capD); err != nil {
 		t.Fatalf("AddCapability capD: %v", err)
 	}
+
+	// Wire payment-service to realize capC and capD so they pass ErrLeafCapNoService
+	paymentSvc := m.Services["payment-service"]
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Cap C"))
+	paymentSvc.AddRealizes(mustNewRelationship(t, "Cap D"))
 
 	result := engine.Validate(m)
 	if !hasWarning(result, service.WarnCircularDep) {

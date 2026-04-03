@@ -200,30 +200,34 @@ func (m *UNMModel) GetCapabilitiesForTeam(teamName string) []*Capability {
 	return result
 }
 
-// GetServicesForCapability returns services referenced in cap.RealizedBy (top-down lookup).
+// GetServicesForCapability returns services that realize the named capability.
+// Looks up via service.Realizes (the canonical source of truth).
 func (m *UNMModel) GetServicesForCapability(capabilityName string) []*Service {
-	cap, ok := m.Capabilities[capabilityName]
-	if !ok {
+	if _, ok := m.Capabilities[capabilityName]; !ok {
 		return nil
 	}
 	var result []*Service
-	for _, rel := range cap.RealizedBy {
-		if svc, found := m.Services[rel.TargetID.String()]; found {
-			result = append(result, svc)
+	for _, svc := range m.Services {
+		for _, rel := range svc.Realizes {
+			if rel.TargetID.String() == capabilityName {
+				result = append(result, svc)
+				break
+			}
 		}
 	}
 	return result
 }
 
-// GetCapabilitiesForService returns capabilities whose RealizedBy references the named service.
+// GetCapabilitiesForService returns capabilities realized by the named service.
 func (m *UNMModel) GetCapabilitiesForService(serviceName string) []*Capability {
+	svc, ok := m.Services[serviceName]
+	if !ok {
+		return nil
+	}
 	var result []*Capability
-	for _, cap := range m.Capabilities {
-		for _, rel := range cap.RealizedBy {
-			if rel.TargetID.String() == serviceName {
-				result = append(result, cap)
-				break
-			}
+	for _, rel := range svc.Realizes {
+		if cap, found := m.Capabilities[rel.TargetID.String()]; found {
+			result = append(result, cap)
 		}
 	}
 	return result
@@ -254,17 +258,11 @@ func (m *UNMModel) GetNeedsForActor(actorName string) []*Need {
 	return result
 }
 
-// GetOrphanServices returns services not referenced in any capability's RealizedBy.
+// GetOrphanServices returns services not referenced in any capability's realizes chain.
 func (m *UNMModel) GetOrphanServices() []*Service {
-	referenced := make(map[string]bool)
-	for _, cap := range m.Capabilities {
-		for _, rel := range cap.RealizedBy {
-			referenced[rel.TargetID.String()] = true
-		}
-	}
 	var result []*Service
-	for name, svc := range m.Services {
-		if !referenced[name] {
+	for _, svc := range m.Services {
+		if len(svc.Realizes) == 0 {
 			result = append(result, svc)
 		}
 	}

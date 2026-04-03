@@ -611,10 +611,9 @@ func TestRemoveService(t *testing.T) {
 	m := buildTestModel(t)
 	applier := NewChangesetApplier()
 
-	// Link svc-a to cap-one so we can verify cleanup
-	svcAID, _ := valueobject.NewEntityID("svc-a")
-	m.Capabilities["cap-one"].RealizedBy = append(m.Capabilities["cap-one"].RealizedBy,
-		entity.NewRelationship(svcAID, "", ""))
+	// Link svc-a to cap-one via service.Realizes so we can verify cleanup
+	capOneID, _ := valueobject.NewEntityID("cap-one")
+	m.Services["svc-a"].AddRealizes(entity.NewRelationship(capOneID, "", ""))
 
 	cs, _ := entity.NewChangeset("cs-1", "test")
 	_ = cs.AddAction(entity.ChangeAction{
@@ -628,8 +627,10 @@ func TestRemoveService(t *testing.T) {
 	_, exists := result.Services["svc-a"]
 	assert.False(t, exists)
 
-	for _, rel := range result.Capabilities["cap-one"].RealizedBy {
-		assert.NotEqual(t, "svc-a", rel.TargetID.String())
+	// The service was deleted — so no service realizes cap-one with name svc-a
+	svcs := result.GetServicesForCapability("cap-one")
+	for _, svc := range svcs {
+		assert.NotEqual(t, "svc-a", svc.Name)
 	}
 }
 
@@ -651,9 +652,8 @@ func TestRenameService(t *testing.T) {
 	m := buildTestModel(t)
 	applier := NewChangesetApplier()
 
-	svcAID, _ := valueobject.NewEntityID("svc-a")
-	m.Capabilities["cap-one"].RealizedBy = append(m.Capabilities["cap-one"].RealizedBy,
-		entity.NewRelationship(svcAID, "", ""))
+	capOneID, _ := valueobject.NewEntityID("cap-one")
+	m.Services["svc-a"].AddRealizes(entity.NewRelationship(capOneID, "", ""))
 
 	cs, _ := entity.NewChangeset("cs-1", "test")
 	_ = cs.AddAction(entity.ChangeAction{
@@ -673,14 +673,16 @@ func TestRenameService(t *testing.T) {
 	assert.Equal(t, "svc-alpha", svc.Name)
 	assert.Equal(t, "team-alpha", svc.OwnerTeamName)
 
+	// The renamed service should still realize cap-one
+	svcs := result.GetServicesForCapability("cap-one")
 	found := false
-	for _, rel := range result.Capabilities["cap-one"].RealizedBy {
-		if rel.TargetID.String() == "svc-alpha" {
+	for _, s := range svcs {
+		if s.Name == "svc-alpha" {
 			found = true
 		}
-		assert.NotEqual(t, "svc-a", rel.TargetID.String())
+		assert.NotEqual(t, "svc-a", s.Name)
 	}
-	assert.True(t, found, "cap-one.RealizedBy should reference svc-alpha")
+	assert.True(t, found, "svc-alpha should still realize cap-one")
 }
 
 func TestAddTeam(t *testing.T) {
@@ -1047,11 +1049,18 @@ func TestLinkCapabilityService(t *testing.T) {
 	result, err := applier.Apply(m, cs)
 	require.NoError(t, err)
 
+	// After LinkCapabilityService, svc-a should realize cap-one
+	svcs := result.GetServicesForCapability("cap-one")
 	found := false
-	for _, rel := range result.Capabilities["cap-one"].RealizedBy {
-		if rel.TargetID.String() == "svc-a" {
+	for _, svc := range svcs {
+		if svc.Name == "svc-a" {
 			found = true
-			assert.Equal(t, valueobject.RelationshipRole("primary"), rel.Role)
+			// Check that the role is set on the service's Realizes relationship
+			for _, rel := range result.Services["svc-a"].Realizes {
+				if rel.TargetID.String() == "cap-one" {
+					assert.Equal(t, valueobject.RelationshipRole("primary"), rel.Role)
+				}
+			}
 		}
 	}
 	assert.True(t, found, "cap-one should be realized by svc-a")
@@ -1061,10 +1070,9 @@ func TestUnlinkCapabilityService(t *testing.T) {
 	m := buildTestModel(t)
 	applier := NewChangesetApplier()
 
-	// First link it
-	svcAID, _ := valueobject.NewEntityID("svc-a")
-	m.Capabilities["cap-one"].RealizedBy = append(m.Capabilities["cap-one"].RealizedBy,
-		entity.NewRelationship(svcAID, "", ""))
+	// First link it via service.Realizes
+	capOneID, _ := valueobject.NewEntityID("cap-one")
+	m.Services["svc-a"].AddRealizes(entity.NewRelationship(capOneID, "", ""))
 
 	cs, _ := entity.NewChangeset("cs-1", "test")
 	_ = cs.AddAction(entity.ChangeAction{
@@ -1076,8 +1084,10 @@ func TestUnlinkCapabilityService(t *testing.T) {
 	result, err := applier.Apply(m, cs)
 	require.NoError(t, err)
 
-	for _, rel := range result.Capabilities["cap-one"].RealizedBy {
-		assert.NotEqual(t, "svc-a", rel.TargetID.String())
+	// After unlink, svc-a should not realize cap-one
+	svcs := result.GetServicesForCapability("cap-one")
+	for _, svc := range svcs {
+		assert.NotEqual(t, "svc-a", svc.Name)
 	}
 }
 

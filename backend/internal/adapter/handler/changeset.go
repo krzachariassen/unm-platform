@@ -26,9 +26,9 @@ func (h *Handler) registerChangesetRoutes(mux *http.ServeMux) {
 
 // changesetCreateRequest is the JSON body for POST /api/models/{id}/changesets.
 type changesetCreateRequest struct {
-	ID          string                `json:"id"`
-	Description string                `json:"description"`
-	Actions     []entity.ChangeAction `json:"actions"`
+	ID          string             `json:"id"`
+	Description string             `json:"description"`
+	Actions     []changeActionDTO  `json:"actions"`
 }
 
 // changesetCreateResponse is the JSON response for POST /api/models/{id}/changesets.
@@ -41,11 +41,11 @@ type changesetCreateResponse struct {
 
 // changesetGetResponse is the JSON response for GET /api/models/{id}/changesets/{csId}.
 type changesetGetResponse struct {
-	ID          string                `json:"id"`
-	ModelID     string                `json:"model_id"`
-	Description string                `json:"description"`
-	Actions     []entity.ChangeAction `json:"actions"`
-	CreatedAt   string                `json:"created_at"`
+	ID          string            `json:"id"`
+	ModelID     string            `json:"model_id"`
+	Description string            `json:"description"`
+	Actions     []changeActionDTO `json:"actions"`
+	CreatedAt   string            `json:"created_at"`
 }
 
 // impactDelta is a single dimension comparison in the impact response.
@@ -84,8 +84,8 @@ func (h *Handler) handleCreateChangeset(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	for _, action := range req.Actions {
-		if err := cs.AddAction(action); err != nil {
+	for _, actionDTO := range req.Actions {
+		if err := cs.AddAction(fromChangeActionDTO(actionDTO)); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -121,11 +121,16 @@ func (h *Handler) handleGetChangeset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	actionDTOs := make([]changeActionDTO, len(sc.Changeset.Actions))
+	for i, a := range sc.Changeset.Actions {
+		actionDTOs[i] = toChangeActionDTO(a)
+	}
+
 	writeJSON(w, http.StatusOK, changesetGetResponse{
 		ID:          sc.ID,
 		ModelID:     sc.ModelID,
 		Description: sc.Changeset.Description,
-		Actions:     sc.Changeset.Actions,
+		Actions:     actionDTOs,
 		CreatedAt:   sc.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 	})
 }

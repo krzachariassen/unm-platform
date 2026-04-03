@@ -223,8 +223,10 @@ services:
 
 	cap := model.Capabilities["Cap A"]
 	require.NotNil(t, cap)
-	require.Len(t, cap.RealizedBy, 1)
-	assert.Equal(t, "svc-a", cap.RealizedBy[0].TargetID.String())
+	// Wiring is canonical on service.Realizes — verify via model query
+	svcs := model.GetServicesForCapability("Cap A")
+	require.Len(t, svcs, 1)
+	assert.Equal(t, "svc-a", svcs[0].Name)
 }
 
 func TestPhase9_ServiceRealizes_WithRole(t *testing.T) {
@@ -243,11 +245,12 @@ services:
 	model, err := p.Parse(strings.NewReader(yaml))
 	require.NoError(t, err)
 
-	cap := model.Capabilities["Cap A"]
-	require.NotNil(t, cap)
-	require.Len(t, cap.RealizedBy, 1)
-	assert.Equal(t, "svc-a", cap.RealizedBy[0].TargetID.String())
-	assert.Equal(t, "supporting", cap.RealizedBy[0].Role.String())
+	// Wiring is canonical on service.Realizes
+	svcA, ok := model.Services["svc-a"]
+	require.True(t, ok)
+	require.Len(t, svcA.Realizes, 1)
+	assert.Equal(t, "Cap A", svcA.Realizes[0].TargetID.String())
+	assert.Equal(t, "supporting", svcA.Realizes[0].Role.String())
 }
 
 // ---------------------------------------------------------------------------
@@ -367,8 +370,9 @@ services:
 
 	// ghost-svc realizes Cap A successfully, but NonExistentCap is skipped
 	// (reference validation catches unresolved service.realizes targets)
-	cap := model.Capabilities["Cap A"]
-	require.Len(t, cap.RealizedBy, 1)
+	// Verify Cap A is realized by ghost-svc via the canonical service.Realizes
+	svcs := model.GetServicesForCapability("Cap A")
+	require.Len(t, svcs, 1)
 }
 
 func TestPhase9_ReferenceValidation_ResolvedReferences_NoWarning(t *testing.T) {

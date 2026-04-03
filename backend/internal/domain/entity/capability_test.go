@@ -102,12 +102,12 @@ func TestNewCapability(t *testing.T) {
 		}
 	})
 
-	t.Run("AddRealizedBy appends relationship", func(t *testing.T) {
-		c, _ := NewCapability("cap-1", "Payment Processing", "")
-		id, _ := valueobject.NewEntityID("svc-1")
-		c.AddRealizedBy(NewRelationship(id, "payment service", valueobject.Primary))
-		if len(c.RealizedBy) != 1 {
-			t.Errorf("expected 1 RealizedBy, got %d", len(c.RealizedBy))
+	t.Run("AddRealizes on service links capability", func(t *testing.T) {
+		s, _ := NewService("svc-1", "svc-1", "payment service", "team-a")
+		id, _ := valueobject.NewEntityID("cap-1")
+		s.AddRealizes(NewRelationship(id, "payment service", valueobject.Primary))
+		if len(s.Realizes) != 1 {
+			t.Errorf("expected 1 Realizes, got %d", len(s.Realizes))
 		}
 	})
 

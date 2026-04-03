@@ -1,0 +1,236 @@
+{
+  "services": [
+    {
+      "capability_score": 2,
+      "data_asset_score": 7,
+      "dependency_score": 20,
+      "service": "nexus-core",
+      "total_complexity": 60
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 6,
+      "service": "nexus-publisher",
+      "total_complexity": 15
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 5,
+      "dependency_score": 1,
+      "service": "nexus-serving-ingestor",
+      "total_complexity": 15
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 5,
+      "service": "nexus-feed-worker",
+      "total_complexity": 13
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 2,
+      "dependency_score": 2,
+      "service": "nexus-anomaly-detector",
+      "total_complexity": 11
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 1,
+      "dependency_score": 3,
+      "service": "nexus-enricher",
+      "total_complexity": 11
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 2,
+      "dependency_score": 2,
+      "service": "nexus-realtime-stats",
+      "total_complexity": 11
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 3,
+      "service": "nexus-cache-worker",
+      "total_complexity": 9
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 3,
+      "service": "nexus-feed-api",
+      "total_complexity": 9
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 3,
+      "service": "nexus-publisher-worker",
+      "total_complexity": 9
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 2,
+      "dependency_score": 1,
+      "service": "nexus-serving",
+      "total_complexity": 9
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-admin",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-backup",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-blob",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-indexer",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-indexer-worker",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-mcp",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-media",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 2,
+      "service": "nexus-tool",
+      "total_complexity": 7
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-async",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-async-writer",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-conversion-worker",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-entity-builder",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-issue-store",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 1,
+      "dependency_score": 0,
+      "service": "nexus-query",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-registry",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-scrubber",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-serving-gateway",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-social-ingester",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-transformer",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 1,
+      "service": "nexus-warehouse-ingester",
+      "total_complexity": 5
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 0,
+      "service": "nexus-feed-adhoc-worker",
+      "total_complexity": 3
+    },
+    {
+      "capability_score": 1,
+      "data_asset_score": 0,
+      "dependency_score": 0,
+      "service": "nexus-status",
+      "total_complexity": 3
+    }
+  ],
+  "type": "complexity"
+}

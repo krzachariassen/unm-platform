@@ -89,21 +89,19 @@ func (a *ValueChainAnalyzer) Analyze(m *entity.UNMModel) ValueChainReport {
 
 		for _, capRel := range need.SupportedBy {
 			capName := capRel.TargetID.String()
-			cap, ok := m.Capabilities[capName]
-			if !ok {
+			if _, ok := m.Capabilities[capName]; !ok {
 				continue
 			}
 			capCount++
 
-			for _, svcRel := range cap.RealizedBy {
-				svcName := svcRel.TargetID.String()
-				svc, ok := m.Services[svcName]
-				if !ok {
-					continue
-				}
-				serviceSet[svcName] = true
-				if svc.OwnerTeamName != "" {
-					teamSet[svc.OwnerTeamName] = true
+			for _, svc := range m.Services {
+				for _, svcRel := range svc.Realizes {
+					if svcRel.TargetID.String() == capName {
+						serviceSet[svc.Name] = true
+						if svc.OwnerTeamName != "" {
+							teamSet[svc.OwnerTeamName] = true
+						}
+					}
 				}
 			}
 		}

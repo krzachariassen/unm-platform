@@ -43,12 +43,14 @@ func (a *ValueStreamAnalyzer) Analyze(m *entity.UNMModel) ValueStreamReport {
 
 	// Build reverse index: capability name → set of service names that realize it
 	capToServices := make(map[string]map[string]bool)
-	for _, cap := range m.Capabilities {
-		svcSet := make(map[string]bool)
-		for _, rel := range cap.RealizedBy {
-			svcSet[rel.TargetID.String()] = true
+	for _, svc := range m.Services {
+		for _, rel := range svc.Realizes {
+			capName := rel.TargetID.String()
+			if capToServices[capName] == nil {
+				capToServices[capName] = make(map[string]bool)
+			}
+			capToServices[capName][svc.Name] = true
 		}
-		capToServices[cap.Name] = svcSet
 	}
 
 	// For each need, find which teams serve it

@@ -57,16 +57,16 @@ func TestComplexityAnalyzer_CapabilityScore(t *testing.T) {
 	}
 
 	cap1 := mustNewCapability(t, "cap-1", "cap-1")
-	cap1.AddRealizedBy(entity.NewRelationship(mustServiceID(t, "svc-a"), "", ""))
 	if err := m.AddCapability(cap1); err != nil {
 		t.Fatalf("AddCapability cap-1: %v", err)
 	}
 
 	cap2 := mustNewCapability(t, "cap-2", "cap-2")
-	cap2.AddRealizedBy(entity.NewRelationship(mustServiceID(t, "svc-a"), "", ""))
 	if err := m.AddCapability(cap2); err != nil {
 		t.Fatalf("AddCapability cap-2: %v", err)
 	}
+	svc.AddRealizes(entity.NewRelationship(mustCapabilityID(t, "cap-1"), "", ""))
+	svc.AddRealizes(entity.NewRelationship(mustCapabilityID(t, "cap-2"), "", ""))
 
 	a := NewComplexityAnalyzer()
 	report := a.Analyze(m)
@@ -165,10 +165,10 @@ func TestComplexityAnalyzer_TotalComplexityWeightedSum(t *testing.T) {
 	}
 
 	cap1 := mustNewCapability(t, "cap-1", "cap-1")
-	cap1.AddRealizedBy(entity.NewRelationship(mustServiceID(t, "svc-a"), "", ""))
 	if err := m.AddCapability(cap1); err != nil {
 		t.Fatalf("AddCapability: %v", err)
 	}
+	svcA.AddRealizes(entity.NewRelationship(mustCapabilityID(t, "cap-1"), "", ""))
 
 	da := mustDataAsset(t, "da-1", "da-1", entity.TypeDatabase)
 	da.AddUsedBy("svc-a")
@@ -223,16 +223,16 @@ func TestComplexityAnalyzer_Ranking(t *testing.T) {
 	}
 
 	capB := mustNewCapability(t, "cap-b", "cap-b")
-	capB.AddRealizedBy(entity.NewRelationship(mustServiceID(t, "svc-beta"), "", ""))
 	if err := m.AddCapability(capB); err != nil {
 		t.Fatalf("AddCapability cap-b: %v", err)
 	}
+	svcBeta.AddRealizes(entity.NewRelationship(mustCapabilityID(t, "cap-b"), "", ""))
 
 	capG := mustNewCapability(t, "cap-g", "cap-g")
-	capG.AddRealizedBy(entity.NewRelationship(mustServiceID(t, "svc-gamma"), "", ""))
 	if err := m.AddCapability(capG); err != nil {
 		t.Fatalf("AddCapability cap-g: %v", err)
 	}
+	svcGamma.AddRealizes(entity.NewRelationship(mustCapabilityID(t, "cap-g"), "", ""))
 
 	a := NewComplexityAnalyzer()
 	report := a.Analyze(m)

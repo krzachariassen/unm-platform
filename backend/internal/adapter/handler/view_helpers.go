@@ -59,26 +59,20 @@ type capServiceInfo struct {
 }
 
 func buildCapServiceMap(m *entity.UNMModel) map[string]capServiceInfo {
-	// service name → number of capabilities it realizes
+	// service name → number of capabilities it realizes (from service.Realizes)
 	svcCapCount := make(map[string]int)
-	for _, c := range m.Capabilities {
-		for _, rel := range c.RealizedBy {
-			svcCapCount[rel.TargetID.String()]++
-		}
+	for _, svc := range m.Services {
+		svcCapCount[svc.Name] += len(svc.Realizes)
 	}
 
 	result := make(map[string]capServiceInfo)
-	for capName, c := range m.Capabilities {
-		var svcs []*entity.Service
+	for capName := range m.Capabilities {
+		svcs := m.GetServicesForCapability(capName)
 		teamSet := make(map[string]*entity.Team)
-		for _, rel := range c.RealizedBy {
-			svcName := rel.TargetID.String()
-			if svc, ok := m.Services[svcName]; ok {
-				svcs = append(svcs, svc)
-				if svc.OwnerTeamName != "" {
-					if t, ok := m.Teams[svc.OwnerTeamName]; ok {
-						teamSet[t.Name] = t
-					}
+		for _, svc := range svcs {
+			if svc.OwnerTeamName != "" {
+				if t, ok := m.Teams[svc.OwnerTeamName]; ok {
+					teamSet[t.Name] = t
 				}
 			}
 		}
@@ -93,10 +87,11 @@ func buildCapServiceMap(m *entity.UNMModel) map[string]capServiceInfo {
 		for _, t := range teams {
 			teamNames = append(teamNames, t.Name)
 		}
+		cap := m.Capabilities[capName]
 		result[capName] = capServiceInfo{
 			services:     svcs,
 			teams:        teams,
-			isFragmented: c.IsFragmented(teamNames),
+			isFragmented: cap.IsFragmented(teamNames),
 		}
 	}
 	return result
@@ -104,10 +99,8 @@ func buildCapServiceMap(m *entity.UNMModel) map[string]capServiceInfo {
 
 func buildSvcCapCount(m *entity.UNMModel) map[string]int {
 	svcCapCount := make(map[string]int)
-	for _, c := range m.Capabilities {
-		for _, rel := range c.RealizedBy {
-			svcCapCount[rel.TargetID.String()]++
-		}
+	for _, svc := range m.Services {
+		svcCapCount[svc.Name] += len(svc.Realizes)
 	}
 	return svcCapCount
 }

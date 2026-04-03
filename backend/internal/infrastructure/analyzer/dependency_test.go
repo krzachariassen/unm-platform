@@ -17,6 +17,16 @@ func mustServiceID(t *testing.T, id string) valueobject.EntityID {
 	return eid
 }
 
+// mustCapabilityID is a helper to create a valueobject.EntityID for a capability, fataling on error.
+func mustCapabilityID(t *testing.T, id string) valueobject.EntityID {
+	t.Helper()
+	eid, err := valueobject.NewEntityID(id)
+	if err != nil {
+		t.Fatalf("NewEntityID %q: %v", id, err)
+	}
+	return eid
+}
+
 // mustNewService creates a Service, fataling on error.
 func mustNewService(t *testing.T, id, name, owner string) *entity.Service {
 	t.Helper()
