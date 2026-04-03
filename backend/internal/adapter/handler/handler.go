@@ -42,6 +42,7 @@ type HandlerDeps struct {
 	AIClient            *ai.OpenAIClient // nil when API key not configured
 	Store               usecase.ModelRepository
 	SessionStore        usecase.SessionRepository // nil when auth not configured
+	OrgStore            usecase.OrgRepository     // nil when org management not configured
 }
 
 // modelHandler groups the dependencies needed for model CRUD operations.
@@ -88,6 +89,7 @@ type Handler struct {
 	view  *viewHandler
 	aiH   *aiHandler
 	authH *authHandler
+	orgH  *orgHandler
 
 	// Analyzers used by signals, analysis, and AI context building.
 	fragmentation     *analyzer.FragmentationAnalyzer
@@ -188,6 +190,11 @@ func New(deps HandlerDeps) *Handler {
 	// Auth handler — only constructed when session store is provided.
 	if deps.SessionStore != nil {
 		h.authH = newAuthHandler(deps.Config.Auth, deps.SessionStore)
+	}
+
+	// Org handler — only constructed when org store is provided.
+	if deps.OrgStore != nil {
+		h.orgH = &orgHandler{store: deps.OrgStore}
 	}
 
 	if h.parseAndValidateDSL == nil {

@@ -43,6 +43,11 @@ func NewRouter(h *Handler, cfgs ...entity.Config) http.Handler {
 	h.registerAIRoutes(mux)
 	h.registerInsightsRoutes(mux)
 
+	// Org + workspace management routes (registered when org store is configured).
+	if h.orgH != nil {
+		h.registerOrgRoutes(mux)
+	}
+
 	if cfg.Features.DebugRoutes {
 		h.registerDebugRoutes(mux)
 	}
