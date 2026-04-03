@@ -1,11 +1,14 @@
 package handler
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
@@ -95,16 +98,44 @@ type diffResponse struct {
 	Changed     service.DiffEntities `json:"changed"`
 }
 
+// sniffIsDSL peeks at the first 64 bytes of the body to determine if the content
+// looks like DSL format. DSL files begin with the keyword "system" followed by
+// a space or double-quote (e.g. `system "Name" {`). Returns the peeked bytes so
+// the caller can reconstitute the full reader with io.MultiReader.
+func sniffIsDSL(body io.Reader) (bool, io.Reader) {
+	peek := make([]byte, 64)
+	n, _ := body.Read(peek)
+	peek = peek[:n]
+	full := io.MultiReader(bytes.NewReader(peek), body)
+	trimmed := strings.TrimSpace(string(peek))
+	isDSL := strings.HasPrefix(trimmed, "system ") || strings.HasPrefix(trimmed, `system"`)
+	return isDSL, full
+}
+
 // handleParse parses a submitted UNM model, stores it, and returns JSON.
-// Pass ?format=dsl to parse DSL (.unm) format; default is YAML.
+// Pass ?format=dsl to parse DSL (.unm) format. If no format param is given,
+// the content is sniffed: bodies starting with `system ` or `system"` are
+// treated as DSL automatically; everything else is parsed as YAML.
 // Send X-Replace-Model header with a previous model ID to delete the old model
 // and its changesets before storing the new one (prevents memory leaks).
 func (h *Handler) handleParse(w http.ResponseWriter, r *http.Request) {
+	var body io.Reader = r.Body
 	pv := h.parseAndValidate
-	if r.URL.Query().Get("format") == "dsl" {
+	switch r.URL.Query().Get("format") {
+	case "dsl":
 		pv = h.parseAndValidateDSL
+	case "yaml", "yml":
+		// explicit YAML — keep default
+	default:
+		// auto-detect
+		var isDSL bool
+		isDSL, body = sniffIsDSL(body)
+		if isDSL {
+			pv = h.parseAndValidateDSL
+		}
 	}
-	model, result, err := pv.Execute(r.Body)
+
+	model, result, err := pv.Execute(body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -139,13 +170,25 @@ func (h *Handler) handleParse(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleValidate parses and validates a submitted UNM model, returning errors/warnings.
-// The model is NOT stored.
+// The model is NOT stored. Format auto-detection follows the same rules as handleParse.
 func (h *Handler) handleValidate(w http.ResponseWriter, r *http.Request) {
+	var body io.Reader = r.Body
 	pv := h.parseAndValidate
-	if r.URL.Query().Get("format") == "dsl" {
+	switch r.URL.Query().Get("format") {
+	case "dsl":
 		pv = h.parseAndValidateDSL
+	case "yaml", "yml":
+		// explicit YAML — keep default
+	default:
+		// auto-detect
+		var isDSL bool
+		isDSL, body = sniffIsDSL(body)
+		if isDSL {
+			pv = h.parseAndValidateDSL
+		}
 	}
-	_, result, err := pv.Execute(r.Body)
+
+	_, result, err := pv.Execute(body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

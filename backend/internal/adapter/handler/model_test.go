@@ -366,6 +366,43 @@ func TestHandleValidate_ResponseIncludesWarningsArray(t *testing.T) {
 	assert.True(t, hasWarnings, "response must contain 'warnings' array")
 }
 
+// ── Format auto-detection ──────────────────────────────────────────────────────
+
+func TestHandleParse_DSLContentAutoDetected(t *testing.T) {
+	h := newTestHandler(t)
+
+	// Send DSL content WITHOUT ?format=dsl — handler must auto-detect.
+	req := httptest.NewRequest(http.MethodPost, "/api/models/parse", strings.NewReader(validDSL))
+	req.Header.Set("Content-Type", "text/plain")
+	w := httptest.NewRecorder()
+
+	h.handleParse(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code, "DSL auto-detect must succeed: %s", w.Body.String())
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "DSL Test System", resp["system_name"])
+}
+
+func TestHandleValidate_DSLContentAutoDetected(t *testing.T) {
+	h := newTestHandler(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/models/validate", strings.NewReader(validDSL))
+	req.Header.Set("Content-Type", "text/plain")
+	w := httptest.NewRecorder()
+
+	h.handleValidate(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code, "DSL auto-detect validate must succeed: %s", w.Body.String())
+
+	var resp map[string]any
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	isValid, ok := resp["is_valid"].(bool)
+	require.True(t, ok)
+	assert.True(t, isValid)
+}
+
 // ── GET /api/models ────────────────────────────────────────────────────────────
 
 func TestHandleListModels_Returns200(t *testing.T) {

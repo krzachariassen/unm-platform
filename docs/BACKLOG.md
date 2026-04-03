@@ -16,6 +16,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
+- [x] **fix(parse): auto-detect DSL vs YAML in parse/validate endpoints** — Sniff first 64 bytes of body; content starting with `system ` or `system"` is automatically routed to the DSL parser. Explicit `?format=dsl|yaml` still takes precedence. Two new handler tests added. (2026-04-03)
+
 - [x] **feat(phase-14c): Model List & History UI (frontend)** — ModelsPage with card grid (name, created_at, version_count, Load button, empty/loading states); ModelHistoryPage with version timeline (commit message, date, compare mode); DiffViewer component (added/removed/changed entities, green/red/amber color coding, per-entity-type grouping); API functions listModels, loadStoredModel, getHistory, getDiff added to services/api/models.ts; new types ModelListItem, VersionMeta, DiffEntities, DiffResult in types/model.ts; /models and /history routes; "All Models" and "History" sidebar entries; 13 new tests, all 91 tests pass. 14C.1–14C.3 complete. (2026-04-03)
 
 - [x] **feat(phase-14b): Model History & Multi-Model (backend)** — `ReplaceWithMessage` added to `ModelRepository` interface; changeset commit now stores description as `commit_message` in `model_versions`; `GET /api/models` list endpoint with version counts; `GET /api/models/{id}/history` with per-version metadata; `GET /api/models/{id}/versions/{v}` retrieves model at specific version; `GET /api/models/{id}/diff?from=&to=` computes structural diff (added/removed/changed by entity type); `domain/service/model_diff.go` with `Diff()` and `DiffEntities`; memory store stubs for all new interface methods; PG store queries `model_versions` table for real multi-version history; 14B.8 eviction scoped to memory-only (log note added for postgres path); handler tests and contract tests for all new endpoints/methods. 14B.1–14B.5, 14B.8 complete. (2026-04-03)
@@ -438,11 +440,11 @@ Review 1: "Building a comprehensive .unm model requires effort. The first
 
 ## Bugs
 
-- [ ] **BUG: Parse endpoint requires manual `?format=dsl`** — `POST /api/models/parse`
-      defaults to YAML. Sending a `.unm` file without `?format=dsl` produces a
-      confusing YAML parse error instead of auto-detecting the format. Fix: sniff
-      content (DSL starts with `system`) or accept multipart form with filename
-      and detect from extension. DSL should be the default or auto-detected.
+- [x] **BUG: Parse endpoint requires manual `?format=dsl`** — Fixed: `handleParse`
+      and `handleValidate` now sniff the first 64 bytes of the body. Content
+      starting with `system ` or `system"` is auto-detected as DSL; everything
+      else falls back to YAML. Explicit `?format=dsl` / `?format=yaml` still
+      take precedence. (2026-04-03)
       _File: `handler/model.go`_ (#backend)
 
 ---
