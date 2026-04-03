@@ -9,27 +9,21 @@ import (
 	"time"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
-// StoredModel holds a parsed UNMModel with its assigned ID and timestamps.
-type StoredModel struct {
-	ID             string
-	Model          *entity.UNMModel
-	CreatedAt      time.Time
-	LastAccessedAt time.Time
-}
-
 // ModelStore is a concurrency-safe in-memory store for parsed UNMModels.
+// It implements usecase.ModelRepository.
 type ModelStore struct {
 	mu       sync.RWMutex
-	models   map[string]*StoredModel
+	models   map[string]*usecase.StoredModel
 	onDelete func(modelID string) // cascade callback
 	stopCh   chan struct{}        // signals the eviction goroutine to stop
 }
 
 // NewModelStore constructs an empty ModelStore.
 func NewModelStore() *ModelStore {
-	return &ModelStore{models: make(map[string]*StoredModel)}
+	return &ModelStore{models: make(map[string]*usecase.StoredModel)}
 }
 
 // Store saves a model and returns its generated ID.
@@ -46,31 +40,33 @@ func (s *ModelStore) Store(m *entity.UNMModel) (string, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.models[id] = &StoredModel{ID: id, Model: m, CreatedAt: now, LastAccessedAt: now}
+	s.models[id] = &usecase.StoredModel{ID: id, Model: m, CreatedAt: now, LastAccessedAt: now}
 	return id, nil
 }
 
 // Get retrieves a stored model by ID and updates its LastAccessedAt.
-// Returns nil if not found.
-func (s *ModelStore) Get(id string) *StoredModel {
+// Returns ErrNotFound if the model does not exist.
+func (s *ModelStore) Get(id string) (*usecase.StoredModel, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	m := s.models[id]
-	if m != nil {
-		m.LastAccessedAt = time.Now()
+	if m == nil {
+		return nil, usecase.ErrNotFound
 	}
-	return m
+	m.LastAccessedAt = time.Now()
+	return m, nil
 }
 
 // Replace swaps the model stored under the given ID with a new model,
-// preserving the ID and CreatedAt timestamp. Returns false if the ID does not exist.
+// preserving the ID and CreatedAt timestamp.
 // Increments the model version and stamps LastModified.
-func (s *ModelStore) Replace(id string, newModel *entity.UNMModel) bool {
+// Returns ErrNotFound if the ID does not exist.
+func (s *ModelStore) Replace(id string, newModel *entity.UNMModel) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	existing, ok := s.models[id]
 	if !ok {
-		return false
+		return usecase.ErrNotFound
 	}
 	if newModel != nil && existing.Model != nil {
 		newModel.Meta.Version = existing.Model.Meta.Version
@@ -79,12 +75,23 @@ func (s *ModelStore) Replace(id string, newModel *entity.UNMModel) bool {
 	}
 	existing.Model = newModel
 	existing.LastAccessedAt = time.Now()
-	return true
+	return nil
 }
 
-// Delete removes a model by ID. Returns true if it existed.
-// Invokes the onDelete cascade callback if one is registered.
-func (s *ModelStore) Delete(id string) bool {
+// List returns all stored models.
+func (s *ModelStore) List() ([]*usecase.StoredModel, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]*usecase.StoredModel, 0, len(s.models))
+	for _, m := range s.models {
+		result = append(result, m)
+	}
+	return result, nil
+}
+
+// Delete removes a model by ID. Idempotent — does not error if not found.
+// Invokes the onDelete cascade callback if one is registered and the model existed.
+func (s *ModelStore) Delete(id string) error {
 	s.mu.Lock()
 	_, existed := s.models[id]
 	delete(s.models, id)
@@ -93,7 +100,7 @@ func (s *ModelStore) Delete(id string) bool {
 	if existed && cb != nil {
 		cb(id)
 	}
-	return existed
+	return nil
 }
 
 // Len returns the number of stored models.
@@ -148,7 +155,7 @@ func (s *ModelStore) evictExpired(ttl time.Duration) {
 	s.mu.RUnlock()
 
 	for _, id := range expired {
-		s.Delete(id)
+		_ = s.Delete(id)
 		log.Printf("evicted model %s (inactive > %v)", id, ttl)
 	}
 }

@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/serializer"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // registerModelRoutes registers POST /api/models/parse and POST /api/models/validate.
@@ -64,7 +66,7 @@ func (h *Handler) handleParse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if replaceID := r.Header.Get("X-Replace-Model"); replaceID != "" {
-		h.store.Delete(replaceID)
+		_ = h.store.Delete(replaceID)
 	}
 
 	id, err := h.store.Store(model)
@@ -140,9 +142,13 @@ func buildValidatePayload(result service.ValidationResult) validatePayload {
 func (h *Handler) handleExport(w http.ResponseWriter, r *http.Request) {
 	modelID := r.PathValue("id")
 
-	stored := h.store.Get(modelID)
-	if stored == nil {
+	stored, err := h.store.Get(modelID)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -90,9 +91,13 @@ func (h *Handler) reasoningEffortForCategory(templateName string) string {
 func (h *Handler) handleAsk(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -226,9 +231,13 @@ type aiExtractedJSON struct {
 func (h *Handler) handleExtractActions(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -327,9 +336,13 @@ func (h *Handler) handleExplainChangeset(w http.ResponseWriter, r *http.Request)
 	id := r.PathValue("id")
 	csID := r.PathValue("csId")
 
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -338,9 +351,13 @@ func (h *Handler) handleExplainChangeset(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	storedCS := h.changesetStore.Get(csID)
-	if storedCS == nil {
+	storedCS, err := h.changesetStore.Get(csID)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "changeset not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 

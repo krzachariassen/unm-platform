@@ -4,7 +4,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-03 (Phase 13 complete: all items 13.1–13.7 done, codebase clean for Phase 14)_
+_Last updated: 2026-04-03 (Phase 14A complete: PostgreSQL foundation, repository interfaces, contract tests)_
 _Priority: **Phase 14** (persistence) → Phase 15 (auth/tenancy) → Phase 16 (collaboration) → Phase 17 (hardening) → Phase 18 (ecosystem)._
 
 _Context: Two independent external reviews identified migration completion,
@@ -15,6 +15,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 ---
 
 ## Recently Completed
+
+- [x] **feat(phase-14a): PostgreSQL Foundation** — Repository interfaces (`usecase.ModelRepository`, `usecase.ChangesetRepository`) extracted to usecase package; `StoredModel`/`StoredChangeset` DTOs moved to usecase; all handlers updated to depend on interfaces not concrete types; `PGModelStore` and `PGChangesetStore` implemented (pgx v5, golang-migrate, soft delete, system user/workspace bootstrap); initial SQL migration for 8 tables (users, organizations, workspaces, models, model_versions, changesets, memberships); `StorageConfig` added to entity config; `docker-compose.yml` updated with postgres:16-alpine service; `main.go` wired to select memory or postgres driver at startup; contract test suite runs same tests against both implementations (28 tests, all pass including against real postgres). Items 14A.1–14A.10 complete. (2026-04-03)
 
 - [x] **refactor(phase-13): 13.6.1-13.6.4, 13.7.1-13.7.4, 13.5.3, stale comment cleanup** — Removed `capability.RealizedBy` derived field and `AddRealizedBy()` from domain entity; all analyzers migrated to `GetServicesForCapability()`; stale `realizedBy` comments purged from yaml_parser, complexity, fragmentation; created `changeset_dto.go` DTO layer in handler, removed all `json:` tags from `entity.ChangeAction` / `entity.Changeset`; extracted `modelHandler`, `changesetHandler`, `viewHandler`, `aiHandler` sub-structs from monolithic Handler; added analyzer golden fixtures for bottleneck/coupling/complexity/fragmentation/gap/cognitive-load; added frontend trust badges (amber=analyzer, blue=AI) and `Explanation` text to all signal rows in SignalsView; added WhatIfPage and AdvisorPage smoke tests (78 total frontend tests pass). All 15 backend packages pass. (2026-04-03)
 - [x] **refactor(phase-13): 13.1, 13.3, 13.4, 13.5 (backend)** — Split `view_enriched.go` (1281 lines) into 7 focused files: `view_helpers.go`, `view_need.go`, `view_capability.go`, `view_team.go`, `view_ownership.go`, `view_realization.go`, `view_map.go`; deleted `view_enriched.go`; removed backward-compat `corsMiddleware` with `"*"`; added `Explanation` field to `Signal` and `SuggestedSignal` with human-readable threshold explanations in all 5 analyzer rules; defined `SourceType` enum (`model_fact`, `analyzer_finding`, `ai_interpretation`) in `domain/valueobject`; added `Source SourceType` to `Signal` entity and `SourceTag` to `SuggestedSignal` with `SourceAnalyzerFinding` tagging; all 14 packages pass. (2026-04-03)
@@ -41,34 +43,34 @@ that design.
 
 ### 14A — Repository Interfaces & PostgreSQL Foundation
 
-- [ ] **14A.1** — Define repository interfaces in usecase package:
+- [x] **14A.1** — Define repository interfaces in usecase package:
       `ModelRepository`, `ChangesetRepository`, `VersionRepository` with
       operations scoped by workspace context.
       _File: `usecase/repository.go`_ (#backend)
-- [ ] **14A.2** — Add PostgreSQL driver (`pgx`) and migration tool
+- [x] **14A.2** — Add PostgreSQL driver (`pgx`) and migration tool
       (`golang-migrate`). _File: `go.mod`_ (#backend)
-- [ ] **14A.3** — Create initial migration: `users`, `organizations`,
+- [x] **14A.3** — Create initial migration: `users`, `organizations`,
       `org_memberships`, `workspaces`, `workspace_memberships`, `models`,
       `model_versions`, `changesets` tables.
       Schema defined in `docs/ARCHITECTURE_EVOLUTION.md` §3.
       _File: `infrastructure/persistence/migrations/001_initial.up.sql`_ (#backend)
-- [ ] **14A.4** — Implement PostgreSQL-backed `ModelRepository`.
+- [x] **14A.4** — Implement PostgreSQL-backed `ModelRepository`.
       All queries scoped through workspace → org chain.
       _File: `infrastructure/persistence/pg_model_store.go`_ (#backend)
-- [ ] **14A.5** — Implement PostgreSQL-backed `ChangesetRepository`.
+- [x] **14A.5** — Implement PostgreSQL-backed `ChangesetRepository`.
       _File: `infrastructure/persistence/pg_changeset_store.go`_ (#backend)
-- [ ] **14A.6** — Implement PostgreSQL-backed `VersionRepository`.
+- [x] **14A.6** — Implement PostgreSQL-backed `VersionRepository`.
       _File: `infrastructure/persistence/pg_version_store.go`_ (#backend)
-- [ ] **14A.7** — Config: `storage.driver: postgres|memory`,
+- [x] **14A.7** — Config: `storage.driver: postgres|memory`,
       `storage.database_url`, `storage.migrate_on_startup`.
       _Files: `entity/config.go`, `config/base.yaml`_ (#backend)
-- [ ] **14A.8** — Wire in `main.go`: construct PG stores when driver=postgres,
+- [x] **14A.8** — Wire in `main.go`: construct PG stores when driver=postgres,
       run migrations on startup. Keep memory stores for driver=memory.
       _File: `cmd/server/main.go`_ (#backend)
-- [ ] **14A.9** — Tests: repository interface tests that run against both
+- [x] **14A.9** — Tests: repository interface tests that run against both
       memory and postgres implementations.
       _File: `persistence/*_test.go`_ (#backend)
-- [ ] **14A.10** — Docker Compose: add PostgreSQL service for local dev.
+- [x] **14A.10** — Docker Compose: add PostgreSQL service for local dev.
       _File: `docker-compose.yml`_ (#infra)
 
 ### 14B — Model History & Multi-Model

@@ -2,11 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // registerChangesetRoutes registers changeset-related API routes.
@@ -26,9 +28,9 @@ func (h *Handler) registerChangesetRoutes(mux *http.ServeMux) {
 
 // changesetCreateRequest is the JSON body for POST /api/models/{id}/changesets.
 type changesetCreateRequest struct {
-	ID          string             `json:"id"`
-	Description string             `json:"description"`
-	Actions     []changeActionDTO  `json:"actions"`
+	ID          string            `json:"id"`
+	Description string            `json:"description"`
+	Actions     []changeActionDTO `json:"actions"`
 }
 
 // changesetCreateResponse is the JSON response for POST /api/models/{id}/changesets.
@@ -66,9 +68,12 @@ type impactResponse struct {
 func (h *Handler) handleCreateChangeset(w http.ResponseWriter, r *http.Request) {
 	modelID := r.PathValue("id")
 
-	stored := h.store.Get(modelID)
-	if stored == nil {
+	// Verify model exists.
+	if _, err := h.store.Get(modelID); errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	} else if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -109,15 +114,21 @@ func (h *Handler) handleGetChangeset(w http.ResponseWriter, r *http.Request) {
 	modelID := r.PathValue("id")
 	csID := r.PathValue("csId")
 
-	stored := h.store.Get(modelID)
-	if stored == nil {
+	if _, err := h.store.Get(modelID); errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	} else if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
-	sc := h.changesetStore.Get(csID)
-	if sc == nil || sc.ModelID != modelID {
+	sc, err := h.changesetStore.Get(csID)
+	if errors.Is(err, usecase.ErrNotFound) || (err == nil && sc.ModelID != modelID) {
 		writeError(w, http.StatusNotFound, "changeset not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -139,15 +150,23 @@ func (h *Handler) handleProjectedModel(w http.ResponseWriter, r *http.Request) {
 	modelID := r.PathValue("id")
 	csID := r.PathValue("csId")
 
-	stored := h.store.Get(modelID)
-	if stored == nil {
+	stored, err := h.store.Get(modelID)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
 		return
 	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
+		return
+	}
 
-	sc := h.changesetStore.Get(csID)
-	if sc == nil || sc.ModelID != modelID {
+	sc, err := h.changesetStore.Get(csID)
+	if errors.Is(err, usecase.ErrNotFound) || (err == nil && sc.ModelID != modelID) {
 		writeError(w, http.StatusNotFound, "changeset not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -165,15 +184,23 @@ func (h *Handler) handleImpact(w http.ResponseWriter, r *http.Request) {
 	modelID := r.PathValue("id")
 	csID := r.PathValue("csId")
 
-	stored := h.store.Get(modelID)
-	if stored == nil {
+	stored, err := h.store.Get(modelID)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
 		return
 	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
+		return
+	}
 
-	sc := h.changesetStore.Get(csID)
-	if sc == nil || sc.ModelID != modelID {
+	sc, err := h.changesetStore.Get(csID)
+	if errors.Is(err, usecase.ErrNotFound) || (err == nil && sc.ModelID != modelID) {
 		writeError(w, http.StatusNotFound, "changeset not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -204,15 +231,23 @@ func (h *Handler) handleApply(w http.ResponseWriter, r *http.Request) {
 	modelID := r.PathValue("id")
 	csID := r.PathValue("csId")
 
-	stored := h.store.Get(modelID)
-	if stored == nil {
+	stored, err := h.store.Get(modelID)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
 		return
 	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
+		return
+	}
 
-	sc := h.changesetStore.Get(csID)
-	if sc == nil || sc.ModelID != modelID {
+	sc, err := h.changesetStore.Get(csID)
+	if errors.Is(err, usecase.ErrNotFound) || (err == nil && sc.ModelID != modelID) {
 		writeError(w, http.StatusNotFound, "changeset not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -238,10 +273,10 @@ func (h *Handler) handleApply(w http.ResponseWriter, r *http.Request) {
 
 // commitResponse is returned by the commit endpoint.
 type commitResponse struct {
-	ModelID    string                   `json:"model_id"`
-	SystemName string                  `json:"system_name"`
-	Summary    map[string]int           `json:"summary"`
-	Validation commitValidationResult   `json:"validation"`
+	ModelID    string                `json:"model_id"`
+	SystemName string                `json:"system_name"`
+	Summary    map[string]int        `json:"summary"`
+	Validation commitValidationResult `json:"validation"`
 }
 
 type commitValidationResult struct {
@@ -254,15 +289,23 @@ func (h *Handler) handleCommitChangeset(w http.ResponseWriter, r *http.Request) 
 	modelID := r.PathValue("id")
 	csID := r.PathValue("csId")
 
-	stored := h.store.Get(modelID)
-	if stored == nil {
+	stored, err := h.store.Get(modelID)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
 		return
 	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
+		return
+	}
 
-	sc := h.changesetStore.Get(csID)
-	if sc == nil || sc.ModelID != modelID {
+	sc, err := h.changesetStore.Get(csID)
+	if errors.Is(err, usecase.ErrNotFound) || (err == nil && sc.ModelID != modelID) {
 		writeError(w, http.StatusNotFound, "changeset not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -291,8 +334,11 @@ func (h *Handler) handleCommitChangeset(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if !h.store.Replace(modelID, projected) {
+	if err := h.store.Replace(modelID, projected); errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model disappeared during commit")
+		return
+	} else if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
