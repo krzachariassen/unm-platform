@@ -17,9 +17,7 @@ export function TeamsPage() {
 
   return (
     <ModelRequired>
-      <div className="px-6 pt-4">
-        <UrlTabBar tabs={TABS} />
-      </div>
+      <UrlTabBar tabs={TABS} />
       {activeTab === 'topology' && <TeamTopologyView />}
       {activeTab === 'ownership' && <OwnershipView />}
       {activeTab === 'cognitive-load' && <CognitiveLoadView />}

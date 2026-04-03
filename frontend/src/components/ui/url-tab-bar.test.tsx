@@ -20,13 +20,13 @@ describe('UrlTabBar', () => {
   it('defaults to first tab when no search param', () => {
     renderWithRouter('/needs')
     const btn = screen.getByRole('button', { name: 'Overview' })
-    expect(btn.className).toContain('border-primary')
+    expect(btn.className).toContain('after:bg-primary')
   })
 
   it('activates correct tab from URL param', () => {
     renderWithRouter('/needs?tab=traceability')
     const btn = screen.getByRole('button', { name: 'Traceability' })
-    expect(btn.className).toContain('border-primary')
+    expect(btn.className).toContain('after:bg-primary')
   })
 
   it('renders all tabs', () => {

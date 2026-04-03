@@ -15,9 +15,7 @@ export function CapabilitiesPage() {
 
   return (
     <ModelRequired>
-      <div className="px-6 pt-4">
-        <UrlTabBar tabs={TABS} />
-      </div>
+      <UrlTabBar tabs={TABS} />
       {activeTab === 'hierarchy' && <CapabilityView />}
       {activeTab === 'services' && <RealizationView />}
       {activeTab === 'dependencies' && <DependenciesTab />}

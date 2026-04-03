@@ -29,25 +29,28 @@ export function UrlTabBar({ tabs, searchParam = 'tab', className }: UrlTabBarPro
   }
 
   return (
-    <div className={cn('flex gap-1 border-b border-border mb-4', className)}>
-      {tabs.map((tab) => {
-        const isActive = tab.id === current
-        return (
-          <button
-            key={tab.id}
-            onClick={() => activate(tab.id)}
-            aria-label={tab.label}
-            className={cn(
-              'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-              isActive
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-            )}
-          >
-            {tab.label}
-          </button>
-        )
-      })}
+    <div className={cn('sticky top-0 z-10 bg-background border-b border-border', className)}>
+      <div className="flex px-6">
+        {tabs.map((tab) => {
+          const isActive = tab.id === current
+          return (
+            <button
+              key={tab.id}
+              onClick={() => activate(tab.id)}
+              aria-label={tab.label}
+              className={cn(
+                'relative px-4 py-3 text-sm transition-colors whitespace-nowrap',
+                'after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-full after:transition-colors',
+                isActive
+                  ? 'font-semibold text-foreground after:bg-primary'
+                  : 'font-medium text-muted-foreground hover:text-foreground after:bg-transparent'
+              )}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

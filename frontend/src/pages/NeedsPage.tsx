@@ -15,9 +15,7 @@ export function NeedsPage() {
 
   return (
     <ModelRequired>
-      <div className="px-6 pt-4">
-        <UrlTabBar tabs={TABS} />
-      </div>
+      <UrlTabBar tabs={TABS} />
       {activeTab === 'overview' && <NeedView />}
       {activeTab === 'traceability' && <RealizationView />}
       {activeTab === 'gaps' && <GapsTab />}
