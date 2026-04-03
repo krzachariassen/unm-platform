@@ -44,6 +44,8 @@ func main() {
 
 	var store usecase.ModelRepository
 	var csStore usecase.ChangesetRepository
+	var sessStore usecase.SessionRepository
+	var orgStore usecase.OrgRepository
 
 	switch cfg.Storage.Driver {
 	case "postgres":
@@ -78,8 +80,15 @@ func main() {
 				log.Printf("cascade-deleted %d changesets for model %s", n, modelID)
 			}
 		})
+		pgOrgStore := persistence.NewPGOrgStore(db)
+		// Ensure dev resources exist in postgres mode too.
+		if _, _, _, err := pgOrgStore.EnsureDevUser(context.Background()); err != nil {
+			log.Printf("warning: EnsureDevUser: %v", err)
+		}
 		store = pgModel
 		csStore = pgCS
+		sessStore = persistence.NewPGSessionStore(db)
+		orgStore = pgOrgStore
 		log.Printf("storage: postgres (%s)", dbURL)
 		if cfg.Storage.PurgeRetention > 0 && cfg.Storage.PurgeInterval > 0 {
 			pgModel.StartEviction(cfg.Storage.PurgeRetention, cfg.Storage.PurgeInterval)
@@ -97,8 +106,15 @@ func main() {
 			memStore.StartEviction(cfg.Server.SessionTTL, 5*time.Minute)
 			defer memStore.StopEviction()
 		}
+		memOrgStore := repository.NewMemOrgStore()
+		// Pre-create dev user and org so dev-mode works out of the box.
+		if _, _, _, err := memOrgStore.EnsureDevUser(context.Background()); err != nil {
+			log.Printf("warning: EnsureDevUser (memory): %v", err)
+		}
 		store = memStore
 		csStore = memCS
+		sessStore = persistence.NewMemorySessionStore()
+		orgStore = memOrgStore
 		log.Println("storage: memory")
 	}
 	h := handler.New(handler.HandlerDeps{
@@ -123,6 +139,8 @@ func main() {
 		ImpactAnalyzer: analyzer.NewImpactAnalyzer(cfg.Analysis),
 		AIClient:       aiClient,
 		Store:          store,
+		SessionStore:   sessStore,
+		OrgStore:       orgStore,
 	})
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

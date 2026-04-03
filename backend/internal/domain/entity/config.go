@@ -15,6 +15,24 @@ type Config struct {
 	Features FeaturesConfig `koanf:"features"`
 	Logging  LoggingConfig  `koanf:"logging"`
 	Storage  StorageConfig  `koanf:"storage"`
+	Auth     AuthConfig     `koanf:"auth"`
+}
+
+// AuthConfig holds authentication settings.
+type AuthConfig struct {
+	// Enabled controls whether auth is enforced. When false, all routes are
+	// accessible without a session (useful for early local dev / CI).
+	Enabled bool `koanf:"enabled"`
+	// DevLogin enables the POST /auth/dev-login endpoint which creates a real
+	// session for the hardcoded dev user without going through Google OAuth.
+	// Set to false in production.
+	DevLogin      bool   `koanf:"dev_login"`
+	SessionSecret string `koanf:"session_secret"`
+	Google        struct {
+		ClientID     string `koanf:"client_id"`
+		ClientSecret string `koanf:"client_secret"`
+		RedirectURL  string `koanf:"redirect_url"`
+	} `koanf:"google"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -317,6 +335,10 @@ func DefaultConfig() Config {
 			MigrateOnStartup: true,
 			PurgeRetention:  168 * time.Hour,
 			PurgeInterval:   5 * time.Minute,
+		},
+		Auth: AuthConfig{
+			Enabled:  false,
+			DevLogin: true,
 		},
 	}
 }
