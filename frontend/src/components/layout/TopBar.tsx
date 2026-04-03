@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, X, Download, Loader2, CheckCircle2, AlertTriangle, LogOut } from 'lucide-react'
+import { Search, X, Download, Loader2, CheckCircle2, AlertTriangle, LogOut, ChevronRight } from 'lucide-react'
 import { useModel } from '@/lib/model-context'
 import { useSearch } from '@/lib/search-context'
 import { useChangeset } from '@/lib/changeset-context'
 import { useAuth } from '@/lib/auth-context'
+import { useWorkspace } from '@/lib/workspace-context'
 import { ReviewDialog } from '@/components/changeset/ReviewDialog'
 import { modelsApi } from '@/services/api'
 import { cn } from '@/lib/utils'
@@ -13,6 +14,7 @@ export function TopBar() {
   const { query, setQuery } = useSearch()
   const { actions } = useChangeset()
   const { user, logout } = useAuth()
+  const { org, workspace } = useWorkspace()
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
@@ -65,6 +67,16 @@ export function TopBar() {
   return (
     <header className="shrink-0 bg-background border-b border-border">
       <div className="flex items-center h-14 px-5 gap-3">
+        {/* Breadcrumb: OrgName › WorkspaceName */}
+        {org && workspace && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 mr-1">
+            <span className="truncate max-w-[120px]">{org.name}</span>
+            <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate max-w-[120px] font-medium text-foreground">{workspace.name}</span>
+            {parseResult && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+          </div>
+        )}
+
         {parseResult ? (
           <div className="flex items-center gap-3 min-w-0">
             <span className="text-base font-bold text-foreground truncate">{parseResult.system_name}</span>
@@ -85,7 +97,9 @@ export function TopBar() {
             </div>
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">No model loaded</span>
+          !org && !workspace && (
+            <span className="text-sm text-muted-foreground">No model loaded</span>
+          )
         )}
 
         <div className="flex items-center gap-3 ml-auto">
