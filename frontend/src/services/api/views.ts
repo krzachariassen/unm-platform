@@ -7,6 +7,9 @@ import type {
   SignalsViewResponse,
   RealizationViewResponse,
   UNMMapViewResponse,
+  GapsView,
+  DependenciesView,
+  InteractionsView,
 } from '@/types/views'
 import { apiFetch } from './client'
 
@@ -34,4 +37,13 @@ export const viewsApi = {
 
   getUNMMapView: (modelId: string, signal?: AbortSignal): Promise<UNMMapViewResponse> =>
     apiFetch(`/models/${encodeURIComponent(modelId)}/views/unm-map`, { signal }),
+
+  getGaps: (modelId: string, signal?: AbortSignal): Promise<GapsView> =>
+    apiFetch(`/views/gaps?model_id=${encodeURIComponent(modelId)}`, { signal }),
+
+  getDependencies: (modelId: string, signal?: AbortSignal): Promise<DependenciesView> =>
+    apiFetch(`/views/dependencies?model_id=${encodeURIComponent(modelId)}`, { signal }),
+
+  getInteractions: (modelId: string, signal?: AbortSignal): Promise<InteractionsView> =>
+    apiFetch(`/views/interactions?model_id=${encodeURIComponent(modelId)}`, { signal }),
 }

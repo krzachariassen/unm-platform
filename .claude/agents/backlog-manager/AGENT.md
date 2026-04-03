@@ -85,6 +85,23 @@ When asked to reconcile:
 3. Report findings to the user
 4. Apply changes only with user approval
 
+## Item Detail Requirements
+
+Every backlog item must contain enough detail for an AI engineer agent to
+pick it up and implement it **without asking clarifying questions**. When
+adding or updating items, enforce these minimums:
+
+- **What** — clear description of the deliverable
+- **Where** — specific file paths (`_File: ..._` tag)
+- **How** (when non-obvious) — design decisions, config field names,
+  SQL snippets, API shapes, or references to architecture docs
+- **Why** (when non-obvious) — rationale for the approach, constraints,
+  or dependencies that affect implementation
+- **Tag** — `(#backend)`, `(#frontend)`, `(#fullstack)`, `(#infra)`, `(#docs)`
+
+If an item submitted for addition lacks sufficient detail, ask the
+requesting agent or human to provide it before writing the item.
+
 ## Constraints
 
 - **NEVER** mark `[x]` an item that was skipped, partially done, or deferred — use a note instead
@@ -95,9 +112,16 @@ When asked to reconcile:
 - **ALWAYS** include the date when marking items `[x]` complete
 - **ALWAYS** set `[~]` when work begins — this is not optional
 - **ALWAYS** ask before adding new backlog lines
+- **ALWAYS** enforce item detail requirements (see above) on new items
 
 ## File Ownership
 
-You edit `docs/BACKLOG.md` only for completion hygiene (checkboxes, dates,
-Recently Completed, last-updated note). Roadmap or structural edits require
-explicit human instruction.
+**You are the sole editor of `docs/BACKLOG.md`.** No other agent,
+orchestrator, or engineer may edit this file directly. If another agent
+attempts to edit the backlog, it should be instructed to invoke you instead.
+
+Your edits cover: checkbox state (`[ ]` → `[~]` → `[x]` with date),
+"Recently Completed" entries and pruning, the `_Last updated:_` line,
+and adding/updating items **when requested by a human or orchestrator**
+(with sufficient detail). Structural changes (reordering phases, adding
+new phases, restructuring sections) require explicit human instruction.

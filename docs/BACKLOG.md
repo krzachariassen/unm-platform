@@ -1,5 +1,13 @@
 # UNM Platform — Backlog
 
+> **File ownership: backlog-manager agent ONLY.**
+> This file is exclusively managed by the backlog-manager agent
+> (`.claude/agents/backlog-manager/AGENT.md`). No other agent,
+> orchestrator, or engineer may edit this file directly. If you need
+> to add items, restructure phases, update checkboxes, or add
+> implementation detail — invoke the backlog-manager agent.
+> Violations break task tracking and cause duplicate or lost work.
+
 _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
@@ -16,7 +24,9 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
-- [x] **fix(parse): auto-detect DSL vs YAML in parse/validate endpoints** — Sniff first 64 bytes of body; content starting with `system ` or `system"` is automatically routed to the DSL parser. Explicit `?format=dsl|yaml` still takes precedence. Two new handler tests added. (2026-04-03)
+- [x] **feat(phase-FC.4-6): New Analyzer Tabs** — GapsTab in NeedsPage (5 gap categories: unmapped needs, unrealized caps, unowned services, unneeded caps, orphan services); DependenciesTab in CapabilitiesPage (stat cards, cycle path rendering, critical service path chain); InteractionsTab in TeamsPage (mode distribution bars, isolated teams, over-reliant teams, all_modes_same warning banner); new view types GapsView/DependenciesView/InteractionsView; API functions getGaps/getDependencies/getInteractions; 18 new tests, 118 total pass. FC.4–FC.6 complete. (2026-04-03)
+
+- [x] **feat(parse): auto-detect DSL vs YAML in parse/validate endpoints** — Sniff first 64 bytes of body; content starting with `system ` or `system"` is automatically routed to the DSL parser. Explicit `?format=dsl|yaml` still takes precedence. Two new handler tests added. (2026-04-03)
 
 - [x] **feat(phase-FA+FB.1+FB.3): Phase F — View Regrouping, Tabs & Interaction Consistency** — `UrlTabBar` component with URL ?tab= deep linking; `NeedsPage` (Overview/Traceability tabs), `CapabilitiesPage` (Hierarchy/Services tabs), `TeamsPage` (Topology/Ownership/Cognitive Load tabs); sidebar restructured from 12→10 items with new Architecture section; backward-compat redirects for all old routes; OwnershipView custom popover replaced with `SlidePanel`; QuickAction opacity standardized to 0.7 in TeamLane and GraphView; 14 new tests, 105 total pass. FA.1–FA.6, FB.1, FB.3 complete. (2026-04-03)
 
@@ -239,13 +249,13 @@ Backend items can start anytime; frontend items need FA (tabs) first.
 - [ ] **FC.3** — Backend: `GET /views/interactions` endpoint. Wrap
       `InteractionDiversityAnalyzer` output.
       _File: `handler/view_interactions.go`_ (#backend)
-- [ ] **FC.4** — Frontend: Gaps tab in NeedsPage. Show unmapped needs,
+- [x] **FC.4** — Frontend: Gaps tab in NeedsPage. Show unmapped needs,
       unrealized caps, unowned services in categorized lists.
       _File: `features/needs/GapsTab.tsx`_ (#frontend)
-- [ ] **FC.5** — Frontend: Dependencies tab in CapabilitiesPage. Graph
+- [x] **FC.5** — Frontend: Dependencies tab in CapabilitiesPage. Graph
       visualization of service dependencies with cycle highlighting.
       _File: `features/capabilities/DependenciesTab.tsx`_ (#frontend)
-- [ ] **FC.6** — Frontend: Interactions tab in TeamsPage. Mode
+- [x] **FC.6** — Frontend: Interactions tab in TeamsPage. Mode
       distribution chart, isolated/over-reliant team indicators.
       _File: `features/teams/InteractionsTab.tsx`_ (#frontend)
 

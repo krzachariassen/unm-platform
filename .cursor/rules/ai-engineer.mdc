@@ -113,10 +113,15 @@ One task = one worktree = one branch = one PR.
 
 ## Backlog Management
 
-After completing any task:
-1. Read `docs/BACKLOG.md`
-2. Mark completed items as done (change `- [ ]` to `- [x]` with date)
-3. Maintain "Recently Completed" — keep only the last 5–10 items
-4. If near-term unchecked work looks thin, suggest next items already in the file; do not add new lines without approval
+**`docs/BACKLOG.md` is owned by the backlog-manager agent. Do NOT edit it directly.**
+
+After completing any task, invoke the backlog-manager agent to:
+1. Mark completed items as done (`[x]` with date)
+2. Update "Recently Completed"
+3. Suggest next items if near-term work looks thin
+
+To add new items, restructure phases, or add implementation detail to the
+backlog — invoke the backlog-manager agent with the content. Never open
+`docs/BACKLOG.md` for direct writes yourself.
 
 See `.claude/agents/backlog-manager/AGENT.md` for full rules.

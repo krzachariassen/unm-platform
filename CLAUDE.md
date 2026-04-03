@@ -130,7 +130,7 @@ When updating agent rules in `.claude/`, keep `.cursor/rules/` in sync.
 - **TDD**: Red -> Green -> Refactor. No code without a failing test first.
 - **Clean Architecture**: Domain is pure Go with zero deps. Dependencies point inward.
 - **Agent Teams**: Parallelize independent work. See `.claude/rules/agent-teams.md`.
-- **Backlog**: Single source in `docs/BACKLOG.md`. Three states: `[ ]` not started, `[~]` in progress, `[x]` done. **Orchestrator MUST mark items `[~]` when work begins and `[x]` (with date) when merged.** Never bulk-update at the end — update after each item. Never mark `[x]` items that were skipped or deferred. This is non-negotiable. Use `/backlog-manager` to reconcile.
+- **Backlog**: Single source in `docs/BACKLOG.md`. **This file is owned by the backlog-manager agent. No other agent or orchestrator may edit it directly.** All backlog edits — adding items, restructuring phases, updating checkboxes, inlining details — MUST go through the backlog-manager agent. Three states: `[ ]` not started, `[~]` in progress, `[x]` done. Orchestrator requests the backlog-manager to mark items `[~]` when work begins and `[x]` (with date) when merged. Never bulk-update at the end — update after each item. Never mark `[x]` items that were skipped or deferred. This is non-negotiable.
 - **Validation Pipeline**: Run `/validate` after all code changes. Mandatory, not optional.
 - **Security**: Read `.claude/agents/common/security.md`. No secrets in code. No PII in logs.
 
@@ -159,6 +159,7 @@ Each agent's `MEMORY.md` is subject to these guardrails:
 ## What NOT to Do
 
 - **Do not implement code directly** — for any coding task, invoke the appropriate specialist agent via the Skill tool: `/backend`, `/frontend`, `/fullstack`, `/docs`. Use `/run` if you are unsure which agent to route to. You (Claude Code) are the orchestrator — your job is to route and coordinate, not to write source files, tests, or build scripts yourself.
+- **Do not edit `docs/BACKLOG.md` directly** — all backlog changes (adding items, restructuring phases, marking progress, adding detail) MUST go through the backlog-manager agent. If you find yourself opening `BACKLOG.md` for a write operation, stop and invoke the backlog-manager instead. This applies to orchestrators, specialist agents, and Cursor sessions alike.
 - Do not add dependencies to `internal/domain/` (must be pure Go)
 - Do not skip writing tests first
 - Do not mock OpenAI in tests (use real API or skip)
