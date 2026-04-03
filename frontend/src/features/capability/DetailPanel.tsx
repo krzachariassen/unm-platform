@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { SlidePanel, PanelSection } from '@/components/ui/slide-panel'
 import type { CapabilityType } from './CapabilityCard'
 import type { InsightItem } from '@/types/insights'
@@ -10,6 +11,7 @@ export function DetailPanel({ cap, allCaps, onClose, insight }: {
   onClose: () => void
   insight?: InsightItem
 }) {
+  const navigate = useNavigate()
   const visBand = VIS_BANDS.find(b => b.key === cap.visibility)
   const dependedOnBy = allCaps.filter(c => c.depends_on.some(d => d.id === cap.id))
   const vb = visBand ?? { label: cap.visibility, accent: '#475569', border: '#e2e8f0', bg: '#f1f5f9' }
@@ -52,7 +54,17 @@ export function DetailPanel({ cap, allCaps, onClose, insight }: {
 
         <PanelSection label="Teams">
           {cap.teams.length > 0
-            ? <div className="flex flex-wrap gap-1">{cap.teams.map(t => <span key={t.id} className="text-[10px] rounded px-2 py-0.5 bg-muted text-foreground border border-border">{t.label} <span className="text-muted-foreground">({t.type})</span></span>)}</div>
+            ? <div className="flex flex-wrap gap-1">{cap.teams.map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => navigate('/teams?tab=topology')}
+                  className="text-[10px] rounded px-2 py-0.5 bg-muted text-foreground border border-border hover:bg-muted/70 hover:border-primary/40 transition-colors cursor-pointer"
+                  title="View in Teams → Topology"
+                >
+                  {t.label} <span className="text-muted-foreground">({t.type})</span>
+                </button>
+              ))}</div>
             : <p className="text-xs italic text-destructive/70">No team assigned</p>}
         </PanelSection>
 
