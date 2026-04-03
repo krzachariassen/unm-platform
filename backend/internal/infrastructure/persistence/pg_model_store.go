@@ -3,7 +3,6 @@ package persistence
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -12,13 +11,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/serializer"
 	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // PGModelStore implements usecase.ModelRepository backed by PostgreSQL.
-// For Phase 14A, the parsed model is also cached in memory after load.
+// The parsed model is cached in memory after the first load for fast access.
 // A "system" user + workspace are bootstrapped on startup until auth (Phase 15).
 type PGModelStore struct {
 	db                *pgxpool.Pool
@@ -41,7 +41,12 @@ func NewPGModelStore(db *pgxpool.Pool) (*PGModelStore, error) {
 	return s, nil
 }
 
-// bootstrap ensures the system user and default workspace exist.
+// SystemUserID returns the bootstrapped system user UUID, needed for PGChangesetStore.
+func (s *PGModelStore) SystemUserID() uuid.UUID {
+	return s.systemUserID
+}
+
+// bootstrap ensures the system user, default org, and default workspace exist.
 func (s *PGModelStore) bootstrap(ctx context.Context) error {
 	var userID uuid.UUID
 	err := s.db.QueryRow(ctx,
@@ -54,7 +59,6 @@ func (s *PGModelStore) bootstrap(ctx context.Context) error {
 	}
 	s.systemUserID = userID
 
-	// We need an org before a workspace.
 	var orgID uuid.UUID
 	err = s.db.QueryRow(ctx,
 		`INSERT INTO organizations (name, slug) VALUES ('Default', 'default')
@@ -100,7 +104,6 @@ func (s *PGModelStore) Store(m *entity.UNMModel) (string, error) {
 		return "", fmt.Errorf("insert model: %w", err)
 	}
 
-	// Store raw content as version 1
 	_, err = s.db.Exec(context.Background(),
 		`INSERT INTO model_versions (model_id, version, raw_content, committed_by) VALUES ($1, 1, $2, $3)`,
 		id, string(raw), s.systemUserID,
@@ -127,12 +130,12 @@ func (s *PGModelStore) Get(id string) (*usecase.StoredModel, error) {
 		return &usecase.StoredModel{
 			ID:             id,
 			Model:          m,
-			CreatedAt:      time.Now(), // approximation for cached items
+			CreatedAt:      time.Now(),
 			LastAccessedAt: time.Now(),
+			VersionCount:   1,
 		}, nil
 	}
 
-	// Load from DB
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return nil, usecase.ErrNotFound
@@ -168,17 +171,22 @@ func (s *PGModelStore) Get(id string) (*usecase.StoredModel, error) {
 		Model:          model,
 		CreatedAt:      createdAt,
 		LastAccessedAt: time.Now(),
+		VersionCount:   1,
 	}, nil
 }
 
-// Replace updates the in-memory cache and persists a new model version.
+// Replace updates the in-memory cache and persists a new model version with no commit message.
 func (s *PGModelStore) Replace(id string, newModel *entity.UNMModel) error {
+	return s.ReplaceWithMessage(id, newModel, "")
+}
+
+// ReplaceWithMessage updates the in-memory cache and persists a new model version with the given commit message.
+func (s *PGModelStore) ReplaceWithMessage(id string, newModel *entity.UNMModel, message string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
 		return usecase.ErrNotFound
 	}
 
-	// Verify it exists.
 	var exists bool
 	err = s.db.QueryRow(context.Background(),
 		`SELECT EXISTS(SELECT 1 FROM models WHERE id = $1 AND deleted_at IS NULL)`, uid,
@@ -193,11 +201,11 @@ func (s *PGModelStore) Replace(id string, newModel *entity.UNMModel) error {
 	}
 
 	_, err = s.db.Exec(context.Background(),
-		`INSERT INTO model_versions (model_id, version, raw_content, committed_by)
+		`INSERT INTO model_versions (model_id, version, raw_content, commit_message, committed_by)
 		 VALUES ($1,
 		     (SELECT COALESCE(MAX(version), 0) + 1 FROM model_versions WHERE model_id = $1),
-		     $2, $3)`,
-		uid, string(raw), s.systemUserID,
+		     $2, $3, $4)`,
+		uid, string(raw), message, s.systemUserID,
 	)
 	if err != nil {
 		return fmt.Errorf("insert replacement version: %w", err)
@@ -217,10 +225,12 @@ func (s *PGModelStore) Replace(id string, newModel *entity.UNMModel) error {
 	return nil
 }
 
-// List returns metadata for all non-deleted models.
+// List returns metadata for all non-deleted models with version counts.
 func (s *PGModelStore) List() ([]*usecase.StoredModel, error) {
 	rows, err := s.db.Query(context.Background(),
-		`SELECT id, created_at FROM models WHERE deleted_at IS NULL ORDER BY created_at DESC`)
+		`SELECT m.id, m.name, m.created_at,
+		        (SELECT COUNT(*) FROM model_versions WHERE model_id = m.id AND deleted_at IS NULL) AS version_count
+		 FROM models m WHERE m.deleted_at IS NULL ORDER BY m.created_at DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("list models: %w", err)
 	}
@@ -229,8 +239,10 @@ func (s *PGModelStore) List() ([]*usecase.StoredModel, error) {
 	var result []*usecase.StoredModel
 	for rows.Next() {
 		var id uuid.UUID
+		var name string
 		var createdAt time.Time
-		if err := rows.Scan(&id, &createdAt); err != nil {
+		var versionCount int
+		if err := rows.Scan(&id, &name, &createdAt, &versionCount); err != nil {
 			return nil, fmt.Errorf("scan model row: %w", err)
 		}
 		idStr := id.String()
@@ -239,19 +251,20 @@ func (s *PGModelStore) List() ([]*usecase.StoredModel, error) {
 		s.mu.RUnlock()
 		result = append(result, &usecase.StoredModel{
 			ID:             idStr,
-			Model:          m, // may be nil if not cached; callers should use Get for full model
+			Model:          m,
 			CreatedAt:      createdAt,
 			LastAccessedAt: createdAt,
+			VersionCount:   versionCount,
 		})
 	}
 	return result, rows.Err()
 }
 
-// Delete soft-deletes a model. Idempotent — no error if already deleted.
+// Delete soft-deletes a model. Idempotent.
 func (s *PGModelStore) Delete(id string) error {
 	uid, err := uuid.Parse(id)
 	if err != nil {
-		return nil // not found → treat as already gone
+		return nil
 	}
 
 	_, err = s.db.Exec(context.Background(),
@@ -270,9 +283,90 @@ func (s *PGModelStore) Delete(id string) error {
 	return nil
 }
 
-// SystemUserID returns the bootstrapped system user UUID, needed for PGChangesetStore.
-func (s *PGModelStore) SystemUserID() uuid.UUID {
-	return s.systemUserID
+// ListVersions returns metadata for all versions of a model, ordered oldest first.
+func (s *PGModelStore) ListVersions(modelID string) ([]usecase.ModelVersionMeta, error) {
+	uid, err := uuid.Parse(modelID)
+	if err != nil {
+		return nil, usecase.ErrNotFound
+	}
+
+	var modelExists bool
+	err = s.db.QueryRow(context.Background(),
+		`SELECT EXISTS(SELECT 1 FROM models WHERE id = $1 AND deleted_at IS NULL)`, uid,
+	).Scan(&modelExists)
+	if err != nil || !modelExists {
+		return nil, usecase.ErrNotFound
+	}
+
+	rows, err := s.db.Query(context.Background(),
+		`SELECT id, model_id, version, commit_message, committed_at
+		 FROM model_versions WHERE model_id = $1 AND deleted_at IS NULL ORDER BY version`,
+		uid,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list versions: %w", err)
+	}
+	defer rows.Close()
+
+	var result []usecase.ModelVersionMeta
+	for rows.Next() {
+		var id, mid uuid.UUID
+		var version int
+		var commitMsg string
+		var committedAt time.Time
+		if err := rows.Scan(&id, &mid, &version, &commitMsg, &committedAt); err != nil {
+			return nil, fmt.Errorf("scan version row: %w", err)
+		}
+		result = append(result, usecase.ModelVersionMeta{
+			ID:            id.String(),
+			ModelID:       mid.String(),
+			Version:       version,
+			CommitMessage: commitMsg,
+			CommittedAt:   committedAt,
+		})
+	}
+	return result, rows.Err()
+}
+
+// GetVersion retrieves the raw YAML for a specific version and parses it.
+func (s *PGModelStore) GetVersion(modelID string, version int) (*entity.UNMModel, error) {
+	uid, err := uuid.Parse(modelID)
+	if err != nil {
+		return nil, usecase.ErrNotFound
+	}
+
+	var rawContent string
+	err = s.db.QueryRow(context.Background(),
+		`SELECT raw_content FROM model_versions
+		 WHERE model_id = $1 AND version = $2 AND deleted_at IS NULL`,
+		uid, version,
+	).Scan(&rawContent)
+	if err != nil {
+		return nil, usecase.ErrNotFound
+	}
+
+	p := parser.NewYAMLParser()
+	model, err := p.Parse(bytes.NewBufferString(rawContent))
+	if err != nil {
+		return nil, fmt.Errorf("parse version %d: %w", version, err)
+	}
+	return model, nil
+}
+
+// DiffVersions computes a diff between two version numbers of a model.
+func (s *PGModelStore) DiffVersions(modelID string, fromV, toV int) (*service.ModelDiff, error) {
+	fromModel, err := s.GetVersion(modelID, fromV)
+	if err != nil {
+		return nil, fmt.Errorf("from version %d: %w", fromV, err)
+	}
+	toModel, err := s.GetVersion(modelID, toV)
+	if err != nil {
+		return nil, fmt.Errorf("to version %d: %w", toV, err)
+	}
+	diff := service.Diff(fromModel, toModel)
+	diff.FromVersion = fromV
+	diff.ToVersion = toV
+	return diff, nil
 }
 
 // SetOnDelete stores a callback invoked after a model is deleted.
@@ -287,11 +381,3 @@ func (s *PGModelStore) StartEviction(ttl, interval time.Duration) {}
 
 // StopEviction is a no-op for PG store.
 func (s *PGModelStore) StopEviction() {}
-
-// marshalActions converts a Changeset's actions to JSON (used by PGChangesetStore).
-func marshalActions(cs *entity.Changeset) ([]byte, error) {
-	if cs == nil || len(cs.Actions) == 0 {
-		return []byte("[]"), nil
-	}
-	return json.Marshal(cs.Actions)
-}

@@ -117,6 +117,62 @@ func runModelRepositoryTests(t *testing.T, repo usecase.ModelRepository) {
 		err := repo.Replace("00000000-0000-0000-0000-000000000000", minimalModel("Ghost"))
 		assert.True(t, errors.Is(err, usecase.ErrNotFound))
 	})
+
+	t.Run("ReplaceWithMessage_NoError", func(t *testing.T) {
+		id, err := repo.Store(minimalModel("RWM Original"))
+		require.NoError(t, err)
+
+		err = repo.ReplaceWithMessage(id, minimalModel("RWM Updated"), "test commit message")
+		require.NoError(t, err)
+
+		stored, err := repo.Get(id)
+		require.NoError(t, err)
+		assert.NotNil(t, stored.Model)
+	})
+
+	t.Run("ListVersions_ReturnsAtLeastOne", func(t *testing.T) {
+		id, err := repo.Store(minimalModel("Versions Model"))
+		require.NoError(t, err)
+
+		versions, err := repo.ListVersions(id)
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, len(versions), 1)
+		assert.Equal(t, id, versions[0].ModelID)
+		assert.Equal(t, 1, versions[0].Version)
+	})
+
+	t.Run("ListVersions_UnknownModel_ReturnsErrNotFound", func(t *testing.T) {
+		_, err := repo.ListVersions("00000000-0000-0000-0000-000000000000")
+		assert.True(t, errors.Is(err, usecase.ErrNotFound))
+	})
+
+	t.Run("GetVersion_Valid_ReturnsModel", func(t *testing.T) {
+		id, err := repo.Store(minimalModel("GetVersion Model"))
+		require.NoError(t, err)
+
+		m, err := repo.GetVersion(id, 1)
+		require.NoError(t, err)
+		assert.NotNil(t, m)
+	})
+
+	t.Run("GetVersion_Invalid_ReturnsErrNotFound", func(t *testing.T) {
+		id, err := repo.Store(minimalModel("GetVersion Missing"))
+		require.NoError(t, err)
+
+		_, err = repo.GetVersion(id, 99)
+		assert.True(t, errors.Is(err, usecase.ErrNotFound))
+	})
+
+	t.Run("DiffVersions_NoError", func(t *testing.T) {
+		id, err := repo.Store(minimalModel("Diff Model"))
+		require.NoError(t, err)
+
+		diff, err := repo.DiffVersions(id, 1, 1)
+		require.NoError(t, err)
+		assert.NotNil(t, diff)
+		assert.Equal(t, 1, diff.FromVersion)
+		assert.Equal(t, 1, diff.ToVersion)
+	})
 }
 
 // ── Changeset Repository contract ──────────────────────────────────────────

@@ -149,6 +149,9 @@ Each agent's `MEMORY.md` is subject to these guardrails:
 ## Reference Files
 
 - `docs/BACKLOG.md` -- Work items, phased roadmap, and Recently Completed
+- `docs/ARCHITECTURE_EVOLUTION.md` -- Backend: data hierarchy, tenancy, auth, API routes
+- `docs/FRONTEND_EVOLUTION.md` -- Frontend: navigation layers, tab structure, platform chrome
+- `docs/PRODUCT_ROADMAP.md` -- User-facing milestones and capabilities
 - `.claude/agents/AGENT_OWNERSHIP.md` -- Agent ownership and memory curation
 - `docs/UNM_DSL_SPECIFICATION.md` -- DSL syntax and meta-model
 - `examples/nexus.unm.yaml` -- Reference model

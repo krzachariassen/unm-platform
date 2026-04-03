@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/domain/service"
 	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
@@ -27,8 +28,6 @@ func NewModelStore() *ModelStore {
 }
 
 // Store saves a model and returns its generated ID.
-// If the model has no version, it is initialized to 1.
-// LastModified is stamped to the current time.
 func (s *ModelStore) Store(m *entity.UNMModel) (string, error) {
 	id, err := generateID()
 	if err != nil {
@@ -40,7 +39,7 @@ func (s *ModelStore) Store(m *entity.UNMModel) (string, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.models[id] = &usecase.StoredModel{ID: id, Model: m, CreatedAt: now, LastAccessedAt: now}
+	s.models[id] = &usecase.StoredModel{ID: id, Model: m, CreatedAt: now, LastAccessedAt: now, VersionCount: 1}
 	return id, nil
 }
 
@@ -57,11 +56,18 @@ func (s *ModelStore) Get(id string) (*usecase.StoredModel, error) {
 	return m, nil
 }
 
-// Replace swaps the model stored under the given ID with a new model,
-// preserving the ID and CreatedAt timestamp.
-// Increments the model version and stamps LastModified.
+// Replace swaps the model stored under the given ID with a new model.
 // Returns ErrNotFound if the ID does not exist.
 func (s *ModelStore) Replace(id string, newModel *entity.UNMModel) error {
+	return s.replaceWithMessage(id, newModel, "")
+}
+
+// ReplaceWithMessage is like Replace but accepts a commit message (ignored by the memory store).
+func (s *ModelStore) ReplaceWithMessage(id string, newModel *entity.UNMModel, message string) error {
+	return s.replaceWithMessage(id, newModel, message)
+}
+
+func (s *ModelStore) replaceWithMessage(id string, newModel *entity.UNMModel, _ string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	existing, ok := s.models[id]
@@ -75,10 +81,11 @@ func (s *ModelStore) Replace(id string, newModel *entity.UNMModel) error {
 	}
 	existing.Model = newModel
 	existing.LastAccessedAt = time.Now()
+	existing.VersionCount++
 	return nil
 }
 
-// List returns all stored models.
+// List returns all stored models with VersionCount = 1 (memory store has no history).
 func (s *ModelStore) List() ([]*usecase.StoredModel, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -90,7 +97,6 @@ func (s *ModelStore) List() ([]*usecase.StoredModel, error) {
 }
 
 // Delete removes a model by ID. Idempotent — does not error if not found.
-// Invokes the onDelete cascade callback if one is registered and the model existed.
 func (s *ModelStore) Delete(id string) error {
 	s.mu.Lock()
 	_, existed := s.models[id]
@@ -103,6 +109,52 @@ func (s *ModelStore) Delete(id string) error {
 	return nil
 }
 
+// ListVersions returns a single version entry for the memory store (no history).
+func (s *ModelStore) ListVersions(modelID string) ([]usecase.ModelVersionMeta, error) {
+	s.mu.RLock()
+	stored, ok := s.models[modelID]
+	s.mu.RUnlock()
+	if !ok {
+		return nil, usecase.ErrNotFound
+	}
+	return []usecase.ModelVersionMeta{
+		{
+			ID:          modelID + "-v1",
+			ModelID:     modelID,
+			Version:     1,
+			CommittedAt: stored.CreatedAt,
+		},
+	}, nil
+}
+
+// GetVersion returns the current model for version 1; returns ErrNotFound for any other version.
+func (s *ModelStore) GetVersion(modelID string, version int) (*entity.UNMModel, error) {
+	if version != 1 {
+		return nil, usecase.ErrNotFound
+	}
+	stored, err := s.Get(modelID)
+	if err != nil {
+		return nil, err
+	}
+	return stored.Model, nil
+}
+
+// DiffVersions computes a diff. Memory store only has version 1, so fromV and toV must both be 1.
+func (s *ModelStore) DiffVersions(modelID string, fromV, toV int) (*service.ModelDiff, error) {
+	fromModel, err := s.GetVersion(modelID, fromV)
+	if err != nil {
+		return nil, fmt.Errorf("from version %d: %w", fromV, err)
+	}
+	toModel, err := s.GetVersion(modelID, toV)
+	if err != nil {
+		return nil, fmt.Errorf("to version %d: %w", toV, err)
+	}
+	diff := service.Diff(fromModel, toModel)
+	diff.FromVersion = fromV
+	diff.ToVersion = toV
+	return diff, nil
+}
+
 // Len returns the number of stored models.
 func (s *ModelStore) Len() int {
 	s.mu.RLock()
@@ -111,14 +163,12 @@ func (s *ModelStore) Len() int {
 }
 
 // SetOnDelete registers a callback invoked after a model is deleted.
-// Used to cascade-delete associated changesets.
 func (s *ModelStore) SetOnDelete(fn func(modelID string)) {
 	s.onDelete = fn
 }
 
 // StartEviction launches a background goroutine that periodically removes
 // models that have not been accessed within the given TTL.
-// Call StopEviction to shut it down cleanly.
 func (s *ModelStore) StartEviction(ttl, interval time.Duration) {
 	s.stopCh = make(chan struct{})
 	go func() {
@@ -168,8 +218,7 @@ func generateID() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// stampMeta increments the version (parsing the existing value as an integer,
-// defaulting to 1 if absent or non-numeric) and sets LastModified to now.
+// stampMeta increments the version and sets LastModified.
 func stampMeta(meta *entity.ModelMeta, now time.Time) {
 	var v int
 	if _, err := fmt.Sscanf(meta.Version, "%d", &v); err != nil || v < 1 {

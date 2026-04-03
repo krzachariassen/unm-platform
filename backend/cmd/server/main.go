@@ -81,6 +81,9 @@ func main() {
 		store = pgModel
 		csStore = pgCS
 		log.Printf("storage: postgres (%s)", dbURL)
+		if cfg.Server.SessionTTL > 0 {
+			log.Println("session TTL eviction is memory-only; ignored for postgres driver")
+		}
 	default:
 		memStore := repository.NewModelStore()
 		memCS := repository.NewChangesetStore()

@@ -1,5 +1,5 @@
-import type { ParseResponse } from '@/types/model'
-import { apiFetchText } from './client'
+import type { ParseResponse, ModelListItem, VersionMeta, DiffResult } from '@/types/model'
+import { apiFetch, apiFetchText } from './client'
 import { config } from '@/lib/config'
 
 const BASE = config.apiBaseUrl
@@ -43,5 +43,21 @@ export const modelsApi = {
     const res = await fetch(`${BASE}/models/${encodeURIComponent(modelId)}/services`)
     if (!res.ok) throw new Error('Failed to fetch services')
     return res.json()
+  },
+
+  async listModels(): Promise<{ models: ModelListItem[]; total: number }> {
+    return apiFetch('/models')
+  },
+
+  async loadStoredModel(modelId: string, version: number): Promise<ParseResponse> {
+    return apiFetch(`/models/${encodeURIComponent(modelId)}/versions/${version}`)
+  },
+
+  async getHistory(modelId: string): Promise<{ model_id: string; versions: VersionMeta[] }> {
+    return apiFetch(`/models/${encodeURIComponent(modelId)}/history`)
+  },
+
+  async getDiff(modelId: string, from: number, to: number): Promise<DiffResult> {
+    return apiFetch(`/models/${encodeURIComponent(modelId)}/diff?from=${from}&to=${to}`)
   },
 }

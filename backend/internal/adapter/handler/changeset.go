@@ -334,7 +334,7 @@ func (h *Handler) handleCommitChangeset(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.store.Replace(modelID, projected); errors.Is(err, usecase.ErrNotFound) {
+	if err := h.store.ReplaceWithMessage(modelID, projected, sc.Changeset.Description); errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model disappeared during commit")
 		return
 	} else if err != nil {

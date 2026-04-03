@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   Upload, LayoutDashboard, Map, Users, Layers, Flag, Network,
   Activity, GitBranch, AlertCircle, FlaskConical, Bot, FileText,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Database, History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel } from '@/lib/model-context'
@@ -14,6 +14,7 @@ const NAV_SECTIONS = [
     label: 'Model',
     items: [
       { to: '/', label: 'Upload', icon: Upload, always: true, ai: false },
+      { to: '/models', label: 'All Models', icon: Database, always: true, ai: false },
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, always: false, ai: false },
       { to: '/signals', label: 'Signals', icon: AlertCircle, always: false, ai: false },
     ],
@@ -34,6 +35,7 @@ const NAV_SECTIONS = [
     label: 'Editing',
     items: [
       { to: '/what-if', label: 'What-If', icon: FlaskConical, always: false, ai: false },
+      { to: '/history', label: 'History', icon: History, always: false, ai: false },
     ],
   },
   {
