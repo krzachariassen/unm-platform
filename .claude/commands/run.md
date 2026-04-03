@@ -216,9 +216,12 @@ After task completion:
    ```
 3. Run the **backlog completion hook**:
    - Read `docs/BACKLOG.md`
-   - Mark any completed items as done: `- [x] Item (YYYY-MM-DD)`
+   - **BEFORE work starts**: mark items being worked on as `[~]` (in progress)
+   - **AFTER each item completes**: mark it `[x] (YYYY-MM-DD)` immediately — do not wait until PR
+   - **NEVER mark `[x]`** items that were skipped, deferred, or only partially done — leave them `[ ]`
    - Update "Recently Completed" and prune to the last 5–10 items
    - If near-term unchecked work looks thin, suggest next items from the same file (do not add lines without approval)
+   - Backlog state = `[ ]` not started · `[~]` in progress · `[x]` done
 
 See `.claude/agents/backlog-manager/AGENT.md` for full backlog management rules.
 
