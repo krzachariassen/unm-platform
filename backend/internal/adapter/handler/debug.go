@@ -51,7 +51,7 @@ func (h *Handler) handleLoadExample(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if replaceID := r.Header.Get("X-Replace-Model"); replaceID != "" {
-		h.store.Delete(replaceID)
+		_ = h.store.Delete(replaceID)
 	}
 
 	id, err := h.store.Store(model)
@@ -62,7 +62,9 @@ func (h *Handler) handleLoadExample(w http.ResponseWriter, r *http.Request) {
 
 	// Eagerly compute all AI insights in the background so they are ready
 	// by the time the user navigates to any view page.
-	go h.precomputeInsights(id, h.store.Get(id))
+	if stored, _ := h.store.Get(id); stored != nil {
+		go h.precomputeInsights(id, stored)
+	}
 
 	summary := model.Summary()
 	writeJSON(w, http.StatusOK, parseResponse{

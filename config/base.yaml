@@ -83,3 +83,9 @@ features:
 logging:
   level: "info"
   format: "text"
+
+storage:
+  driver: "memory"          # "memory" | "postgres"
+  database_url: ""          # set via UNM_STORAGE__DATABASE_URL
+  max_connections: 20
+  migrate_on_startup: true

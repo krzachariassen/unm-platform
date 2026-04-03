@@ -14,6 +14,7 @@ type Config struct {
 	Analysis AnalysisConfig `koanf:"analysis"`
 	Features FeaturesConfig `koanf:"features"`
 	Logging  LoggingConfig  `koanf:"logging"`
+	Storage  StorageConfig  `koanf:"storage"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -155,6 +156,19 @@ type LoggingConfig struct {
 	Format string `koanf:"format"`
 }
 
+// StorageConfig holds persistence backend settings.
+type StorageConfig struct {
+	// Driver selects the storage backend: "memory" or "postgres".
+	Driver string `koanf:"driver"`
+	// DatabaseURL is the PostgreSQL connection string (e.g. postgres://user:pass@host/db).
+	// Set via UNM_STORAGE__DATABASE_URL environment variable.
+	DatabaseURL string `koanf:"database_url"`
+	// MaxConnections is the maximum number of PG pool connections.
+	MaxConnections int `koanf:"max_connections"`
+	// MigrateOnStartup runs golang-migrate on startup when true.
+	MigrateOnStartup bool `koanf:"migrate_on_startup"`
+}
+
 // validReasoningEfforts is the set of allowed reasoning effort values.
 var validReasoningEfforts = map[string]bool{
 	"none":   true,
@@ -290,6 +304,11 @@ func DefaultConfig() Config {
 		Logging: LoggingConfig{
 			Level:  "info",
 			Format: "text",
+		},
+		Storage: StorageConfig{
+			Driver:           "memory",
+			MaxConnections:   20,
+			MigrateOnStartup: true,
 		},
 	}
 }

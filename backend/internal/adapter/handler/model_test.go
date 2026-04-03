@@ -235,7 +235,8 @@ func TestHandleParse_ValidYAML_StoredModelIsRetrievable(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 
 	id := resp["id"].(string)
-	stored := h.store.Get(id)
+	stored, err := h.store.Get(id)
+	require.NoError(t, err)
 	require.NotNil(t, stored, "model must be retrievable from the store using the returned ID")
 	assert.Equal(t, "Test System", stored.Model.System.Name)
 }

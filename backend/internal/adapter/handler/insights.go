@@ -3,13 +3,14 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"unicode"
 
-	"github.com/krzachariassen/unm-platform/internal/adapter/repository"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/ai"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // signalFinding is a single labelled finding sent to the AI for the signals domain.
@@ -178,8 +179,11 @@ func (h *Handler) registerInsightsRoutes(mux *http.ServeMux) {
 // The frontend polls this endpoint during upload to know when AI pre-computation is done.
 func (h *Handler) handleGetInsightsStatus(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	if h.store.Get(id) == nil {
+	if _, err := h.store.Get(id); errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	} else if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -226,14 +230,14 @@ func (h *Handler) handleGetInsightsStatus(w http.ResponseWriter, r *http.Request
 // precomputeInsights is a no-op kept for backward compatibility. Insights are now
 // computed lazily on first request per domain, avoiding 7 concurrent OpenAI calls
 // on every model upload.
-func (h *Handler) precomputeInsights(modelID string, stored *repository.StoredModel) {
+func (h *Handler) precomputeInsights(modelID string, stored *usecase.StoredModel) {
 	// Intentionally empty — insights are computed on demand in handleGetInsights.
 }
 
 // computeAndCacheInsight triggers background computation for a single domain if
 // not already in progress, and returns immediately. The caller should serve a
 // "computing" response while the goroutine runs.
-func (h *Handler) computeAndCacheInsight(modelID string, stored *repository.StoredModel, domain string) {
+func (h *Handler) computeAndCacheInsight(modelID string, stored *usecase.StoredModel, domain string) {
 	key := modelID + ":" + domain
 	h.insightCache.Store(key, insightEntry{status: "computing"})
 	go func() {
@@ -253,7 +257,7 @@ func (h *Handler) computeAndCacheInsight(modelID string, stored *repository.Stor
 // computeInsightForDomain runs the full AI insight pipeline for one domain and
 // returns an InsightsResponse. It never writes to http.ResponseWriter; callers
 // decide how to deliver the result.
-func (h *Handler) computeInsightForDomain(ctx context.Context, stored *repository.StoredModel, domain string) InsightsResponse {
+func (h *Handler) computeInsightForDomain(ctx context.Context, stored *usecase.StoredModel, domain string) InsightsResponse {
 	empty := InsightsResponse{Domain: domain, Insights: map[string]InsightItem{}, AIConfigured: true}
 
 	templateName := validInsightDomains[domain]
@@ -363,9 +367,13 @@ func (h *Handler) handleGetInsights(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Load model
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 

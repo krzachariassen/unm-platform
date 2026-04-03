@@ -1,11 +1,13 @@
 package repository
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 func TestChangesetStore_Store_ReturnsID(t *testing.T) {
@@ -26,7 +28,8 @@ func TestChangesetStore_Get_ReturnsStoredChangeset(t *testing.T) {
 	id, err := s.Store("model-1", cs)
 	require.NoError(t, err)
 
-	got := s.Get(id)
+	got, err := s.Get(id)
+	require.NoError(t, err)
 	require.NotNil(t, got)
 	assert.Equal(t, id, got.ID)
 	assert.Equal(t, "model-1", got.ModelID)
@@ -34,11 +37,11 @@ func TestChangesetStore_Get_ReturnsStoredChangeset(t *testing.T) {
 	assert.False(t, got.CreatedAt.IsZero())
 }
 
-func TestChangesetStore_Get_NonExistent_ReturnsNil(t *testing.T) {
+func TestChangesetStore_Get_NonExistent_ReturnsErrNotFound(t *testing.T) {
 	s := NewChangesetStore()
 
-	got := s.Get("nonexistent-id")
-	assert.Nil(t, got)
+	_, err := s.Get("nonexistent-id")
+	assert.True(t, errors.Is(err, usecase.ErrNotFound))
 }
 
 func TestChangesetStore_ListForModel_ReturnsMatchingChangesets(t *testing.T) {
@@ -58,7 +61,8 @@ func TestChangesetStore_ListForModel_ReturnsMatchingChangesets(t *testing.T) {
 	_, err = s.Store("model-2", cs3)
 	require.NoError(t, err)
 
-	results := s.ListForModel("model-1")
+	results, err := s.ListForModel("model-1")
+	require.NoError(t, err)
 	assert.Len(t, results, 2)
 
 	for _, sc := range results {
@@ -74,7 +78,8 @@ func TestChangesetStore_ListForModel_EmptyForUnknownModel(t *testing.T) {
 	_, err = s.Store("model-1", cs)
 	require.NoError(t, err)
 
-	results := s.ListForModel("nonexistent-model")
+	results, err := s.ListForModel("nonexistent-model")
+	require.NoError(t, err)
 	assert.Empty(t, results)
 }
 
@@ -99,10 +104,12 @@ func TestChangesetStore_DeleteForModel_RemovesMatchingChangesets(t *testing.T) {
 	assert.Equal(t, 2, count)
 
 	// model-1 changesets should be gone
-	assert.Empty(t, s.ListForModel("model-1"))
+	results, _ := s.ListForModel("model-1")
+	assert.Empty(t, results)
 
 	// model-2 changeset should still exist
-	assert.Len(t, s.ListForModel("model-2"), 1)
+	results2, _ := s.ListForModel("model-2")
+	assert.Len(t, results2, 1)
 }
 
 func TestChangesetStore_DeleteForModel_NoMatchReturnsZero(t *testing.T) {
@@ -126,7 +133,7 @@ func TestChangesetStore_Store_MultipleChangesets_UniqueIDs(t *testing.T) {
 	}
 }
 
-func TestChangesetStore_Get_AfterDelete_ReturnsNil(t *testing.T) {
+func TestChangesetStore_Get_AfterDelete_ReturnsErrNotFound(t *testing.T) {
 	s := NewChangesetStore()
 	cs, err := entity.NewChangeset("cs-1", "to be deleted")
 	require.NoError(t, err)
@@ -135,11 +142,57 @@ func TestChangesetStore_Get_AfterDelete_ReturnsNil(t *testing.T) {
 	require.NoError(t, err)
 
 	// Confirm it exists first
-	require.NotNil(t, s.Get(id))
+	got, err := s.Get(id)
+	require.NoError(t, err)
+	require.NotNil(t, got)
 
 	// Delete the model's changesets
 	s.DeleteForModel("model-del")
 
-	// Should be gone now
-	assert.Nil(t, s.Get(id))
+	// Should return ErrNotFound now
+	_, err = s.Get(id)
+	assert.True(t, errors.Is(err, usecase.ErrNotFound))
+}
+
+func TestChangesetStore_Update(t *testing.T) {
+	s := NewChangesetStore()
+	cs, err := entity.NewChangeset("cs-1", "original")
+	require.NoError(t, err)
+
+	id, err := s.Store("model-1", cs)
+	require.NoError(t, err)
+
+	updated, err := entity.NewChangeset("cs-1", "updated description")
+	require.NoError(t, err)
+
+	err = s.Update(id, updated)
+	require.NoError(t, err)
+
+	got, err := s.Get(id)
+	require.NoError(t, err)
+	assert.Equal(t, "updated description", got.Changeset.Description)
+}
+
+func TestChangesetStore_Update_NonExistent_ReturnsErrNotFound(t *testing.T) {
+	s := NewChangesetStore()
+	cs, err := entity.NewChangeset("cs-1", "test")
+	require.NoError(t, err)
+
+	err = s.Update("nonexistent-id", cs)
+	assert.True(t, errors.Is(err, usecase.ErrNotFound))
+}
+
+func TestChangesetStore_Delete_SingleID(t *testing.T) {
+	s := NewChangesetStore()
+	cs, err := entity.NewChangeset("cs-1", "to delete")
+	require.NoError(t, err)
+
+	id, err := s.Store("model-1", cs)
+	require.NoError(t, err)
+
+	err = s.Delete(id)
+	require.NoError(t, err)
+
+	_, err = s.Get(id)
+	assert.True(t, errors.Is(err, usecase.ErrNotFound))
 }

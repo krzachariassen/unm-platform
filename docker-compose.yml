@@ -6,4 +6,29 @@ services:
     environment:
       - UNM_ENV=production
       - UNM_OPENAI_API_KEY=${UNM_OPENAI_API_KEY:-}
+      - UNM_STORAGE__DRIVER=${UNM_STORAGE__DRIVER:-memory}
+      - UNM_STORAGE__DATABASE_URL=${UNM_STORAGE__DATABASE_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: unm
+      POSTGRES_PASSWORD: unm
+      POSTGRES_DB: unm_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

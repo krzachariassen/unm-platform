@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
@@ -13,9 +14,13 @@ func (h *Handler) registerSignalsRoutes(mux *http.ServeMux) {
 
 func (h *Handler) handleSignals(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 	writeJSON(w, http.StatusOK, h.buildSignalsData(stored.Model))

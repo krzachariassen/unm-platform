@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/krzachariassen/unm-platform/internal/adapter/handler"
 	"github.com/krzachariassen/unm-platform/internal/adapter/repository"
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
@@ -17,6 +19,7 @@ import (
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/analyzer"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/config"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/parser"
+	"github.com/krzachariassen/unm-platform/internal/infrastructure/persistence"
 	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
@@ -39,16 +42,60 @@ func main() {
 		log.Println("AI advisor disabled")
 	}
 
-	store := repository.NewModelStore()
-	csStore := repository.NewChangesetStore()
-	store.SetOnDelete(func(modelID string) {
-		if n := csStore.DeleteForModel(modelID); n > 0 {
-			log.Printf("cascade-deleted %d changesets for model %s", n, modelID)
+	var store usecase.ModelRepository
+	var csStore usecase.ChangesetRepository
+
+	switch cfg.Storage.Driver {
+	case "postgres":
+		dbURL := cfg.Storage.DatabaseURL
+		if dbURL == "" {
+			log.Fatal("storage.database_url must be set when driver=postgres")
 		}
-	})
-	if cfg.Server.SessionTTL > 0 {
-		store.StartEviction(cfg.Server.SessionTTL, 5*time.Minute)
-		defer store.StopEviction()
+		if cfg.Storage.MigrateOnStartup {
+			if err := persistence.RunMigrations(dbURL); err != nil {
+				log.Fatalf("migrations failed: %v", err)
+			}
+			log.Println("database migrations applied")
+		}
+		poolCfg, err := pgxpool.ParseConfig(dbURL)
+		if err != nil {
+			log.Fatalf("parse database URL: %v", err)
+		}
+		if cfg.Storage.MaxConnections > 0 {
+			poolCfg.MaxConns = int32(cfg.Storage.MaxConnections)
+		}
+		db, err := pgxpool.NewWithConfig(context.Background(), poolCfg)
+		if err != nil {
+			log.Fatalf("open postgres pool: %v", err)
+		}
+		pgModel, err := persistence.NewPGModelStore(db)
+		if err != nil {
+			log.Fatalf("init PGModelStore: %v", err)
+		}
+		pgCS := persistence.NewPGChangesetStore(db, pgModel.SystemUserID())
+		pgModel.SetOnDelete(func(modelID string) {
+			if n := pgCS.DeleteForModel(modelID); n > 0 {
+				log.Printf("cascade-deleted %d changesets for model %s", n, modelID)
+			}
+		})
+		store = pgModel
+		csStore = pgCS
+		log.Printf("storage: postgres (%s)", dbURL)
+	default:
+		memStore := repository.NewModelStore()
+		memCS := repository.NewChangesetStore()
+		memStore.SetOnDelete(func(modelID string) {
+			if n := memCS.DeleteForModel(modelID); n > 0 {
+				log.Printf("cascade-deleted %d changesets for model %s", n, modelID)
+			}
+		})
+		if cfg.Server.SessionTTL > 0 {
+			memStore.StartEviction(cfg.Server.SessionTTL, 5*time.Minute)
+			defer memStore.StopEviction()
+		}
+		store = memStore
+		csStore = memCS
+		log.Println("storage: memory")
 	}
 	h := handler.New(handler.HandlerDeps{
 		Config:            *cfg,

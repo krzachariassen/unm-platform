@@ -4,7 +4,6 @@ import (
 	"log"
 	"sync"
 
-	"github.com/krzachariassen/unm-platform/internal/adapter/repository"
 	"github.com/krzachariassen/unm-platform/internal/domain/entity"
 	"github.com/krzachariassen/unm-platform/internal/domain/service"
 	"github.com/krzachariassen/unm-platform/internal/infrastructure/ai"
@@ -38,23 +37,23 @@ type HandlerDeps struct {
 	SignalSuggestions   *analyzer.SignalSuggestionGenerator
 	ValueChain          *analyzer.ValueChainAnalyzer
 	ValueStream         *analyzer.ValueStreamAnalyzer
-	ChangesetStore      *repository.ChangesetStore
+	ChangesetStore      usecase.ChangesetRepository
 	ImpactAnalyzer      *analyzer.ImpactAnalyzer
 	AIClient            *ai.OpenAIClient // nil when API key not configured
-	Store               *repository.ModelStore
+	Store               usecase.ModelRepository
 }
 
 // modelHandler groups the dependencies needed for model CRUD operations.
 type modelHandler struct {
-	store               *repository.ModelStore
+	store               usecase.ModelRepository
 	parseAndValidate    *usecase.ParseAndValidate
 	parseAndValidateDSL *usecase.ParseAndValidate
 }
 
 // changesetHandler groups the dependencies needed for changeset operations.
 type changesetHandler struct {
-	store          *repository.ModelStore
-	changesetStore *repository.ChangesetStore
+	store          usecase.ModelRepository
+	changesetStore usecase.ChangesetRepository
 	impactAnalyzer *analyzer.ImpactAnalyzer
 	insightCache   *sync.Map
 	cfg            entity.Config
@@ -62,15 +61,15 @@ type changesetHandler struct {
 
 // viewHandler groups the dependencies needed for view projection.
 type viewHandler struct {
-	store *repository.ModelStore
+	store usecase.ModelRepository
 	cfg   entity.Config
 }
 
 // aiHandler groups the dependencies needed for AI advisor and insights.
 type aiHandler struct {
-	store          *repository.ModelStore
+	store          usecase.ModelRepository
 	aiClient       *ai.OpenAIClient
-	changesetStore *repository.ChangesetStore
+	changesetStore usecase.ChangesetRepository
 	promptRenderer *ai.PromptRenderer
 	insightCache   *sync.Map
 	cfg            entity.Config
@@ -104,8 +103,8 @@ type Handler struct {
 
 	// Convenience accessors delegated to sub-handlers (kept for backward-compat
 	// across handler methods that reference h.store, h.aiClient, etc. directly).
-	store          *repository.ModelStore
-	changesetStore *repository.ChangesetStore
+	store          usecase.ModelRepository
+	changesetStore usecase.ChangesetRepository
 	impactAnalyzer *analyzer.ImpactAnalyzer
 	aiClient       *ai.OpenAIClient
 	insightCache   sync.Map

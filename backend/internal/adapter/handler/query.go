@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
+
+	"github.com/krzachariassen/unm-platform/internal/usecase"
 )
 
 // registerQueryRoutes registers GET /api/models/{id}/... query endpoints.
@@ -24,9 +27,13 @@ type capabilityResponse struct {
 // handleQueryCapabilities returns all capabilities in the stored model.
 func (h *Handler) handleQueryCapabilities(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -56,9 +63,13 @@ type teamResponse struct {
 // handleQueryTeams returns all teams in the stored model.
 func (h *Handler) handleQueryTeams(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -87,9 +98,13 @@ type needResponse struct {
 // handleQueryNeeds returns all needs in the stored model.
 func (h *Handler) handleQueryNeeds(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -117,9 +132,13 @@ type serviceResponse struct {
 // handleQueryServices returns all services in the stored model.
 func (h *Handler) handleQueryServices(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
@@ -146,9 +165,13 @@ type actorResponse struct {
 // handleQueryActors returns all actors in the stored model.
 func (h *Handler) handleQueryActors(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	stored := h.store.Get(id)
-	if stored == nil {
+	stored, err := h.store.Get(id)
+	if errors.Is(err, usecase.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "model not found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "store error: "+err.Error())
 		return
 	}
 
