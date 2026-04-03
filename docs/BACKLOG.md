@@ -1,7 +1,7 @@
 # UNM Platform — Backlog
 
-_Single source of truth for all work items.
-Completed phases: `docs/PRODUCT_ROADMAP.md`.
+_Single source of truth for all engineering work items.
+Product roadmap (user-facing milestones): `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
 _Last updated: 2026-04-03 (Phase 13 complete: all items 13.1–13.7 done, codebase clean for Phase 14)_
