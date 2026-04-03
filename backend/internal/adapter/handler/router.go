@@ -31,6 +31,7 @@ func NewRouter(h *Handler, cfgs ...entity.Config) http.Handler {
 	h.registerAnalysisRoutes(mux)
 	h.registerQueryRoutes(mux)
 	h.registerViewRoutes(mux)
+	h.registerAnalyzerViewRoutes(mux)
 	h.registerSignalsRoutes(mux)
 	h.registerAIRoutes(mux)
 	h.registerInsightsRoutes(mux)
