@@ -41,5 +41,8 @@ Thumbs.db
 examples/inca*.yaml
 examples/nexus.unm
 
+# Local config overrides — may contain secrets (Google OAuth, etc.)
+config/local.yaml
+
 # Feedback
 feedback/
