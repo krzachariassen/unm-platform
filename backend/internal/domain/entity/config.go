@@ -20,9 +20,14 @@ type Config struct {
 
 // AuthConfig holds authentication settings.
 type AuthConfig struct {
-	// Enabled controls whether auth is enforced. When false, a dev-mode default
-	// user/org/workspace is injected and all existing routes work unchanged.
-	Enabled       bool   `koanf:"enabled"`
+	// Enabled controls whether auth is enforced. When false, all routes are
+	// accessible without a session (useful for early local dev / CI).
+	Enabled bool `koanf:"enabled"`
+	// DevLogin enables the POST /auth/dev-login endpoint which creates a real
+	// session for the hardcoded dev user without going through Google OAuth.
+	// Set to false in production. Safe to leave true alongside auth.enabled=true
+	// so developers can test without Google credentials.
+	DevLogin      bool   `koanf:"dev_login"`
 	SessionSecret string `koanf:"session_secret"`
 	Google        struct {
 		ClientID     string `koanf:"client_id"`
@@ -333,7 +338,8 @@ func DefaultConfig() Config {
 			PurgeInterval:   5 * time.Minute,
 		},
 		Auth: AuthConfig{
-			Enabled: false,
+			Enabled:  false,
+			DevLogin: true,
 		},
 	}
 }

@@ -273,7 +273,51 @@ func TestAuthMiddleware_PassThrough_WhenDisabled(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-// TestDevModeMiddleware_InjectsDefaultUser verifies the dev-mode user is injected when auth disabled.
+// TestHandleDevLogin_CreatesSession verifies dev-login creates a session when dev_login=true.
+func TestHandleDevLogin_CreatesSession(t *testing.T) {
+	cfg := entity.DefaultConfig()
+	cfg.Auth.Enabled = true  // enabled — yet dev login still works
+	cfg.Auth.DevLogin = true
+
+	sessStore := newStubSessionStore()
+	h := newAuthTestHandler(t, cfg, sessStore)
+
+	req := httptest.NewRequest("POST", "/auth/dev-login", nil)
+	rec := httptest.NewRecorder()
+	h.handleDevLogin(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	// Session cookie must be set.
+	var sessionCookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "unm_session" {
+			sessionCookie = c
+		}
+	}
+	require.NotNil(t, sessionCookie, "unm_session cookie must be set")
+	assert.True(t, sessionCookie.HttpOnly)
+
+	// Session must exist in the store.
+	sess, err := sessStore.Get(sessionCookie.Value)
+	require.NoError(t, err)
+	assert.Equal(t, "local@dev", sess.Email)
+}
+
+// TestHandleDevLogin_NotAvailable verifies dev-login returns 404 when disabled.
+func TestHandleDevLogin_NotAvailable(t *testing.T) {
+	cfg := entity.DefaultConfig()
+	cfg.Auth.DevLogin = false
+
+	h := newAuthTestHandler(t, cfg, newStubSessionStore())
+
+	req := httptest.NewRequest("POST", "/auth/dev-login", nil)
+	rec := httptest.NewRecorder()
+	h.handleDevLogin(rec, req)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
 func TestDevModeMiddleware_InjectsDefaultUser(t *testing.T) {
 	cfg := entity.DefaultConfig()
 	cfg.Auth.Enabled = false

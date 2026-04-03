@@ -1,11 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { authApi } from '@/services/api/auth'
 import { useAuth } from '@/lib/auth-context'
+import { useNavigate } from 'react-router-dom'
 
-// In local dev (Vite dev server), show a "Dev Login" button.
-// The backend injects a dev user for all requests when auth.enabled=false,
-// so /api/me returns a user without any session needed.
+// Show "Continue as Dev User" in Vite dev builds (never in production bundles).
 const IS_DEV = import.meta.env.DEV
 
 export function LoginPage() {
@@ -14,7 +12,6 @@ export function LoginPage() {
   const [devLoading, setDevLoading] = useState(false)
   const [devError, setDevError] = useState<string | null>(null)
 
-  // Already authenticated (dev mode) — shouldn't be on this page.
   if (user) {
     navigate('/', { replace: true })
     return null
@@ -24,16 +21,15 @@ export function LoginPage() {
     setDevLoading(true)
     setDevError(null)
     try {
-      const u = await authApi.getMe()
-      if (u) {
-        // Backend is running in dev mode — /api/me returned the injected dev user.
-        // Reload the page so AuthProvider re-fetches and sets the user.
+      const ok = await authApi.devLogin()
+      if (ok) {
+        // Session cookie is now set — reload so AuthProvider re-fetches /api/me.
         window.location.href = '/'
       } else {
-        setDevError('Backend not reachable or auth.enabled=true. Start the backend with auth.enabled=false.')
+        setDevError('Dev login not available. Set auth.dev_login=true in backend config.')
       }
     } catch {
-      setDevError('Could not reach backend at localhost:8080. Make sure it is running.')
+      setDevError('Could not reach backend. Make sure it is running on localhost:8080.')
     } finally {
       setDevLoading(false)
     }

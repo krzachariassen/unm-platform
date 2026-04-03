@@ -26,10 +26,18 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    await fetch(`${BASE.replace('/api', '')}/auth/logout`, {
+    await fetch('/auth/logout', {
       method: 'POST',
       credentials: 'include',
     })
+  },
+
+  async devLogin(): Promise<boolean> {
+    const res = await fetch('/auth/dev-login', {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return res.ok
   },
 
   loginUrl(): string {
