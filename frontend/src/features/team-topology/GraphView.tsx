@@ -191,7 +191,7 @@ export function GraphView({ teams, interactions, insights, filterOverloaded }: {
                 e.currentTarget.style.boxShadow = isFocused
                   ? `0 0 0 3px ${cfg.accent}33, 0 12px 32px rgba(15,23,42,0.14)`
                   : '0 2px 8px rgba(15,23,42,0.06)'
-                const btn = e.currentTarget.querySelector('.qa-node') as HTMLElement; if (btn) btn.style.opacity = '0.35'
+                const btn = e.currentTarget.querySelector('.qa-node') as HTMLElement; if (btn) btn.style.opacity = '0.7'
               }}
             >
               <div style={{ width: 4, flexShrink: 0, background: `linear-gradient(180deg, ${cfg.gradientFrom} 0%, ${cfg.gradientTo} 100%)` }} />
@@ -211,7 +211,7 @@ export function GraphView({ teams, interactions, insights, filterOverloaded }: {
                 </div>
                 <div className="text-[13px] font-bold text-slate-900 truncate -tracking-tight mt-1.5 flex items-center gap-1">
                   <span className="truncate">{team.label}</span>
-                  <span className="qa-node" style={{ opacity: 0.35, transition: 'opacity 0.15s' }}>
+                  <span className="qa-node" style={{ opacity: 0.7, transition: 'opacity 0.15s' }}>
                     <QuickAction size={11} options={[
                       { label: 'Change team type', action: { type: 'update_team_type', team_name: team.label } },
                       { label: 'Update team size', action: { type: 'update_team_size', team_name: team.label } },

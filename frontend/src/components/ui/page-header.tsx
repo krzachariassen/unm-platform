@@ -10,7 +10,7 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 mb-4', className)}>
+    <div className={cn('page-header-root flex items-start justify-between gap-4 mb-4', className)}>
       <div className="min-w-0">
         <h1 className="text-xl font-bold text-foreground truncate">{title}</h1>
         {description && (

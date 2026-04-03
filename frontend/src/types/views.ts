@@ -243,3 +243,32 @@ export interface UNMMapViewResponse {
   edges: ViewEdge[]
   external_deps?: UNMMapExtDep[]
 }
+
+// Gaps View (FC.4)
+export interface GapsView {
+  model_id: string
+  unmapped_needs: string[]
+  unrealized_capabilities: string[]
+  unowned_services: string[]
+  unneeded_capabilities: string[]
+  orphan_services: string[]
+}
+
+// Dependencies View (FC.5)
+export interface DependenciesView {
+  model_id: string
+  service_cycles: Array<{ path: string[] }>
+  capability_cycles: Array<{ path: string[] }>
+  max_service_depth: number
+  max_capability_depth: number
+  critical_service_path: string[]
+}
+
+// Interactions View (FC.6)
+export interface InteractionsView {
+  model_id: string
+  mode_distribution: Record<string, number>
+  isolated_teams: string[]
+  over_reliant_teams: Array<{ team_name: string; mode: string; count: number }>
+  all_modes_same: boolean
+}

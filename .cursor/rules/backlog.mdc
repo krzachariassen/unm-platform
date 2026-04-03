@@ -5,16 +5,19 @@ globs: ["**/BACKLOG*.md"]
 
 # Backlog Management Rules
 
-Read `.claude/agents/backlog-manager/AGENT.md` before performing backlog
-operations.
+**`docs/BACKLOG.md` is exclusively owned by the backlog-manager agent.**
+No other agent, orchestrator, or Cursor session may edit this file directly.
+If you need to update the backlog, invoke the backlog-manager agent.
 
-## Single backlog
+Read `.claude/agents/backlog-manager/AGENT.md` for the full agent spec.
 
-All work items live in `docs/BACKLOG.md`. Humans own structure and priorities;
-the backlog-manager workflow updates completion state (checkboxes, dates) and
-the "Recently Completed" section.
+## File ownership
 
-## Rules
+All work items live in `docs/BACKLOG.md`. Humans own structure and priorities.
+Only the backlog-manager agent may write to this file. All other agents MUST
+delegate backlog edits to the backlog-manager.
+
+## Rules for the backlog-manager
 
 ### After completing a task
 
@@ -23,6 +26,12 @@ the "Recently Completed" section.
 3. Update "Recently Completed" as appropriate
 4. Prune "Recently Completed" — keep only the last 5–10 items
 
+### When adding items
+
+Every item must have enough detail for an AI engineer to implement without
+asking questions: what, where (file paths), how (when non-obvious), why
+(rationale/constraints), and a `#backend`/`#frontend`/`#fullstack` tag.
+
 ### When near-term work is thin
 
 1. Point to the next unchecked items in phase order within `docs/BACKLOG.md`
@@ -30,7 +39,9 @@ the "Recently Completed" section.
 
 ### What NOT to do
 
+- Do NOT edit `docs/BACKLOG.md` if you are not the backlog-manager agent
 - Do NOT rewrite phases or narrative without explicit human instruction
 - Do NOT add speculative items without approval
 - Do NOT remove items unless completed or explicitly cancelled
 - Do NOT reorder items — the human decides priority
+- Do NOT add items that lack sufficient implementation detail
