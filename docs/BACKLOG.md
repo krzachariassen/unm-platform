@@ -12,7 +12,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-03 (Phase 14B backend complete; frontend 14B.6–14B.7 pending)_
+_Last updated: 2026-04-03 (Phase 14D backend complete — PG data lifecycle)_
 _Priority: **14C** (model list UI) → **Phase F** (frontend restructure) → **Phase 15** (auth/tenancy + UI) → **Phase 16** (collaboration + UI) → Phase 17 (hardening) → Phase 18 (ecosystem)._
 
 _Context: Two independent external reviews identified migration completion,
@@ -23,6 +23,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 ---
 
 ## Recently Completed
+
+- [x] **feat(phase-14d): PostgreSQL data lifecycle — background purge + test isolation** — `PurgeRetention` (168h) and `PurgeInterval` (5m) added to `StorageConfig` with defaults; `PGModelStore.StartEviction/StopEviction` replaced with real ticker-based goroutine that hard-deletes soft-deleted rows in FK order (changesets → model_versions → models → workspaces); `main.go` wired to call `StartEviction` when `driver=postgres`; `NewPGModelStoreWithWorkspace` constructor added for test-scoped store creation; `setupTestOrgWorkspace` helper in contract tests creates a unique org+workspace per run and registers CASCADE cleanup via `t.Cleanup`; `TestPostgresPurgeExpired` unit test verifies hard-deletion after soft-delete. 14D.1–14D.5 complete. (2026-04-03)
 
 - [x] **feat(phase-FC.4-6): New Analyzer Tabs** — GapsTab in NeedsPage (5 gap categories: unmapped needs, unrealized caps, unowned services, unneeded caps, orphan services); DependenciesTab in CapabilitiesPage (stat cards, cycle path rendering, critical service path chain); InteractionsTab in TeamsPage (mode distribution bars, isolated teams, over-reliant teams, all_modes_same warning banner); new view types GapsView/DependenciesView/InteractionsView; API functions getGaps/getDependencies/getInteractions; 18 new tests, 118 total pass. FC.4–FC.6 complete. (2026-04-03)
 
@@ -144,18 +146,18 @@ test data and soft-deleted rows must not leak into tenant queries.
 - CI doesn't need special TTL — CI uses ephemeral postgres containers.
   Test isolation is for **local dev** where the same DB persists.
 
-- [ ] **14D.1** — Add `PurgeRetention` (default `168h` = 7d) and
+- [x] **14D.1** — Add `PurgeRetention` (default `168h` = 7d) and
       `PurgeInterval` (default `5m`) to `StorageConfig`. Set defaults in
       `DefaultConfig()`.
-      _File: `entity/config.go`_ (#backend)
+      _File: `entity/config.go`_ (#backend) (2026-04-03)
       ```go
       PurgeRetention time.Duration `koanf:"purge_retention"` // 7d
       PurgeInterval  time.Duration `koanf:"purge_interval"`  // 5m
       ```
-- [ ] **14D.2** — Implement background purge in `PGModelStore.StartEviction`:
+- [x] **14D.2** — Implement background purge in `PGModelStore.StartEviction`:
       ticker-based goroutine that hard-deletes rows where
       `deleted_at < NOW() - $1`. SQL (executed in order):
-      _File: `persistence/pg_model_store.go`_ (#backend)
+      _File: `persistence/pg_model_store.go`_ (#backend) (2026-04-03)
       ```sql
       DELETE FROM changesets     WHERE deleted_at < NOW() - $1;
       DELETE FROM model_versions WHERE deleted_at < NOW() - $1;
@@ -163,22 +165,22 @@ test data and soft-deleted rows must not leak into tenant queries.
       DELETE FROM workspaces     WHERE deleted_at < NOW() - $1;
       ```
       Use the existing `stopCh` pattern from memory store. Log deletions.
-- [ ] **14D.3** — Wire purge config in `main.go`: call `StartEviction`
+- [x] **14D.3** — Wire purge config in `main.go`: call `StartEviction`
       with `cfg.Storage.PurgeRetention` and `cfg.Storage.PurgeInterval`
       when `driver=postgres`. Remove the "ignored for postgres" log line.
-      _File: `cmd/server/main.go`_ (#backend)
-- [ ] **14D.4** — Test isolation: add `setupTestOrgWorkspace(t, db)` helper
+      _File: `cmd/server/main.go`_ (#backend) (2026-04-03)
+- [x] **14D.4** — Test isolation: add `setupTestOrgWorkspace(t, db)` helper
       in contract tests. Creates a unique org (`test-{random}`) + workspace
       per test run, returns IDs for store constructors. `t.Cleanup`
       hard-deletes all data in that org via `DELETE FROM organizations
       WHERE id = $1` (CASCADE handles children). Pass org/workspace IDs
       to PGModelStore/PGChangesetStore so test data is scoped.
-      _File: `persistence/repository_contract_test.go`_ (#backend)
-- [ ] **14D.5** — Verify: run contract tests twice against same DB,
+      _File: `persistence/repository_contract_test.go`_ (#backend) (2026-04-03)
+- [x] **14D.5** — Verify: run contract tests twice against same DB,
       confirm `GET /api/models` returns no orphaned test data. Write a
       unit test that soft-deletes a model, sets retention to 0, triggers
       purge, and confirms the row is gone.
-      _File: `persistence/*_test.go`_ (#backend)
+      _File: `persistence/*_test.go`_ (#backend) (2026-04-03)
 
 ---
 

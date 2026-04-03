@@ -3,9 +3,13 @@ package persistence_test
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,6 +37,43 @@ func connectTestDB(t *testing.T) *pgxpool.Pool {
 	require.NoError(t, err)
 	t.Cleanup(func() { db.Close() })
 	return db
+}
+
+// setupTestOrgWorkspace inserts a unique org + workspace into the DB and returns
+// (orgID, workspaceID, userID) for use in store constructors.
+// A t.Cleanup is registered to hard-delete the org (CASCADE removes all children).
+func setupTestOrgWorkspace(t *testing.T, db *pgxpool.Pool) (orgID, workspaceID uuid.UUID, userID uuid.UUID) {
+	t.Helper()
+
+	// Ensure a system user exists (reuse the bootstrap pattern).
+	err := db.QueryRow(context.Background(),
+		`INSERT INTO users (email, name) VALUES ('system@unm-platform.local', 'System')
+		 ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+		 RETURNING id`,
+	).Scan(&userID)
+	require.NoError(t, err)
+
+	// Create a unique org for this test run.
+	slug := fmt.Sprintf("test-%d-%d", time.Now().UnixNano(), rand.Intn(100000))
+	err = db.QueryRow(context.Background(),
+		`INSERT INTO organizations (name, slug) VALUES ($1, $2) RETURNING id`,
+		slug, slug,
+	).Scan(&orgID)
+	require.NoError(t, err)
+
+	// Create a workspace in that org.
+	err = db.QueryRow(context.Background(),
+		`INSERT INTO workspaces (org_id, name, slug, created_by) VALUES ($1, $2, $3, $4) RETURNING id`,
+		orgID, slug, slug, userID,
+	).Scan(&workspaceID)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_, _ = db.Exec(context.Background(),
+			`DELETE FROM organizations WHERE id = $1`, orgID)
+	})
+
+	return orgID, workspaceID, userID
 }
 
 // minimalModel returns a small but valid UNMModel for testing.
@@ -286,15 +327,49 @@ func TestMemoryChangesetRepository(t *testing.T) {
 
 func TestPostgresModelRepository(t *testing.T) {
 	db := connectTestDB(t)
-	store, err := persistence.NewPGModelStore(db)
-	require.NoError(t, err)
+	_, wsID, userID := setupTestOrgWorkspace(t, db)
+	store := persistence.NewPGModelStoreWithWorkspace(db, userID, wsID)
 	runModelRepositoryTests(t, store)
 }
 
 func TestPostgresChangesetRepository(t *testing.T) {
 	db := connectTestDB(t)
-	store, err := persistence.NewPGModelStore(db)
-	require.NoError(t, err)
-	csStore := persistence.NewPGChangesetStore(db, store.SystemUserID())
+	_, wsID, userID := setupTestOrgWorkspace(t, db)
+	store := persistence.NewPGModelStoreWithWorkspace(db, userID, wsID)
+	csStore := persistence.NewPGChangesetStore(db, userID)
 	runChangesetRepositoryTests(t, store, csStore)
+}
+
+// ── 14D.5: Purge unit test ─────────────────────────────────────────────────
+
+// TestPostgresPurgeExpired verifies that purgeExpired (called via StartEviction)
+// hard-deletes rows whose deleted_at is older than the retention window.
+func TestPostgresPurgeExpired(t *testing.T) {
+	db := connectTestDB(t)
+	_, wsID, userID := setupTestOrgWorkspace(t, db)
+	store := persistence.NewPGModelStoreWithWorkspace(db, userID, wsID)
+
+	// Store a model and soft-delete it.
+	id, err := store.Store(minimalModel("Purge Me"))
+	require.NoError(t, err)
+	require.NoError(t, store.Delete(id))
+
+	// Back-date deleted_at to 8 days ago so it falls within any reasonable retention window.
+	uid, err := uuid.Parse(id)
+	require.NoError(t, err)
+	_, err = db.Exec(context.Background(),
+		`UPDATE models SET deleted_at = NOW() - INTERVAL '8 days' WHERE id = $1`, uid)
+	require.NoError(t, err)
+
+	// Trigger purge with zero retention — everything soft-deleted qualifies.
+	store.StartEviction(0, 50*time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
+	store.StopEviction()
+
+	// The model row should now be gone.
+	var count int
+	err = db.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM models WHERE id = $1`, uid).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "model row should have been hard-deleted by purge")
 }

@@ -81,8 +81,9 @@ func main() {
 		store = pgModel
 		csStore = pgCS
 		log.Printf("storage: postgres (%s)", dbURL)
-		if cfg.Server.SessionTTL > 0 {
-			log.Println("session TTL eviction is memory-only; ignored for postgres driver")
+		if cfg.Storage.PurgeRetention > 0 && cfg.Storage.PurgeInterval > 0 {
+			pgModel.StartEviction(cfg.Storage.PurgeRetention, cfg.Storage.PurgeInterval)
+			defer pgModel.StopEviction()
 		}
 	default:
 		memStore := repository.NewModelStore()

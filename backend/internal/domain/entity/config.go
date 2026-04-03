@@ -167,6 +167,12 @@ type StorageConfig struct {
 	MaxConnections int `koanf:"max_connections"`
 	// MigrateOnStartup runs golang-migrate on startup when true.
 	MigrateOnStartup bool `koanf:"migrate_on_startup"`
+	// PurgeRetention is how long soft-deleted rows are kept before hard-deletion.
+	// Default: 168h (7 days).
+	PurgeRetention time.Duration `koanf:"purge_retention"`
+	// PurgeInterval is how often the background purge goroutine runs.
+	// Default: 5m.
+	PurgeInterval time.Duration `koanf:"purge_interval"`
 }
 
 // validReasoningEfforts is the set of allowed reasoning effort values.
@@ -309,6 +315,8 @@ func DefaultConfig() Config {
 			Driver:           "memory",
 			MaxConnections:   20,
 			MigrateOnStartup: true,
+			PurgeRetention:  168 * time.Hour,
+			PurgeInterval:   5 * time.Minute,
 		},
 	}
 }
