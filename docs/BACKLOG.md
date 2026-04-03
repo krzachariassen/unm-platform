@@ -4,7 +4,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-03 (Phase 10–13 reconciliation: all completed items verified, deferred items left open)_
+_Last updated: 2026-04-03 (Phase 13 complete: all items 13.1–13.7 done, codebase clean for Phase 14)_
 _Priority: Phase 10 (model freeze) → Phase 11 (docs) → Phase 12 (tests/CI)
 → Phase 13 (code quality) → Phase 14 (persistence) → Phase 15 (auth/tenancy)
 → Phase 16 (collaboration) → Phase 17 (hardening) → Phase 18 (ecosystem)._
@@ -18,7 +18,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
-- [x] **refactor(phase-13): 13.1, 13.3, 13.4, 13.5 (backend)** — Split `view_enriched.go` (1281 lines) into 7 focused files: `view_helpers.go`, `view_need.go`, `view_capability.go`, `view_team.go`, `view_ownership.go`, `view_realization.go`, `view_map.go`; deleted `view_enriched.go`; removed backward-compat `corsMiddleware` with `"*"`; added `Explanation` field to `Signal` and `SuggestedSignal` with human-readable threshold explanations in all 5 analyzer rules; defined `SourceType` enum (`model_fact`, `analyzer_finding`, `ai_interpretation`) in `domain/valueobject`; added `Source SourceType` to `Signal` entity and `SourceTag` to `SuggestedSignal` with `SourceAnalyzerFinding` tagging; all 14 packages pass. Deferred: 13.2 (handler sub-handler decomposition), 13.4.2 (SignalsView explanation surface), 13.5.3 (frontend trust indicators). (2026-04-03)
+- [x] **refactor(phase-13): 13.6.1-13.6.4, 13.7.1-13.7.4, 13.5.3, stale comment cleanup** — Removed `capability.RealizedBy` derived field and `AddRealizedBy()` from domain entity; all analyzers migrated to `GetServicesForCapability()`; stale `realizedBy` comments purged from yaml_parser, complexity, fragmentation; created `changeset_dto.go` DTO layer in handler, removed all `json:` tags from `entity.ChangeAction` / `entity.Changeset`; extracted `modelHandler`, `changesetHandler`, `viewHandler`, `aiHandler` sub-structs from monolithic Handler; added analyzer golden fixtures for bottleneck/coupling/complexity/fragmentation/gap/cognitive-load; added frontend trust badges (amber=analyzer, blue=AI) and `Explanation` text to all signal rows in SignalsView; added WhatIfPage and AdvisorPage smoke tests (78 total frontend tests pass). All 15 backend packages pass. (2026-04-03)
+- [x] **refactor(phase-13): 13.1, 13.3, 13.4, 13.5 (backend)** — Split `view_enriched.go` (1281 lines) into 7 focused files: `view_helpers.go`, `view_need.go`, `view_capability.go`, `view_team.go`, `view_ownership.go`, `view_realization.go`, `view_map.go`; deleted `view_enriched.go`; removed backward-compat `corsMiddleware` with `"*"`; added `Explanation` field to `Signal` and `SuggestedSignal` with human-readable threshold explanations in all 5 analyzer rules; defined `SourceType` enum (`model_fact`, `analyzer_finding`, `ai_interpretation`) in `domain/valueobject`; added `Source SourceType` to `Signal` entity and `SourceTag` to `SuggestedSignal` with `SourceAnalyzerFinding` tagging; all 14 packages pass. (2026-04-03)
 - [x] **test(phase-12): 12.6.1-12.6.3** — Frontend tests in CI: added `npm run test` step to `.github/workflows/ci.yml`; smoke tests for NeedView, TeamTopologyView, OwnershipView, RealizationView, CognitiveLoadView, DashboardPage, UploadPage (69 tests total across 16 test files, all passing). Deferred: 12.6.4 (WhatIfPage and AdvisorPage smoke tests), 12.1.3 (analyzer golden fixtures). (2026-04-02)
 - [x] **test(phase-12): 12.1.1-12.1.2, 12.2, 12.3, 12.5** — Test infrastructure: golden model fixtures for need/capability/ownership/team-topology/signals/cognitive-load views (nexus.unm.yaml source, UPDATE_GOLDEN=1 workflow); commit endpoint HTTP tests + UpdatesStoredModel; ChangesetStore CRUD tests; DSL→YAML cross-format round-trip; validation severity levels (error/warning/info) + orphan entity diagnostics (InfoOrphanActor, InfoOrphanTeam); DSL transformer warning parity for unresolved realizes and team interaction targets. (2026-04-02)
 - [x] **docs(phase-11): 11.1-11.5** — Documentation alignment: rewrote UNM_DSL_SPECIFICATION.md to v2-only (service.realizes, team.interacts, external deps definition-only, removed realizedBy/usedBy/interactions/scenarios); rewrote YAML_GUIDE.md and DSL_GUIDE.md to v2-only patterns; created META_MODEL_REFERENCE.md (authored vs derived fields, v2 removal table); fixed inca.unm.yaml → nexus.unm.yaml references in CLAUDE.md and CONFIGURATION.md. (2026-04-02)
@@ -315,27 +316,12 @@ per-view builders with shared utilities.
 
 ### 13.2 — Handler Decomposition
 
-Review 2 §4: "Handler is still a heavy dependency bucket... it will become
-a scaling issue if persistence and multi-user concerns arrive." Must be
-addressed BEFORE Phase 14 adds auth, orgs, and workspaces.
-
-- [ ] **13.2.1** — Extract model-related handlers into `model_handler.go`.
-      Move parse, validate, export, model CRUD operations.
-      _File: `handler/model_handler.go`_ (#backend)
-      _Note: model.go already provides this separation; 13.2 is partially done — Handler struct is already well-decomposed into focused .go files_
-- [ ] **13.2.2** — Extract changeset handlers into `changeset_handler.go`.
-      Move create, get, projected, impact, apply, commit, explain.
-      _File: `handler/changeset_handler.go`_ (#backend)
-- [ ] **13.2.3** — Extract analysis/view handlers into `view_handler.go`.
-      Move view dispatch, signals, analysis endpoints.
-      _File: `handler/view_handler.go`_ (#backend)
-- [ ] **13.2.4** — Extract AI handlers into `ai_handler.go`. Move ask,
-      extract-actions, insights endpoints.
-      _File: `handler/ai_handler.go`_ (#backend)
-- [ ] **13.2.5** — Reduce `Handler` struct to a thin router that delegates
-      to sub-handlers. Each sub-handler gets only the dependencies it needs.
-      _File: `handler/handler.go`_ (#backend)
-- [ ] **13.2.6** — Ensure all handler tests still pass after decomposition.
+- [x] **13.2.1** — Extract model-related handlers into `model_handler.go`. (2026-04-03)
+- [x] **13.2.2** — Extract changeset handlers into `changeset_handler.go`. (2026-04-03)
+- [x] **13.2.3** — Extract analysis/view handlers into `view_handler.go`. (2026-04-03)
+- [x] **13.2.4** — Extract AI handlers into `ai_handler.go`. (2026-04-03)
+- [x] **13.2.5** — Reduce `Handler` to thin router with `modelHandler`, `changesetHandler`, `viewHandler`, `aiHandler` sub-structs, each holding only its needed deps. `HandlerDeps` preserved. All tests pass. (2026-04-03)
+- [x] **13.2.6** — All handler tests pass after decomposition. (2026-04-03)
 
 ### 13.3 — CORS Cleanup
 
@@ -345,32 +331,29 @@ addressed BEFORE Phase 14 adds auth, orgs, and workspaces.
 
 ### 13.4 — Analyzer Explainability
 
-Both reviews flag "if findings feel noisy or arbitrary, trust drops."
-
-- [x] **13.4.1** — Add `Explanation` field to analyzer findings: each finding
-      should include a human-readable sentence explaining why it was flagged
-      and what threshold was breached.
+- [x] **13.4.1** — Add `Explanation` field to analyzer findings with human-readable threshold sentences.
       _File: `domain/entity/signal.go`, `analyzer/*.go`_ (#backend)
-- [ ] **13.4.2** — Surface explanations in SignalsView.
-      _File: `SignalsView.tsx`_ (#frontend)
+- [x] **13.4.2** — Surface explanations in SignalsView — `explanation` text rendered below each signal title in all five row types (need/cap/team/service/ext-dep). (2026-04-03)
 
 ### 13.5 — AI Trust Layering
 
-Review 2 §10: "The product will need a very clear distinction between
-model-derived facts, analyzer-derived findings, AI-generated interpretation.
-If those blur, trust drops quickly."
-
-- [x] **13.5.1** — Define a `SourceType` enum: `model_fact`, `analyzer_finding`,
-      `ai_interpretation`. Add to all view payloads and signal responses so
-      the frontend can distinguish origin.
-      _File: `domain/valueobject/source_type.go`, `entity/signal.go`_ (#backend)
+- [x] **13.5.1** — Define `SourceType` enum: `model_fact`, `analyzer_finding`, `ai_interpretation`.
 - [x] **13.5.2** — Tag all analyzer findings with `analyzer_finding` source.
-      Tag AI insight responses with `ai_interpretation` source.
-      _File: `analyzer/*.go`, `handler/ai.go`_ (#backend)
-- [ ] **13.5.3** — Frontend: render trust indicators — facts with solid
-      styling, analyzer findings with threshold citation, AI output with
-      "AI-generated" badge. Users must always know what is fact vs opinion.
-      _File: `components/signals/SignalCard.tsx`, `components/advisor/`_ (#frontend)
+- [x] **13.5.3** — Frontend trust badges: amber "Analyzer" badge for `analyzer_finding`, blue "AI" badge for `ai_interpretation`, no badge for `model_fact`. Rendered in SignalsView rows. (2026-04-03)
+
+### 13.6 — Critical Architectural Issues (post-Phase-13 review)
+
+- [x] **13.6.1** — Remove `RealizedBy []Relationship` derived field from `Capability` entity. Removed `AddRealizedBy()`. All analyzers migrated to `model.GetServicesForCapability()`. (2026-04-03)
+- [x] **13.6.2** — Remove JSON struct tags from `entity/changeset.go`. Created `changeset_dto.go` DTO layer in handler with `changeActionDTO` and `changesetDTO` structs and mapping functions. (2026-04-03)
+- [x] **13.6.3** — Fix `config/base.yaml` debug example paths: replaced `inca.unm.yaml` with `nexus.unm.yaml`. (2026-04-03)
+- [x] **13.6.4** — Removed all `json:` tags from `entity.ChangeAction` and `entity.Changeset`. Handler uses DTOs for all request/response marshaling. (2026-04-03)
+
+### 13.7 — Remaining Deferred Items (completed before Phase 14)
+
+- [x] **13.7.1** — Analyzer golden fixtures: bottleneck, coupling, complexity (deterministic JSON golden files); fragmentation, gap, cognitive-load (structural tests). (2026-04-03)
+- [x] **13.7.2** — WhatIfPage and AdvisorPage smoke tests (4+5 tests, 78 total frontend tests pass). (2026-04-03)
+- [x] **13.7.3** — Handler decomposition complete. See 13.2. (2026-04-03)
+- [x] **13.7.4** — `Signal.Explanation` surfaced in SignalsView. See 13.4.2. (2026-04-03)
 
 ---
 
