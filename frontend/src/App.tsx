@@ -16,6 +16,8 @@ import { SignalsView } from '@/pages/views/SignalsView'
 import { WhatIfPage } from '@/pages/WhatIfPage'
 import { AdvisorPage } from '@/pages/AdvisorPage'
 import { RecommendationsPage } from '@/pages/RecommendationsPage'
+import { ModelsPage } from '@/pages/ModelsPage'
+import { ModelHistoryPage } from '@/pages/ModelHistoryPage'
 
 export default function App() {
   return (
@@ -25,7 +27,9 @@ export default function App() {
           <Routes>
             <Route element={<AppShell />}>
               <Route path="/" element={<UploadPage />} />
+              <Route path="/models" element={<ModelsPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/history" element={<ModelHistoryPage />} />
               <Route path="/unm-map" element={<UNMMapView />} />
               <Route path="/need" element={<NeedView />} />
               <Route path="/capability" element={<CapabilityView />} />
