@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -27,6 +28,7 @@ type PGModelStore struct {
 	onDelete          func(modelID string)
 	systemUserID      uuid.UUID
 	systemWorkspaceID uuid.UUID
+	stopCh            chan struct{} // signals the purge goroutine to stop
 }
 
 // NewPGModelStore creates a PGModelStore, bootstrapping the system user and workspace if needed.
@@ -39,6 +41,17 @@ func NewPGModelStore(db *pgxpool.Pool) (*PGModelStore, error) {
 		return nil, fmt.Errorf("PGModelStore bootstrap: %w", err)
 	}
 	return s, nil
+}
+
+// NewPGModelStoreWithWorkspace creates a PGModelStore scoped to the given user and workspace.
+// Use this in tests to isolate data between test runs.
+func NewPGModelStoreWithWorkspace(db *pgxpool.Pool, userID, workspaceID uuid.UUID) *PGModelStore {
+	return &PGModelStore{
+		db:                db,
+		cache:             make(map[string]*entity.UNMModel),
+		systemUserID:      userID,
+		systemWorkspaceID: workspaceID,
+	}
 }
 
 // SystemUserID returns the bootstrapped system user UUID, needed for PGChangesetStore.
@@ -376,8 +389,51 @@ func (s *PGModelStore) SetOnDelete(fn func(modelID string)) {
 	s.mu.Unlock()
 }
 
-// StartEviction is a no-op for PG store (models are persisted, not evicted).
-func (s *PGModelStore) StartEviction(ttl, interval time.Duration) {}
+// StartEviction launches a background goroutine that periodically hard-deletes
+// rows whose deleted_at timestamp is older than the given retention duration.
+// Rows are deleted in FK order: changesets → model_versions → models → workspaces.
+func (s *PGModelStore) StartEviction(retention, interval time.Duration) {
+	s.stopCh = make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.purgeExpired(retention)
+			case <-s.stopCh:
+				return
+			}
+		}
+	}()
+	log.Printf("pg purge started: retention=%v, interval=%v", retention, interval)
+}
 
-// StopEviction is a no-op for PG store.
-func (s *PGModelStore) StopEviction() {}
+// StopEviction stops the background purge goroutine.
+func (s *PGModelStore) StopEviction() {
+	if s.stopCh != nil {
+		close(s.stopCh)
+	}
+}
+
+// purgeExpired hard-deletes all soft-deleted rows older than retention.
+// Executes in FK order so constraints are satisfied.
+func (s *PGModelStore) purgeExpired(retention time.Duration) {
+	ctx := context.Background()
+	retentionStr := retention.String()
+
+	tables := []string{"changesets", "model_versions", "models", "workspaces"}
+	for _, tbl := range tables {
+		tag, err := s.db.Exec(ctx,
+			`DELETE FROM `+tbl+` WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - $1::interval`,
+			retentionStr,
+		)
+		if err != nil {
+			log.Printf("pg purge: delete from %s failed: %v", tbl, err)
+			continue
+		}
+		if n := tag.RowsAffected(); n > 0 {
+			log.Printf("pg purge: hard-deleted %d rows from %s", n, tbl)
+		}
+	}
+}
