@@ -24,6 +24,8 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
+- [x] **feat(auth): Phase 15A frontend — login page, auth context, protected routes, user menu** — `services/api/auth.ts` with `authApi.getMe/logout/loginUrl` + `AuthUser`/`OrgMembership` types; `lib/auth-context.tsx` with `AuthProvider` (fetches `/api/me` on mount with AbortController) and `useAuth` hook; `pages/LoginPage.tsx` centered card with Google SVG icon and "Sign in with Google" link; `App.tsx` wrapped in `AuthProvider` + `ProtectedRoute` (null while loading, redirect to `/login` when unauthenticated); `/login` route outside `AppShell`; `TopBar.tsx` user avatar (photo or initial fallback) with dropdown menu showing name, email, and Sign out action. Dev mode transparent: backend injects dev user so `/api/me` always returns a user when `auth.enabled=false`. 15A.8–15A.11 complete. (2026-04-03)
+
 - [x] **feat(auth): Phase 15A — Google OAuth, session management, auth middleware (backend)** — `AuthConfig` added to `entity.Config` (`auth.enabled`, `auth.google.*`); `SessionRepository` interface + `UserSession`/`AuthUser` types in `usecase`; `MemorySessionStore` (crypto/rand, expiry-checked) and `PGSessionStore` (sessions table with FK to users, `expires_at > NOW()`) in `infrastructure/persistence`; SQL migration `002_sessions.up.sql`; `handler/auth.go` with `handleGoogleLogin` (CSRF state cookie), `handleGoogleCallback` (token exchange + userinfo + session create), `handleLogout` (session delete + cookie clear), `handleMe` (AuthUser from context → JSON), `makeAuthMiddleware` (401 when enabled + no session, skips /health + /auth/*), `makeDevModeMiddleware` (injects hardcoded dev user when auth.enabled=false); `GET /api/me`, `GET /auth/google`, `GET /auth/callback`, `POST /auth/logout` routes; `noopSessionStore` safe fallback; vendored `golang.org/x/oauth2` + `cloud.google.com/go/compute/metadata`; 8 httptest-based tests, all 16 packages pass. 15A.1–15A.7 complete. (2026-04-03)
 
 - [x] **feat(phase-14d): PostgreSQL data lifecycle — background purge + test isolation** — `PurgeRetention` (168h) and `PurgeInterval` (5m) added to `StorageConfig` with defaults; `PGModelStore.StartEviction/StopEviction` replaced with real ticker-based goroutine that hard-deletes soft-deleted rows in FK order (changesets → model_versions → models → workspaces); `main.go` wired to call `StartEviction` when `driver=postgres`; `NewPGModelStoreWithWorkspace` constructor added for test-scoped store creation; `setupTestOrgWorkspace` helper in contract tests creates a unique org+workspace per run and registers CASCADE cleanup via `t.Cleanup`; `TestPostgresPurgeExpired` unit test verifies hard-deletion after soft-delete. 14D.1–14D.5 complete. (2026-04-03)
@@ -295,14 +297,14 @@ Backend items can start anytime; frontend items need FA (tabs) first.
 - [x] **15A.7** — Local dev mode: when `auth.enabled: false`, inject default
       user + default org + default workspace context into all requests.
       _File: `handler/middleware.go`_ (#backend)
-- [ ] **15A.8** — Frontend: Login page with "Sign in with Google."
+- [x] **15A.8** — Frontend: Login page with "Sign in with Google."
       _File: `pages/LoginPage.tsx`_ (#frontend)
-- [ ] **15A.9** — Frontend: Auth context (check `/api/me`, redirect to
+- [x] **15A.9** — Frontend: Auth context (check `/api/me`, redirect to
       login on 401, store user info).
       _File: `lib/auth-context.tsx`_ (#frontend)
-- [ ] **15A.10** — Frontend: Protected route wrapper.
+- [x] **15A.10** — Frontend: Protected route wrapper.
       _File: `App.tsx`_ (#frontend)
-- [ ] **15A.11** — Frontend: User info in TopBar (name, avatar, logout).
+- [x] **15A.11** — Frontend: User info in TopBar (name, avatar, logout).
       _File: `components/layout/TopBar.tsx`_ (#frontend)
 
 ### 15B — Organizations & Workspaces
