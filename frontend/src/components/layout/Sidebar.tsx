@@ -1,16 +1,37 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Map, Users, Layers, AlertCircle, Network,
-  FlaskConical, Bot, FileText, ChevronLeft, ChevronRight, Database, History,
-  Settings, ArrowLeftRight,
+  FlaskConical, Bot, FileText, ChevronLeft, ChevronRight, ChevronDown,
+  Database, History, Settings, ArrowLeftRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel } from '@/lib/model-context'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
 import { useWorkspace } from '@/lib/workspace-context'
+import type { LucideIcon } from 'lucide-react'
 
-const NAV_SECTIONS = [
+interface SubItem {
+  to: string
+  label: string
+  end?: boolean
+}
+
+interface NavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+  always: boolean
+  ai: boolean
+  children?: SubItem[]
+}
+
+interface NavSection {
+  label: string
+  items: NavItem[]
+}
+
+const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Workspace',
     items: [
@@ -23,9 +44,31 @@ const NAV_SECTIONS = [
     label: 'Architecture',
     items: [
       { to: '/unm-map', label: 'UNM Map', icon: Map, always: false, ai: false },
-      { to: '/needs', label: 'Needs', icon: Users, always: false, ai: false },
-      { to: '/capabilities', label: 'Capabilities', icon: Layers, always: false, ai: false },
-      { to: '/teams', label: 'Teams', icon: Network, always: false, ai: false },
+      {
+        to: '/needs', label: 'Needs', icon: Users, always: false, ai: false,
+        children: [
+          { to: '/needs', label: 'Overview', end: true },
+          { to: '/needs/traceability', label: 'Traceability' },
+          { to: '/needs/gaps', label: 'Gaps' },
+        ],
+      },
+      {
+        to: '/capabilities', label: 'Capabilities', icon: Layers, always: false, ai: false,
+        children: [
+          { to: '/capabilities', label: 'Hierarchy', end: true },
+          { to: '/capabilities/services', label: 'Services' },
+          { to: '/capabilities/dependencies', label: 'Dependencies' },
+        ],
+      },
+      {
+        to: '/teams', label: 'Teams', icon: Network, always: false, ai: false,
+        children: [
+          { to: '/teams', label: 'Topology', end: true },
+          { to: '/teams/ownership', label: 'Ownership' },
+          { to: '/teams/cognitive-load', label: 'Cognitive Load' },
+          { to: '/teams/interactions', label: 'Interactions' },
+        ],
+      },
       { to: '/signals', label: 'Signals', icon: AlertCircle, always: false, ai: false },
     ],
   },
@@ -55,19 +98,41 @@ const NAV_SECTIONS = [
 export function Sidebar() {
   const { modelId } = useModel()
   const aiEnabled = useAIEnabled()
+  const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const { workspace, org, workspaces } = useWorkspace()
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    const initial = new Set<string>()
+    for (const section of NAV_SECTIONS) {
+      for (const item of section.items) {
+        if (item.children && location.pathname.startsWith(item.to)) {
+          initial.add(item.to)
+        }
+      }
+    }
+    return initial
+  })
 
   const hasMultipleWorkspaces = workspaces.length > 1
+
+  const toggleSection = (path: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  const isPathActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/')
 
   return (
     <aside
       className={cn(
-        'flex-shrink-0 flex flex-col bg-gray-50 border-r border-border transition-all duration-200',
+        'flex-shrink-0 flex flex-col bg-muted/40 border-r border-border transition-all duration-200',
         collapsed ? 'w-14' : 'w-56'
       )}
     >
-      {/* Logo / Title */}
       <div className="flex items-center gap-2.5 px-4 border-b border-border h-14">
         {!collapsed && (
           <div className="flex flex-col min-w-0">
@@ -127,42 +192,89 @@ export function Sidebar() {
                 </p>
               )}
               <div className="space-y-0.5">
-                {visibleItems.map(({ to, label, icon: Icon, always }) => {
-                  const disabled = !always && !modelId
+                {visibleItems.map((item) => {
+                  const disabled = !item.always && !modelId
+
                   if (disabled) {
                     return (
                       <span
-                        key={to}
-                        title={collapsed ? `${label} — load a model first` : 'Load a model first to access this view'}
+                        key={item.to}
+                        title={collapsed ? `${item.label} — load a model first` : 'Load a model first'}
                         aria-disabled="true"
                         className={cn(
                           'flex items-center gap-2.5 px-2 py-2 rounded-md text-sm opacity-40 cursor-not-allowed select-none text-muted-foreground',
                           collapsed && 'justify-center'
                         )}
                       >
-                        <Icon className="w-4 h-4 shrink-0" />
-                        {!collapsed && label}
+                        <item.icon className="w-4 h-4 shrink-0" />
+                        {!collapsed && item.label}
                       </span>
                     )
                   }
+
+                  if (item.children && !collapsed) {
+                    const sectionActive = isPathActive(item.to)
+                    const isOpen = expandedSections.has(item.to) || sectionActive
+
+                    return (
+                      <div key={item.to}>
+                        <button
+                          onClick={() => toggleSection(item.to)}
+                          className={cn(
+                            'flex items-center gap-2.5 px-2 py-2 rounded-md text-sm w-full text-left transition-colors',
+                            sectionActive
+                              ? 'text-foreground font-medium'
+                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          )}
+                        >
+                          <item.icon className="w-4 h-4 shrink-0" />
+                          <span className="flex-1">{item.label}</span>
+                          <ChevronDown className={cn(
+                            'w-3 h-3 transition-transform duration-200',
+                            isOpen && 'rotate-180'
+                          )} />
+                        </button>
+                        {isOpen && (
+                          <div className="ml-[22px] mt-0.5 space-y-0.5 border-l border-border pl-2.5">
+                            {item.children.map(child => (
+                              <NavLink
+                                key={child.to}
+                                to={child.to}
+                                end={child.end}
+                                className={({ isActive }) => cn(
+                                  'block px-2 py-1.5 rounded-md text-[13px] transition-colors',
+                                  isActive
+                                    ? 'bg-muted text-foreground font-medium'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                )}
+                              >
+                                {child.label}
+                              </NavLink>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+
                   return (
                     <NavLink
-                      key={to}
-                      to={to}
-                      end={to === '/workspace' || to === '/'}
-                      title={collapsed ? label : undefined}
+                      key={item.to}
+                      to={item.to}
+                      end={item.to === '/workspace' || item.to === '/'}
+                      title={collapsed ? item.label : undefined}
                       className={({ isActive }) =>
                         cn(
                           'flex items-center gap-2.5 px-2 py-2 rounded-md text-sm transition-colors',
                           collapsed && 'justify-center',
                           isActive
-                            ? 'bg-gray-200 text-gray-900 font-medium'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                            ? 'bg-muted text-foreground font-medium'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                         )
                       }
                     >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {!collapsed && label}
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      {!collapsed && item.label}
                     </NavLink>
                   )
                 })}
