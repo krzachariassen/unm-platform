@@ -1,5 +1,6 @@
 import { ModelRequired } from '@/components/ui/ModelRequired'
-import { UrlTabBar, useActiveTab } from '@/components/ui/url-tab-bar'
+import { useActiveTab } from '@/components/ui/url-tab-bar'
+import { useRegisterTabs } from '@/lib/page-tabs-context'
 import { TeamTopologyView } from '@/pages/views/TeamTopologyView'
 import { OwnershipView } from '@/pages/views/OwnershipView'
 import { CognitiveLoadView } from '@/pages/views/CognitiveLoadView'
@@ -13,15 +14,17 @@ const TABS = [
 ]
 
 export function TeamsPage() {
+  useRegisterTabs(TABS)
   const activeTab = useActiveTab(TABS)
 
   return (
     <ModelRequired>
-      <UrlTabBar tabs={TABS} />
-      {activeTab === 'topology' && <TeamTopologyView />}
-      {activeTab === 'ownership' && <OwnershipView />}
-      {activeTab === 'cognitive-load' && <CognitiveLoadView />}
-      {activeTab === 'interactions' && <InteractionsTab />}
+      <div className="[&_.page-header-root]:hidden">
+        {activeTab === 'topology' && <TeamTopologyView />}
+        {activeTab === 'ownership' && <OwnershipView />}
+        {activeTab === 'cognitive-load' && <CognitiveLoadView />}
+        {activeTab === 'interactions' && <InteractionsTab />}
+      </div>
     </ModelRequired>
   )
 }

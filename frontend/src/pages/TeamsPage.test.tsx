@@ -47,11 +47,4 @@ describe('TeamsPage', () => {
     renderPage('/teams?tab=cognitive-load')
     expect(screen.getByText('CognitiveLoadView content')).toBeInTheDocument()
   })
-
-  it('shows all three tab buttons', () => {
-    renderPage()
-    expect(screen.getByRole('button', { name: 'Topology' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ownership' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Cognitive Load' })).toBeInTheDocument()
-  })
 })

@@ -39,10 +39,4 @@ describe('CapabilitiesPage', () => {
     renderPage('/capabilities?tab=services')
     expect(screen.getByText('RealizationView content')).toBeInTheDocument()
   })
-
-  it('shows both tab buttons', () => {
-    renderPage()
-    expect(screen.getByRole('button', { name: 'Hierarchy' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Services' })).toBeInTheDocument()
-  })
 })

@@ -1,5 +1,6 @@
 import { ModelRequired } from '@/components/ui/ModelRequired'
-import { UrlTabBar, useActiveTab } from '@/components/ui/url-tab-bar'
+import { useActiveTab } from '@/components/ui/url-tab-bar'
+import { useRegisterTabs } from '@/lib/page-tabs-context'
 import { CapabilityView } from '@/pages/views/CapabilityView'
 import { RealizationView } from '@/pages/views/RealizationView'
 import { DependenciesTab } from '@/features/capabilities/DependenciesTab'
@@ -11,14 +12,16 @@ const TABS = [
 ]
 
 export function CapabilitiesPage() {
+  useRegisterTabs(TABS)
   const activeTab = useActiveTab(TABS)
 
   return (
     <ModelRequired>
-      <UrlTabBar tabs={TABS} />
-      {activeTab === 'hierarchy' && <CapabilityView />}
-      {activeTab === 'services' && <RealizationView />}
-      {activeTab === 'dependencies' && <DependenciesTab />}
+      <div className="[&_.page-header-root]:hidden">
+        {activeTab === 'hierarchy' && <CapabilityView />}
+        {activeTab === 'services' && <RealizationView />}
+        {activeTab === 'dependencies' && <DependenciesTab />}
+      </div>
     </ModelRequired>
   )
 }

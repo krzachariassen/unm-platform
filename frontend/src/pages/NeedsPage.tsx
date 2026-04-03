@@ -1,5 +1,6 @@
 import { ModelRequired } from '@/components/ui/ModelRequired'
-import { UrlTabBar, useActiveTab } from '@/components/ui/url-tab-bar'
+import { useActiveTab } from '@/components/ui/url-tab-bar'
+import { useRegisterTabs } from '@/lib/page-tabs-context'
 import { NeedView } from '@/pages/views/NeedView'
 import { RealizationView } from '@/pages/views/RealizationView'
 import { GapsTab } from '@/features/needs/GapsTab'
@@ -11,14 +12,16 @@ const TABS = [
 ]
 
 export function NeedsPage() {
+  useRegisterTabs(TABS)
   const activeTab = useActiveTab(TABS)
 
   return (
     <ModelRequired>
-      <UrlTabBar tabs={TABS} />
-      {activeTab === 'overview' && <NeedView />}
-      {activeTab === 'traceability' && <RealizationView />}
-      {activeTab === 'gaps' && <GapsTab />}
+      <div className="[&_.page-header-root]:hidden">
+        {activeTab === 'overview' && <NeedView />}
+        {activeTab === 'traceability' && <RealizationView />}
+        {activeTab === 'gaps' && <GapsTab />}
+      </div>
     </ModelRequired>
   )
 }

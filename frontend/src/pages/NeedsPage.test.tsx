@@ -32,18 +32,11 @@ function renderPage(url = '/needs') {
 describe('NeedsPage', () => {
   it('renders Overview tab by default', () => {
     renderPage()
-    expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument()
     expect(screen.getByText('NeedView content')).toBeInTheDocument()
   })
 
   it('renders Traceability tab when ?tab=traceability', () => {
     renderPage('/needs?tab=traceability')
     expect(screen.getByText('RealizationView content')).toBeInTheDocument()
-  })
-
-  it('shows both tab buttons', () => {
-    renderPage()
-    expect(screen.getByRole('button', { name: 'Overview' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Traceability' })).toBeInTheDocument()
   })
 })
