@@ -12,7 +12,7 @@ _Single source of truth for all work items.
 Completed phases: `docs/PRODUCT_ROADMAP.md`.
 Implementation patterns: `.claude/agents/` and `.claude/rules/`._
 
-_Last updated: 2026-04-03 (Phase 14D backend complete — PG data lifecycle)_
+_Last updated: 2026-04-03 (Phase F complete; 14D complete)_
 _Priority: **14C** (model list UI) → **Phase F** (frontend restructure) → **Phase 15** (auth/tenancy + UI) → **Phase 16** (collaboration + UI) → Phase 17 (hardening) → Phase 18 (ecosystem)._
 
 _Context: Two independent external reviews identified migration completion,
@@ -27,6 +27,10 @@ compatibility is not required. All legacy patterns can be removed outright._
 - [x] **feat(phase-14d): PostgreSQL data lifecycle — background purge + test isolation** — `PurgeRetention` (168h) and `PurgeInterval` (5m) added to `StorageConfig` with defaults; `PGModelStore.StartEviction/StopEviction` replaced with real ticker-based goroutine that hard-deletes soft-deleted rows in FK order (changesets → model_versions → models → workspaces); `main.go` wired to call `StartEviction` when `driver=postgres`; `NewPGModelStoreWithWorkspace` constructor added for test-scoped store creation; `setupTestOrgWorkspace` helper in contract tests creates a unique org+workspace per run and registers CASCADE cleanup via `t.Cleanup`; `TestPostgresPurgeExpired` unit test verifies hard-deletion after soft-delete. 14D.1–14D.5 complete. (2026-04-03)
 
 - [x] **feat(phase-FC.4-6): New Analyzer Tabs** — GapsTab in NeedsPage (5 gap categories: unmapped needs, unrealized caps, unowned services, unneeded caps, orphan services); DependenciesTab in CapabilitiesPage (stat cards, cycle path rendering, critical service path chain); InteractionsTab in TeamsPage (mode distribution bars, isolated teams, over-reliant teams, all_modes_same warning banner); new view types GapsView/DependenciesView/InteractionsView; API functions getGaps/getDependencies/getInteractions; 18 new tests, 118 total pass. FC.4–FC.6 complete. (2026-04-03)
+
+- [x] **feat(phase-FC.1-3): Backend analyzer view endpoints** — `GET /api/views/gaps`, `GET /api/views/dependencies`, `GET /api/views/interactions` endpoints wrapping GapAnalyzer, DependencyAnalyzer, InteractionDiversityAnalyzer; handler tests for all three. FC.1–FC.3 complete. (2026-04-03)
+
+- [x] **feat(phase-FB.2+FB.4+FB.5): Interaction Consistency** — EntityDetailPanel replaces AntiPatternPanel in OwnershipView with entity-type-aware rendering (team/capability/service) + AI insight section; capability team labels navigate to /teams?tab=topology; need view capability chips navigate to /capabilities?tab=hierarchy; 6 new tests, 121 total pass. FB.2, FB.4, FB.5 complete. (2026-04-03)
 
 - [x] **feat(parse): auto-detect DSL vs YAML in parse/validate endpoints** — Sniff first 64 bytes of body; content starting with `system ` or `system"` is automatically routed to the DSL parser. Explicit `?format=dsl|yaml` still takes precedence. Two new handler tests added. (2026-04-03)
 
@@ -222,35 +226,35 @@ Standardize click/edit patterns across all views.
 - [x] **FB.1** — Replace Ownership service popover with `SlidePanel`.
       Remove `openSvcPopover` and custom `getBoundingClientRect()` logic.
       _File: `pages/views/OwnershipView.tsx`_ (#frontend) (2026-04-03)
-- [ ] **FB.2** — Create unified `EntityDetailPanel` that adapts by
+- [x] **FB.2** — Create unified `EntityDetailPanel` that adapts by
       entity type (team, service, capability). Replace `AntiPatternPanel`
       and feature-specific detail panels.
-      _File: `components/detail/EntityDetailPanel.tsx`_ (#frontend)
+      _File: `components/detail/EntityDetailPanel.tsx`_ (#frontend) (2026-04-03)
 - [x] **FB.3** — Standardize QuickAction pencil opacity (0.7+ default,
       not 0.35). Add QuickAction to Team Topology table rows.
       _Files: `features/team-topology/GraphView.tsx`,
       `features/team-topology/TableView.tsx`_ (#frontend) (2026-04-03)
-- [ ] **FB.4** — Add AI insights to Ownership detail panel.
-      _File: `features/ownership/TeamLane.tsx`_ (#frontend)
-- [ ] **FB.5** — Add cross-view entity navigation: clicking a team name
+- [x] **FB.4** — Add AI insights to Ownership detail panel.
+      _File: `features/ownership/TeamLane.tsx`_ (#frontend) (2026-04-03)
+- [x] **FB.5** — Add cross-view entity navigation: clicking a team name
       in Capability → navigates to Teams page; clicking a service in
       Need View → navigates to Capabilities/Services tab.
-      _Files: multiple view components_ (#frontend)
+      _Files: multiple view components_ (#frontend) (2026-04-03)
 
 ### FC — New Analyzer Views (backend + frontend)
 
 Expose analyzer data that exists in the backend but has no frontend view.
 Backend items can start anytime; frontend items need FA (tabs) first.
 
-- [ ] **FC.1** — Backend: `GET /views/gaps` endpoint. Wrap `GapAnalyzer`
+- [x] **FC.1** — Backend: `GET /views/gaps` endpoint. Wrap `GapAnalyzer`
       output. Include `orphan_services` (currently omitted from HTTP).
-      _File: `handler/view_gaps.go`, `usecase/analysis_runner.go`_ (#backend)
-- [ ] **FC.2** — Backend: `GET /views/dependencies` endpoint. Wrap
+      _File: `handler/view_gaps.go`, `usecase/analysis_runner.go`_ (#backend) (2026-04-03)
+- [x] **FC.2** — Backend: `GET /views/dependencies` endpoint. Wrap
       `DependencyAnalyzer`, include `Service.DependsOn` graph.
-      _File: `handler/view_dependencies.go`_ (#backend)
-- [ ] **FC.3** — Backend: `GET /views/interactions` endpoint. Wrap
+      _File: `handler/view_dependencies.go`_ (#backend) (2026-04-03)
+- [x] **FC.3** — Backend: `GET /views/interactions` endpoint. Wrap
       `InteractionDiversityAnalyzer` output.
-      _File: `handler/view_interactions.go`_ (#backend)
+      _File: `handler/view_interactions.go`_ (#backend) (2026-04-03)
 - [x] **FC.4** — Frontend: Gaps tab in NeedsPage. Show unmapped needs,
       unrealized caps, unowned services in categorized lists.
       _File: `features/needs/GapsTab.tsx`_ (#frontend)

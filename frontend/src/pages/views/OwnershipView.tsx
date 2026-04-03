@@ -4,7 +4,7 @@ import { ModelRequired } from '@/components/ui/ModelRequired'
 import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { LoadingState, ErrorState } from '@/components/ViewState'
-import { AntiPatternPanel } from '@/components/AntiPatternPanel'
+import { EntityDetailPanel } from '@/components/detail/EntityDetailPanel'
 import { SlidePanel, PanelSection, PanelField } from '@/components/ui/slide-panel'
 import { useModel } from '@/lib/model-context'
 import { useSearch, matchesQuery } from '@/lib/search-context'
@@ -249,7 +249,13 @@ export function OwnershipView() {
           )}
         </SlidePanel>
 
-        <AntiPatternPanel node={selectedNode} onClose={() => setSelectedNode(null)} />
+        <EntityDetailPanel
+          entity={selectedNode}
+          insight={selectedNode ? (
+            insights[`${selectedNode.nodeType}:${selectedNode.label.toLowerCase().replace(/\s+/g, '-')}`]
+          ) : undefined}
+          onClose={() => setSelectedNode(null)}
+        />
       </ContentContainer>
     </ModelRequired>
   )

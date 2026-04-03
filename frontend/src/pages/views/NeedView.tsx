@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { ContentContainer } from '@/components/ui/content-container'
@@ -26,6 +27,7 @@ type NeedViewNeed = NeedViewResponse['groups'][number]['needs'][number]
 
 function NeedCard({ nr, insights, aiStatus }: { nr: NeedViewNeed; insights: Record<string, { explanation: string; suggestion: string }>; aiStatus: InsightStatus }) {
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
   const { need, capabilities } = nr
   const d = need.data
   const isMapped = d.is_mapped !== false
@@ -47,7 +49,18 @@ function NeedCard({ nr, insights, aiStatus }: { nr: NeedViewNeed; insights: Reco
             <div className="flex flex-wrap gap-1 mt-1.5">
               {capabilities.map(cap => {
                 const badge = VIS_BADGE[cap.data.visibility ?? ''] ?? { bg: '#f1f5f9', text: '#475569' }
-                return <span key={cap.id} className="px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: badge.bg, color: badge.text }}>{cap.label}</span>
+                return (
+                  <button
+                    key={cap.id}
+                    type="button"
+                    onClick={e => { e.stopPropagation(); navigate('/capabilities?tab=hierarchy') }}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ background: badge.bg, color: badge.text }}
+                    title="View in Capabilities"
+                  >
+                    {cap.label}
+                  </button>
+                )
               })}
             </div>
           )}

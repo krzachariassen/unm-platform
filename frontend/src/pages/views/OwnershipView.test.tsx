@@ -22,8 +22,8 @@ vi.mock('@/components/ui/ModelRequired', () => ({
   ModelRequired: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
-vi.mock('@/components/AntiPatternPanel', () => ({
-  AntiPatternPanel: () => null,
+vi.mock('@/components/detail/EntityDetailPanel', () => ({
+  EntityDetailPanel: () => null,
 }))
 
 vi.mock('@/features/ownership/TeamLane', () => ({
