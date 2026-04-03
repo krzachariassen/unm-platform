@@ -44,6 +44,7 @@ func main() {
 
 	var store usecase.ModelRepository
 	var csStore usecase.ChangesetRepository
+	var sessStore usecase.SessionRepository
 
 	switch cfg.Storage.Driver {
 	case "postgres":
@@ -80,6 +81,7 @@ func main() {
 		})
 		store = pgModel
 		csStore = pgCS
+		sessStore = persistence.NewPGSessionStore(db)
 		log.Printf("storage: postgres (%s)", dbURL)
 		if cfg.Storage.PurgeRetention > 0 && cfg.Storage.PurgeInterval > 0 {
 			pgModel.StartEviction(cfg.Storage.PurgeRetention, cfg.Storage.PurgeInterval)
@@ -99,6 +101,7 @@ func main() {
 		}
 		store = memStore
 		csStore = memCS
+		sessStore = persistence.NewMemorySessionStore()
 		log.Println("storage: memory")
 	}
 	h := handler.New(handler.HandlerDeps{
@@ -123,6 +126,7 @@ func main() {
 		ImpactAnalyzer: analyzer.NewImpactAnalyzer(cfg.Analysis),
 		AIClient:       aiClient,
 		Store:          store,
+		SessionStore:   sessStore,
 	})
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

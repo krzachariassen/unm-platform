@@ -24,6 +24,10 @@ compatibility is not required. All legacy patterns can be removed outright._
 
 ## Recently Completed
 
+- [x] **feat(auth): Phase 15A frontend — login page, auth context, protected routes, user menu** — `services/api/auth.ts` with `authApi.getMe/logout/loginUrl` + `AuthUser`/`OrgMembership` types; `lib/auth-context.tsx` with `AuthProvider` (fetches `/api/me` on mount with AbortController) and `useAuth` hook; `pages/LoginPage.tsx` centered card with Google SVG icon and "Sign in with Google" link; `App.tsx` wrapped in `AuthProvider` + `ProtectedRoute` (null while loading, redirect to `/login` when unauthenticated); `/login` route outside `AppShell`; `TopBar.tsx` user avatar (photo or initial fallback) with dropdown menu showing name, email, and Sign out action. Dev mode transparent: backend injects dev user so `/api/me` always returns a user when `auth.enabled=false`. 15A.8–15A.11 complete. (2026-04-03)
+
+- [x] **feat(auth): Phase 15A — Google OAuth, session management, auth middleware (backend)** — `AuthConfig` added to `entity.Config` (`auth.enabled`, `auth.google.*`); `SessionRepository` interface + `UserSession`/`AuthUser` types in `usecase`; `MemorySessionStore` (crypto/rand, expiry-checked) and `PGSessionStore` (sessions table with FK to users, `expires_at > NOW()`) in `infrastructure/persistence`; SQL migration `002_sessions.up.sql`; `handler/auth.go` with `handleGoogleLogin` (CSRF state cookie), `handleGoogleCallback` (token exchange + userinfo + session create), `handleLogout` (session delete + cookie clear), `handleMe` (AuthUser from context → JSON), `makeAuthMiddleware` (401 when enabled + no session, skips /health + /auth/*), `makeDevModeMiddleware` (injects hardcoded dev user when auth.enabled=false); `GET /api/me`, `GET /auth/google`, `GET /auth/callback`, `POST /auth/logout` routes; `noopSessionStore` safe fallback; vendored `golang.org/x/oauth2` + `cloud.google.com/go/compute/metadata`; 8 httptest-based tests, all 16 packages pass. 15A.1–15A.7 complete. (2026-04-03)
+
 - [x] **feat(phase-14d): PostgreSQL data lifecycle — background purge + test isolation** — `PurgeRetention` (168h) and `PurgeInterval` (5m) added to `StorageConfig` with defaults; `PGModelStore.StartEviction/StopEviction` replaced with real ticker-based goroutine that hard-deletes soft-deleted rows in FK order (changesets → model_versions → models → workspaces); `main.go` wired to call `StartEviction` when `driver=postgres`; `NewPGModelStoreWithWorkspace` constructor added for test-scoped store creation; `setupTestOrgWorkspace` helper in contract tests creates a unique org+workspace per run and registers CASCADE cleanup via `t.Cleanup`; `TestPostgresPurgeExpired` unit test verifies hard-deletion after soft-delete. 14D.1–14D.5 complete. (2026-04-03)
 
 - [x] **feat(phase-FC.4-6): New Analyzer Tabs** — GapsTab in NeedsPage (5 gap categories: unmapped needs, unrealized caps, unowned services, unneeded caps, orphan services); DependenciesTab in CapabilitiesPage (stat cards, cycle path rendering, critical service path chain); InteractionsTab in TeamsPage (mode distribution bars, isolated teams, over-reliant teams, all_modes_same warning banner); new view types GapsView/DependenciesView/InteractionsView; API functions getGaps/getDependencies/getInteractions; 18 new tests, 118 total pass. FC.4–FC.6 complete. (2026-04-03)
@@ -273,34 +277,34 @@ Backend items can start anytime; frontend items need FA (tabs) first.
 
 ### 15A — Authentication
 
-- [ ] **15A.1** — Add `golang.org/x/oauth2` + Google provider. Config:
+- [x] **15A.1** — Add `golang.org/x/oauth2` + Google provider. Config:
       `auth.enabled`, `auth.google.client_id`, `auth.google.client_secret`,
       `auth.google.redirect_url`.
       _Files: `go.mod`, `entity/config.go`, `config/base.yaml`_ (#backend)
-- [ ] **15A.2** — Implement OAuth flow: `GET /auth/google` (redirect),
+- [x] **15A.2** — Implement OAuth flow: `GET /auth/google` (redirect),
       `GET /auth/callback` (exchange + verify + create user + set session).
       _File: `handler/auth.go`_ (#backend)
-- [ ] **15A.3** — Session management: secure HTTP-only cookie. Sessions
+- [x] **15A.3** — Session management: secure HTTP-only cookie. Sessions
       stored in PostgreSQL (or in-memory for dev mode).
       _File: `infrastructure/persistence/pg_session_store.go`_ (#backend)
-- [ ] **15A.4** — `GET /api/me` — return current user + org memberships.
+- [x] **15A.4** — `GET /api/me` — return current user + org memberships.
       _File: `handler/auth.go`_ (#backend)
-- [ ] **15A.5** — `POST /auth/logout` — clear session.
+- [x] **15A.5** — `POST /auth/logout` — clear session.
       _File: `handler/auth.go`_ (#backend)
-- [ ] **15A.6** — Auth middleware: verify session on `/api/*` routes.
+- [x] **15A.6** — Auth middleware: verify session on `/api/*` routes.
       401 for unauthenticated. Exclude `/health`, `/auth/*`, static assets.
       _File: `handler/middleware.go`_ (#backend)
-- [ ] **15A.7** — Local dev mode: when `auth.enabled: false`, inject default
+- [x] **15A.7** — Local dev mode: when `auth.enabled: false`, inject default
       user + default org + default workspace context into all requests.
       _File: `handler/middleware.go`_ (#backend)
-- [ ] **15A.8** — Frontend: Login page with "Sign in with Google."
+- [x] **15A.8** — Frontend: Login page with "Sign in with Google."
       _File: `pages/LoginPage.tsx`_ (#frontend)
-- [ ] **15A.9** — Frontend: Auth context (check `/api/me`, redirect to
+- [x] **15A.9** — Frontend: Auth context (check `/api/me`, redirect to
       login on 401, store user info).
       _File: `lib/auth-context.tsx`_ (#frontend)
-- [ ] **15A.10** — Frontend: Protected route wrapper.
+- [x] **15A.10** — Frontend: Protected route wrapper.
       _File: `App.tsx`_ (#frontend)
-- [ ] **15A.11** — Frontend: User info in TopBar (name, avatar, logout).
+- [x] **15A.11** — Frontend: User info in TopBar (name, avatar, logout).
       _File: `components/layout/TopBar.tsx`_ (#frontend)
 
 ### 15B — Organizations & Workspaces

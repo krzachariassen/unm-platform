@@ -21,6 +21,10 @@ export default defineConfig({
         timeout: 360000,
         proxyTimeout: 360000,
       },
+      '/auth': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })
