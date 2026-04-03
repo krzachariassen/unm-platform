@@ -10,13 +10,14 @@ import { LoadingState, ErrorState } from '@/components/ViewState'
 import { PageHeader } from '@/components/ui/page-header'
 import { StatCard } from '@/components/ui/stat-card'
 import { slug } from '@/lib/slug'
+import { pl } from '@/lib/format'
 import { VIS_BADGE } from '@/lib/visibility-styles'
 import { Users, Layers, AlertTriangle, ChevronDown, ChevronUp, Sparkles, Lightbulb } from 'lucide-react'
 import type { NeedViewResponse } from '@/types/views'
 import type { InsightStatus } from '@/hooks/usePageInsights'
 
 function atRiskReason(teamSpan: number): string {
-  if (teamSpan >= 3) return `Spans ${teamSpan} teams — coordinating delivery across this many teams introduces handoff overhead.`
+  if (teamSpan >= 3) return `Spans ${pl(teamSpan, 'team')} — coordinating delivery across this many teams introduces handoff overhead.`
   if (teamSpan > 0) return `A team in the delivery chain is under high cognitive load.`
   return `Flagged at risk — a team in the delivery chain has high cognitive load or spans too many boundaries.`
 }

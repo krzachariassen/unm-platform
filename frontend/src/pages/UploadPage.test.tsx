@@ -65,7 +65,7 @@ describe('UploadPage', () => {
   it('renders the drop zone', async () => {
     renderUploadPage()
     await waitFor(() => {
-      expect(screen.getByText(/drop your .unm.yaml or .unm file/i)).toBeInTheDocument()
+      expect(screen.getByText(/drop your .unm or .unm.yaml file/i)).toBeInTheDocument()
     })
   })
 

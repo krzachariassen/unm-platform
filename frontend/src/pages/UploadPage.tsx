@@ -121,7 +121,7 @@ export function UploadPage() {
   return (
     <div className="max-w-screen-xl mx-auto">
       <div className="max-w-2xl space-y-4">
-      <PageHeader title="Upload Model" description="Upload a .unm.yaml or .unm file to explore your architecture" />
+      <PageHeader title="Upload Model" description="Upload a .unm or .unm.yaml file to explore your architecture" />
 
       {modelId && loadedParseResult && !showProgress && (
         <div className="flex items-center justify-between p-4 rounded-lg bg-green-50 border border-green-200">
@@ -141,7 +141,7 @@ export function UploadPage() {
               dragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50')}
           >
             <Upload className="mx-auto mb-3 text-muted-foreground" size={32} />
-            <p className="text-sm font-medium">Drop your .unm.yaml or .unm file here</p>
+            <p className="text-sm font-medium">Drop your .unm or .unm.yaml file here</p>
             <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
             <input id="file-input" type="file" accept=".yaml,.yml,.unm" className="sr-only" onChange={onFileChange} />
           </label>
@@ -207,10 +207,11 @@ export function UploadPage() {
           <h3 className="text-sm font-semibold text-gray-700 mb-3">What is UNM Platform?</h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
             UNM Platform turns User Needs Mapping into an engineering tool. Upload a{' '}
+            <code className="bg-muted px-1 py-0.5 rounded text-xs">.unm</code>{' '}or{' '}
             <code className="bg-muted px-1 py-0.5 rounded text-xs">.unm.yaml</code>{' '}
             model file to visualize your architecture, analyze team cognitive load, and explore capability ownership.
           </p>
-          <p className="text-sm text-muted-foreground"><strong className="text-gray-700">Accepted formats:</strong> .unm.yaml, .unm</p>
+          <p className="text-sm text-muted-foreground"><strong className="text-gray-700">Accepted formats:</strong> .unm, .unm.yaml</p>
         </div>
       )}
       </div>

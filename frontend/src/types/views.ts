@@ -140,11 +140,15 @@ export interface CognitiveLoadViewResponse {
 }
 
 // Signals View
+export type SignalSourceType = 'model_fact' | 'analyzer_finding' | 'ai_interpretation'
+
 export interface SignalsNeedRisk {
   need_name: string
   actor_names: string[]
   team_span: number
   teams: string[]
+  source?: SignalSourceType
+  explanation?: string
 }
 
 export interface SignalsCapItem {
@@ -152,6 +156,8 @@ export interface SignalsCapItem {
   visibility?: string
   team_count?: number
   teams?: string[]
+  source?: SignalSourceType
+  explanation?: string
 }
 
 export interface SignalsTeamItem {
@@ -161,11 +167,15 @@ export interface SignalsTeamItem {
   capability_count?: number
   service_count?: number
   coherence_score?: number
+  source?: SignalSourceType
+  explanation?: string
 }
 
 export interface SignalsServiceItem {
   service_name: string
   fan_in: number
+  source?: SignalSourceType
+  explanation?: string
 }
 
 export interface SignalsExtDepItem {
@@ -174,6 +184,8 @@ export interface SignalsExtDepItem {
   services: string[]
   is_critical: boolean
   is_warning: boolean
+  source?: SignalSourceType
+  explanation?: string
 }
 
 export interface SignalsViewResponse {

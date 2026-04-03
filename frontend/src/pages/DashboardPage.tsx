@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, Layers, Network, Activity, Map, GitBranch,
-  AlertTriangle, CheckCircle2, Box, Link2, Zap, Flag,
+  AlertTriangle, CheckCircle2, Box, Link2, Zap, Flag, FlaskConical,
 } from 'lucide-react'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { ContentContainer } from '@/components/ui/content-container'
@@ -23,6 +23,7 @@ const VIEW_CARDS = [
   { id: 'team-topology',  label: 'Team Topology',    icon: Network,   desc: 'Team interactions' },
   { id: 'cognitive-load', label: 'Cognitive Load',   icon: Activity,  desc: 'Per-team load metrics' },
   { id: 'realization',    label: 'Realization View', icon: GitBranch, desc: 'Service → capability mapping' },
+  { id: 'what-if',        label: 'What-If Explorer', icon: FlaskConical, desc: 'Explore architectural changes' },
 ]
 
 const STAT_KEYS: Array<{ key: string; label: string; icon: typeof Users; iconClass: string }> = [

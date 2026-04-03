@@ -38,6 +38,7 @@ export default function App() {
               <Route path="/what-if" element={<WhatIfPage />} />
               <Route path="/recommendations" element={<RecommendationsPage />} />
               <Route path="/advisor" element={<AdvisorPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
         </SearchProvider>

@@ -114,6 +114,7 @@ export function Sidebar() {
                     <NavLink
                       key={to}
                       to={to}
+                      end={to === '/'}
                       title={collapsed ? label : undefined}
                       className={({ isActive }) =>
                         cn(

@@ -3,10 +3,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { Users, Layers, Building2, AlertTriangle, Zap, Link2Off, GitMerge, Server, TrendingDown, Link2 } from 'lucide-react'
 import { ChevronDown, ChevronUp, Info, Lightbulb, CheckCircle, Sparkles, X } from 'lucide-react'
+import { pl } from '@/lib/format'
 import { ModelRequired } from '@/components/ui/ModelRequired'
 import { Prose } from '@/components/ui/prose'
 import { ContentContainer } from '@/components/ui/content-container'
 import { PageHeader } from '@/components/ui/page-header'
+import { Badge } from '@/components/ui/badge'
 import { LoadingState, ErrorState } from '@/components/ViewState'
 import { useModel } from '@/lib/model-context'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
@@ -15,7 +17,7 @@ import {
   rs,
   buildUxSummary, buildArchSummary, buildOrgSummary,
 } from '@/features/signals/risk-config'
-import type { SignalsNeedRisk, SignalsCapItem, SignalsTeamItem, SignalsServiceItem, SignalsExtDepItem } from '@/types/views'
+import type { SignalsNeedRisk, SignalsCapItem, SignalsTeamItem, SignalsServiceItem, SignalsExtDepItem, SignalSourceType } from '@/types/views'
 
 function RiskPill({ risk }: { risk: string }) {
   const s = rs(risk)
@@ -25,6 +27,14 @@ function RiskPill({ risk }: { risk: string }) {
 function Tag({ text, color }: { text: string; color?: 'amber' | 'red' }) {
   const style = color === 'red' ? { background: '#fee2e2', color: '#b91c1c' } : color === 'amber' ? { background: '#fef3c7', color: '#92400e' } : { background: '#f1f5f9', color: '#64748b' }
   return <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded" style={style}>{text}</span>
+}
+
+function TrustBadge({ source }: { source?: SignalSourceType }) {
+  if (!source || source === 'model_fact') return null
+  if (source === 'ai_interpretation') {
+    return <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50 text-[10px] px-1.5 py-0 h-auto">AI</Badge>
+  }
+  return <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 text-[10px] px-1.5 py-0 h-auto">Analyzer</Badge>
 }
 
 function ExpandableRow({ summary, explanation, suggestion }: { summary: React.ReactNode; explanation: string; suggestion: string }) {
@@ -48,15 +58,19 @@ function ExpandableRow({ summary, explanation, suggestion }: { summary: React.Re
 function NeedRow({ item, variant }: { item: SignalsNeedRisk; variant: 'cross-team' | 'unbacked' | 'at-risk' }) {
   const explanation = variant === 'unbacked'
     ? `"${item.need_name}" (actor: ${item.actor_names?.join(' & ')}) has no capability mapped — no implementation path.`
-    : `"${item.need_name}" requires ${item.team_span ?? 'multiple'} teams to coordinate.`
+    : `"${item.need_name}" requires ${item.team_span != null ? pl(item.team_span, 'team') : 'multiple teams'} to coordinate.`
   const suggestion = variant === 'unbacked'
     ? 'Add a capability addressing this need, or retire it if no longer relevant.'
     : 'Restructure ownership so this need is served by a single stream-aligned team.'
   return (
     <ExpandableRow explanation={explanation} suggestion={suggestion} summary={
       <div className="space-y-1">
-        <div className="text-sm font-semibold text-foreground">{item.need_name}</div>
-        <div className="flex flex-wrap gap-1">{variant === 'unbacked' && <Tag text="No backing" color="red" />}{(item.team_span ?? 0) > 0 && <Tag text={`${item.team_span} teams`} color="amber" />}{item.teams?.slice(0, 3).map(t => <Tag key={t} text={t} />)}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-semibold text-foreground">{item.need_name}</span>
+          <TrustBadge source={item.source} />
+        </div>
+        {item.explanation && <p className="text-xs text-muted-foreground mt-1">{item.explanation}</p>}
+        <div className="flex flex-wrap gap-1">{variant === 'unbacked' && <Tag text="No backing" color="red" />}{(item.team_span ?? 0) > 0 && <Tag text={pl(item.team_span!, 'team')} color="amber" />}{item.teams?.slice(0, 3).map(t => <Tag key={t} text={t} />)}</div>
       </div>
     } />
   )
@@ -64,33 +78,41 @@ function NeedRow({ item, variant }: { item: SignalsNeedRisk; variant: 'cross-tea
 
 function CapRow({ item, variant }: { item: SignalsCapItem; variant: 'cross-team' | 'unconnected' | 'fragmented' }) {
   const explanation = variant === 'unconnected' ? `"${item.capability_name}" is not connected to any user need.`
-    : variant === 'cross-team' ? `"${item.capability_name}" is user-facing but its services are owned by ${item.team_count ?? 'multiple'} teams.`
-    : `"${item.capability_name}" is realised across ${item.team_count ?? 'multiple'} teams.`
+    : variant === 'cross-team' ? `"${item.capability_name}" is user-facing but its services are owned by ${item.team_count != null ? pl(item.team_count, 'team') : 'multiple teams'}.`
+    : `"${item.capability_name}" is realised across ${item.team_count != null ? pl(item.team_count, 'team') : 'multiple teams'}.`
   const suggestion = variant === 'unconnected' ? 'Identify the need it supports or remove it.'
     : variant === 'cross-team' ? 'Move services under a single team or extract shared logic.'
     : 'Consolidate ownership or split into sub-capabilities.'
   return (
     <ExpandableRow explanation={explanation} suggestion={suggestion} summary={
       <div className="space-y-1">
-        <div className="text-sm font-semibold text-foreground">{item.capability_name}</div>
-        <div className="flex flex-wrap gap-1">{item.visibility && <Tag text={item.visibility} />}{item.team_count != null && item.team_count > 0 && <Tag text={`${item.team_count} teams`} color="amber" />}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-semibold text-foreground">{item.capability_name}</span>
+          <TrustBadge source={item.source} />
+        </div>
+        {item.explanation && <p className="text-xs text-muted-foreground mt-1">{item.explanation}</p>}
+        <div className="flex flex-wrap gap-1">{item.visibility && <Tag text={item.visibility} />}{item.team_count != null && item.team_count > 0 && <Tag text={pl(item.team_count, 'team')} color="amber" />}</div>
       </div>
     } />
   )
 }
 
 function TeamRow({ item, variant }: { item: SignalsTeamItem; variant: 'load' | 'coherence' }) {
-  const explanation = variant === 'load' ? `${item.team_name} owns ${item.capability_count ?? '?'} caps and ${item.service_count ?? '?'} svcs.`
+  const explanation = variant === 'load' ? `${item.team_name} owns ${item.capability_count != null ? pl(item.capability_count, 'cap') : '?'} and ${item.service_count != null ? pl(item.service_count, 'svc') : '?'}.`
     : `${item.team_name} has ${item.coherence_score != null ? Math.round(item.coherence_score * 100) : '?'}% coherence.`
   const suggestion = variant === 'load' ? 'Consider splitting this team or moving capabilities.'
     : 'Redistribute capabilities for coherent ownership.'
   return (
     <ExpandableRow explanation={explanation} suggestion={suggestion} summary={
       <div className="space-y-1">
-        <div className="text-sm font-semibold text-foreground">{item.team_name}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-semibold text-foreground">{item.team_name}</span>
+          <TrustBadge source={item.source} />
+        </div>
+        {item.explanation && <p className="text-xs text-muted-foreground mt-1">{item.explanation}</p>}
         <div className="flex flex-wrap gap-1">
-          {variant === 'load' && item.capability_count != null && <Tag text={`${item.capability_count} caps`} />}
-          {variant === 'load' && item.service_count != null && <Tag text={`${item.service_count} svcs`} />}
+          {variant === 'load' && item.capability_count != null && <Tag text={pl(item.capability_count, 'cap')} />}
+          {variant === 'load' && item.service_count != null && <Tag text={pl(item.service_count, 'svc')} />}
           {variant === 'load' && item.overall_level && <RiskPill risk={item.overall_level === 'high' ? 'red' : item.overall_level === 'medium' ? 'amber' : 'green'} />}
           {variant === 'coherence' && item.coherence_score != null && <Tag text={`${Math.round(item.coherence_score * 100)}% coherent`} color="red" />}
         </div>
@@ -104,7 +126,16 @@ function ServiceRow({ item }: { item: SignalsServiceItem }) {
     <ExpandableRow
       explanation={`${item.service_name} has ${item.fan_in} dependents.`}
       suggestion={`Consider splitting ${item.service_name} or introducing a facade.`}
-      summary={<div className="space-y-1"><div className="text-sm font-semibold text-foreground">{item.service_name}</div><div className="flex gap-1"><Tag text={`${item.fan_in} dependents`} color="red" /></div></div>}
+      summary={
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-foreground">{item.service_name}</span>
+            <TrustBadge source={item.source} />
+          </div>
+          {item.explanation && <p className="text-xs text-muted-foreground mt-1">{item.explanation}</p>}
+          <div className="flex gap-1"><Tag text={`${item.fan_in} dependents`} color="red" /></div>
+        </div>
+      }
     />
   )
 }
@@ -112,9 +143,18 @@ function ServiceRow({ item }: { item: SignalsServiceItem }) {
 function ExtDepRow({ item }: { item: SignalsExtDepItem }) {
   return (
     <ExpandableRow
-      explanation={`${item.dep_name} is used by ${item.service_count} services.`}
+      explanation={`${item.dep_name} is used by ${pl(item.service_count, 'service')}.`}
       suggestion={item.is_critical ? `Add an abstraction layer around ${item.dep_name}.` : `Monitor ${item.dep_name} closely.`}
-      summary={<div className="space-y-1"><div className="text-sm font-semibold text-foreground">{item.dep_name}</div><div className="flex gap-1"><Tag text={`${item.service_count} services`} color={item.is_critical ? 'red' : 'amber'} /></div></div>}
+      summary={
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-foreground">{item.dep_name}</span>
+            <TrustBadge source={item.source} />
+          </div>
+          {item.explanation && <p className="text-xs text-muted-foreground mt-1">{item.explanation}</p>}
+          <div className="flex gap-1"><Tag text={pl(item.service_count, 'service')} color={item.is_critical ? 'red' : 'amber'} /></div>
+        </div>
+      }
     />
   )
 }
