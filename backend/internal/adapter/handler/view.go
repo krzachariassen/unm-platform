@@ -14,6 +14,14 @@ func (h *Handler) registerViewRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/models/{id}/views/{viewType}", h.handleView)
 }
 
+// registerAnalyzerViewRoutes registers the standalone analyzer view endpoints
+// that accept ?model_id= as a query parameter.
+func (h *Handler) registerAnalyzerViewRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/views/gaps", h.handleGaps)
+	mux.HandleFunc("GET /api/views/dependencies", h.handleDependencies)
+	mux.HandleFunc("GET /api/views/interactions", h.handleInteractions)
+}
+
 // viewBuilder is a function that builds a view response for a given model and analysis config.
 // Adding a new view type requires only one entry in viewRegistry below.
 type viewBuilder func(m *entity.UNMModel, analysis entity.AnalysisConfig) any
