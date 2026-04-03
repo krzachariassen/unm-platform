@@ -141,16 +141,15 @@ Each agent's `MEMORY.md` is subject to these guardrails:
 - **30-entry hard cap** per agent. When reached, oldest non-promoted entries are removed.
 - **Reusable knowledge only**: entries must be about platform behavior, not current task progress.
 - **Structured format**: each entry needs date, context/service area, and a clear learning.
-- **Monthly curation** by the owning engineer (see `.claude/agents/AGENT_OWNERSHIP.md`):
+- **Curation** (see `.claude/agents/AGENT_OWNERSHIP.md` §2):
   - **Promote**: entry was useful in a subsequent task → move to `anti-patterns.md`
   - **Keep**: potentially useful, not yet validated
   - **Prune**: older than 2 months with no reuse
-- Override tracking lives in `.claude/agent-overrides.md` (see `.claude/agents/AGENT_OWNERSHIP.md`).
 
 ## Reference Files
 
 - `docs/BACKLOG.md` -- Work items, phased roadmap, and Recently Completed
-- `.claude/agents/AGENT_OWNERSHIP.md` -- Agent ownership, curation policy, metrics
+- `.claude/agents/AGENT_OWNERSHIP.md` -- Agent ownership and memory curation
 - `docs/UNM_DSL_SPECIFICATION.md` -- DSL syntax and meta-model
 - `examples/nexus.unm.yaml` -- Reference model
 

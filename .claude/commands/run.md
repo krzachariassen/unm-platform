@@ -209,12 +209,8 @@ Report to the user:
 After task completion:
 
 1. Update MEMORY.md of each agent that participated (respect the 30-entry
-   cap per agent — see memory curation policy in CLAUDE.md).
-2. Log the **completion record** by appending to `.claude/agent-log.md`:
-   ```
-   | YYYY-MM-DD | <agent> | <task summary, 1 line> | <PASS/FAIL> | <gates: 7/7> | <files touched> |
-   ```
-3. Run the **backlog completion hook**:
+   cap per agent — see `.claude/agents/AGENT_OWNERSHIP.md` §2).
+2. Run the **backlog completion hook**:
    - Read `docs/BACKLOG.md`
    - **BEFORE work starts**: mark items being worked on as `[~]` (in progress)
    - **AFTER each item completes**: mark it `[x] (YYYY-MM-DD)` immediately — do not wait until PR
