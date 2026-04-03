@@ -57,11 +57,9 @@ func TestImpactAnalyzer_FragmentationImproved(t *testing.T) {
 	addServiceToModel(t, m, svcB)
 
 	cap := mustCap(t, "cap-1")
-	cap.RealizedBy = []entity.Relationship{
-		entity.NewRelationship(mustEntityID(t, "svc-a"), "", ""),
-		entity.NewRelationship(mustEntityID(t, "svc-b"), "", ""),
-	}
 	require.NoError(t, m.AddCapability(cap))
+	svcA.AddRealizes(entity.NewRelationship(mustEntityID(t, "cap-1"), "", ""))
+	svcB.AddRealizes(entity.NewRelationship(mustEntityID(t, "cap-1"), "", ""))
 
 	// Changeset: move svc-b to team-a → both services now in same team
 	cs := mustChangeset(t, "cs-frag", "consolidate services")
@@ -134,11 +132,9 @@ func TestImpactAnalyzer_UnchangedDimensions(t *testing.T) {
 	addServiceToModel(t, m, svcB)
 
 	cap := mustCap(t, "cap-1")
-	cap.RealizedBy = []entity.Relationship{
-		entity.NewRelationship(mustEntityID(t, "svc-a"), "", ""),
-		entity.NewRelationship(mustEntityID(t, "svc-b"), "", ""),
-	}
 	require.NoError(t, m.AddCapability(cap))
+	svcA.AddRealizes(entity.NewRelationship(mustEntityID(t, "cap-1"), "", ""))
+	svcB.AddRealizes(entity.NewRelationship(mustEntityID(t, "cap-1"), "", ""))
 
 	// Move service to consolidate → affects fragmentation only
 	cs := mustChangeset(t, "cs-unch", "consolidate")

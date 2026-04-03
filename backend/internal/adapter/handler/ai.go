@@ -203,9 +203,9 @@ type extractActionsRequest struct {
 	AdvisorResponse string `json:"advisor_response"`
 }
 
-// extractedAction extends ChangeAction with a human-readable reason.
+// extractedAction extends changeActionDTO with a human-readable reason.
 type extractedAction struct {
-	entity.ChangeAction
+	changeActionDTO
 	Reason string `json:"reason"`
 }
 
@@ -292,20 +292,21 @@ func (h *Handler) handleExtractActions(w http.ResponseWriter, r *http.Request) {
 	var validActions []extractedAction
 	for _, raw := range parsed.Actions {
 		var act struct {
-			entity.ChangeAction
+			changeActionDTO
 			Reason string `json:"reason"`
 		}
 		if err := json.Unmarshal(raw, &act); err != nil {
 			log.Printf("[AI-EXTRACT] skipping unparseable action: %v", err)
 			continue
 		}
-		if err := act.ChangeAction.Validate(); err != nil {
+		domainAction := fromChangeActionDTO(act.changeActionDTO)
+		if err := domainAction.Validate(); err != nil {
 			log.Printf("[AI-EXTRACT] skipping invalid action (type=%s): %v", act.Type, err)
 			continue
 		}
 		validActions = append(validActions, extractedAction{
-			ChangeAction: act.ChangeAction,
-			Reason:       act.Reason,
+			changeActionDTO: act.changeActionDTO,
+			Reason:          act.Reason,
 		})
 	}
 

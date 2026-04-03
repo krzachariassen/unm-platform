@@ -36,20 +36,20 @@ func TestYAMLParser_SimpleModel(t *testing.T) {
 	require.Len(t, need.SupportedBy, 1)
 	assert.Equal(t, "Core Capability", need.SupportedBy[0].TargetID.String())
 
-	// Capability — realizedBy is now wired via service.realizes
+	// Capability — realizes is now wired via service.Realizes
 	require.Len(t, model.Capabilities, 1)
 	cap, ok := model.Capabilities["Core Capability"]
 	require.True(t, ok, "capability 'Core Capability' should be present")
 	assert.Equal(t, "Core Capability", cap.Name)
-	require.Len(t, cap.RealizedBy, 1)
-	assert.Equal(t, "core-service", cap.RealizedBy[0].TargetID.String())
-	assert.Equal(t, "Main implementation", cap.RealizedBy[0].Description)
 
 	// Service
 	require.Len(t, model.Services, 1)
 	svc, ok := model.Services["core-service"]
 	require.True(t, ok, "service 'core-service' should be present")
 	assert.Equal(t, "Core Team", svc.OwnerTeamName)
+	require.Len(t, svc.Realizes, 1)
+	assert.Equal(t, "Core Capability", svc.Realizes[0].TargetID.String())
+	assert.Equal(t, "Main implementation", svc.Realizes[0].Description)
 
 	// Team
 	require.Len(t, model.Teams, 1)
@@ -82,12 +82,14 @@ func TestYAMLParser_RelationshipForms(t *testing.T) {
 	assert.Equal(t, "Catalog Capability", longNeed.SupportedBy[1].TargetID.String())
 	assert.Equal(t, "Admin manages catalog entries", longNeed.SupportedBy[1].Description)
 
-	// realizedBy is now wired via service.realizes
+	// realizes is now on service.Realizes
 	searchCap, ok := model.Capabilities["Search Capability"]
 	require.True(t, ok)
-	require.Len(t, searchCap.RealizedBy, 2)
-	// The order depends on service processing order
-	svcNames := []string{searchCap.RealizedBy[0].TargetID.String(), searchCap.RealizedBy[1].TargetID.String()}
+
+	// Check via services that realize Search Capability
+	svcs := model.GetServicesForCapability("Search Capability")
+	require.Len(t, svcs, 2)
+	svcNames := []string{svcs[0].Name, svcs[1].Name}
 	assert.Contains(t, svcNames, "search-service")
 	assert.Contains(t, svcNames, "search-index-service")
 

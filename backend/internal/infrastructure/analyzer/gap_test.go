@@ -9,12 +9,12 @@ import (
 
 // buildGapModel creates a model with deliberate gaps:
 //   - need "Unmapped Need" (Merchant) with NO SupportedBy → unmapped need
-//   - cap "Unrealized Cap" (leaf, no realizedBy, no children) → unrealized capability
-//   - cap "Parent Cap" with 1 child that has a realizedBy → parent NOT flagged
+//   - cap "Unrealized Cap" (leaf, no service realizing it, no children) → unrealized capability
+//   - cap "Parent Cap" with 1 child that has a service realizing it → parent NOT flagged
 //   - svc "Unowned Svc" with OwnerTeamName="" → unowned service
 //   - cap "Unneeded Cap" not referenced by any need's SupportedBy → unneeded capability
 //   - need "Mapped Need" (Merchant) with SupportedBy pointing to "Realized Cap" → mapped need (negative case)
-//   - cap "Realized Cap" (leaf) with realizedBy svc → realized capability (negative case)
+//   - cap "Realized Cap" (leaf) with service realizing it → realized capability (negative case)
 func buildGapModel(t *testing.T) *entity.UNMModel {
 	t.Helper()
 
@@ -52,7 +52,7 @@ func buildGapModel(t *testing.T) *entity.UNMModel {
 		t.Fatalf("AddNeed mapped: %v", err)
 	}
 
-	// Unrealized Cap — leaf, no realizedBy.
+	// Unrealized Cap — leaf, no service realizes it.
 	unrealizedCap, err := entity.NewCapability("unrealized-cap", "Unrealized Cap", "")
 	if err != nil {
 		t.Fatalf("NewCapability unrealized: %v", err)
@@ -61,30 +61,20 @@ func buildGapModel(t *testing.T) *entity.UNMModel {
 		t.Fatalf("AddCapability unrealized: %v", err)
 	}
 
-	// Realized Cap — leaf, with realizedBy.
+	// Realized Cap — leaf, with a service realizing it.
 	realizedCap, err := entity.NewCapability("realized-cap", "Realized Cap", "")
 	if err != nil {
 		t.Fatalf("NewCapability realized: %v", err)
 	}
-	ownedSvcID, err := valueobject.NewEntityID("Owned Svc")
-	if err != nil {
-		t.Fatalf("NewEntityID Owned Svc: %v", err)
-	}
-	realizedCap.AddRealizedBy(entity.NewRelationship(ownedSvcID, "", ""))
 	if err := m.AddCapability(realizedCap); err != nil {
 		t.Fatalf("AddCapability realized: %v", err)
 	}
 
-	// Parent Cap with one child that has a realizedBy.
+	// Parent Cap with one child that has a service realizing it.
 	childCap, err := entity.NewCapability("child-cap", "Child Cap", "")
 	if err != nil {
 		t.Fatalf("NewCapability child: %v", err)
 	}
-	childSvcID, err := valueobject.NewEntityID("Owned Svc")
-	if err != nil {
-		t.Fatalf("NewEntityID Owned Svc (child): %v", err)
-	}
-	childCap.AddRealizedBy(entity.NewRelationship(childSvcID, "", ""))
 
 	parentCap, err := entity.NewCapability("parent-cap", "Parent Cap", "")
 	if err != nil {
@@ -100,20 +90,20 @@ func buildGapModel(t *testing.T) *entity.UNMModel {
 	if err != nil {
 		t.Fatalf("NewCapability unneeded: %v", err)
 	}
-	unneededSvcID, err := valueobject.NewEntityID("Owned Svc")
-	if err != nil {
-		t.Fatalf("NewEntityID for unneeded: %v", err)
-	}
-	unneededCap.AddRealizedBy(entity.NewRelationship(unneededSvcID, "", ""))
 	if err := m.AddCapability(unneededCap); err != nil {
 		t.Fatalf("AddCapability unneeded: %v", err)
 	}
 
-	// Owned service.
+	// Owned service — realizes Realized Cap, Child Cap, and Unneeded Cap.
 	ownedSvc, err := entity.NewService("owned-svc", "Owned Svc", "", "Team Alpha")
 	if err != nil {
 		t.Fatalf("NewService owned: %v", err)
 	}
+	ownedSvc.AddRealizes(entity.NewRelationship(realizedCapID, "", ""))
+	childCapID, _ := valueobject.NewEntityID("Child Cap")
+	ownedSvc.AddRealizes(entity.NewRelationship(childCapID, "", ""))
+	unneededCapID, _ := valueobject.NewEntityID("Unneeded Cap")
+	ownedSvc.AddRealizes(entity.NewRelationship(unneededCapID, "", ""))
 	if err := m.AddService(ownedSvc); err != nil {
 		t.Fatalf("AddService owned: %v", err)
 	}

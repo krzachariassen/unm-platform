@@ -233,7 +233,7 @@ func buildModel(raw *yamlDocument) (*entity.UNMModel, error) {
 		return nil, err
 	}
 
-	// 9.3: Post-process service.realizes — wire into capability.RealizedBy
+	// Post-process service.realizes — wire onto svc.Realizes on the domain entity
 	realizeWarnings, err := processServiceRealizes(model, raw.Services)
 	if err != nil {
 		return nil, err
@@ -456,19 +456,16 @@ func addServices(model *entity.UNMModel, services []yamlService) error {
 	return nil
 }
 
-// processServiceRealizes wires service.realizes into capability.RealizedBy.
+// processServiceRealizes wires service.realizes into service.Realizes on the domain entity.
 func processServiceRealizes(model *entity.UNMModel, services []yamlService) ([]string, error) {
 	var warnings []string
 	for _, s := range services {
+		svc, ok := model.Services[s.Name]
+		if !ok {
+			continue
+		}
 		for _, rel := range s.Realizes {
-			capName := rel.Target
-			cap, ok := model.Capabilities[capName]
-			if !ok {
-				// Will be caught by reference validation (9.7), skip silently here
-				continue
-			}
-			// Build the relationship with service name as target
-			targetID, err := valueobject.NewEntityID(s.Name)
+			targetID, err := valueobject.NewEntityID(rel.Target)
 			if err != nil {
 				return nil, fmt.Errorf("parser: service %q realizes: %w", s.Name, err)
 			}
@@ -477,7 +474,7 @@ func processServiceRealizes(model *entity.UNMModel, services []yamlService) ([]s
 				return nil, fmt.Errorf("parser: service %q realizes role: %w", s.Name, err)
 			}
 			r := entity.NewRelationship(targetID, rel.Description, role)
-			cap.AddRealizedBy(r)
+			svc.AddRealizes(r)
 		}
 	}
 	return warnings, nil
@@ -640,14 +637,14 @@ func validateReferences(model *entity.UNMModel) []string {
 		}
 	}
 
-	// capability.realizedBy → services
-	for capName, cap := range model.Capabilities {
-		for _, rel := range cap.RealizedBy {
+	// service.realizes → capabilities
+	for svcName, svc := range model.Services {
+		for _, rel := range svc.Realizes {
 			target := rel.TargetID.String()
-			if _, ok := model.Services[target]; !ok {
+			if _, ok := model.Capabilities[target]; !ok {
 				warnings = append(warnings, fmt.Sprintf(
-					"parser: unresolved reference: capability %q realizedBy %q — service not found",
-					capName, target,
+					"parser: unresolved reference: service %q realizes %q — capability not found",
+					svcName, target,
 				))
 			}
 		}

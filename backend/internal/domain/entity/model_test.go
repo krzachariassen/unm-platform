@@ -74,16 +74,6 @@ func buildTestModel(t *testing.T) *entity.UNMModel {
 	require.NoError(t, err)
 	orderMgmtID, err := valueobject.NewEntityID("OrderManagement")
 	require.NoError(t, err)
-	paySvcID, err := valueobject.NewEntityID("PaymentService")
-	require.NoError(t, err)
-	fraudSvcID, err := valueobject.NewEntityID("FraudService")
-	require.NoError(t, err)
-	orderSvcID, err := valueobject.NewEntityID("OrderService")
-	require.NoError(t, err)
-	searchSvcID, err := valueobject.NewEntityID("SearchService")
-	require.NoError(t, err)
-	multiSvcID, err := valueobject.NewEntityID("MultiCapService")
-	require.NoError(t, err)
 
 	// --- Capabilities ---
 	payments, err := entity.NewCapability("cap-1", "Payments", "Top-level payments capability")
@@ -91,38 +81,29 @@ func buildTestModel(t *testing.T) *entity.UNMModel {
 
 	payProc, err := entity.NewCapability("cap-2", "PaymentProcessing", "Processes payment transactions")
 	require.NoError(t, err)
-	payProc.AddRealizedBy(entity.NewRelationship(paySvcID, "", valueobject.Primary))
-	payProc.AddRealizedBy(entity.NewRelationship(multiSvcID, "", valueobject.Supporting))
 
 	fraud, err := entity.NewCapability("cap-3", "FraudDetection", "Detects fraudulent transactions")
 	require.NoError(t, err)
-	fraud.AddRealizedBy(entity.NewRelationship(fraudSvcID, "", valueobject.Primary))
 
 	orderMgmt, err := entity.NewCapability("cap-4", "OrderManagement", "Manages orders end-to-end")
 	require.NoError(t, err)
-	orderMgmt.AddRealizedBy(entity.NewRelationship(orderSvcID, "", valueobject.Primary))
-	orderMgmt.AddRealizedBy(entity.NewRelationship(multiSvcID, "", valueobject.Supporting))
 
 	discovery, err := entity.NewCapability("cap-5", "Discovery", "Restaurant discovery and search")
 	require.NoError(t, err)
-	discovery.AddRealizedBy(entity.NewRelationship(searchSvcID, "", valueobject.Primary))
 
 	orphanCap, err := entity.NewCapability("cap-6", "OrphanCap", "Capability with no team or service")
 	require.NoError(t, err)
-	// OrphanCap has no RealizedBy — it triggers ErrLeafCapNoService in validator
+	// OrphanCap has no services realizing it — it triggers ErrLeafCapNoService in validator
 
 	// 7 capabilities for BigTeam to trigger overload (> 6)
 	bigCaps := make([]*entity.Capability, 7)
 	for i := range 7 {
-		bigSvcID, err2 := valueobject.NewEntityID("PaymentService") // reuse PaymentService for simplicity
-		require.NoError(t, err2)
 		c, err2 := entity.NewCapability(
 			fmt.Sprintf("big-cap-%d", i),
 			fmt.Sprintf("BigCap%d", i),
 			"Big team capability",
 		)
 		require.NoError(t, err2)
-		c.AddRealizedBy(entity.NewRelationship(bigSvcID, "", valueobject.Primary))
 		bigCaps[i] = c
 	}
 
@@ -152,13 +133,28 @@ func buildTestModel(t *testing.T) *entity.UNMModel {
 	searchSvc, err := entity.NewService("svc-4", "SearchService", "Powers search", "OrderTeam")
 	require.NoError(t, err)
 
-	// OrphanService: not referenced in any cap's RealizedBy → IsOrphan via model query
+	// OrphanService: not realizing any capability → IsOrphan via model query
 	orphanSvc, err := entity.NewService("svc-5", "OrphanService", "No capability support", "PaymentsTeam")
 	require.NoError(t, err)
 
-	// MultiCapService referenced in PaymentProcessing.RealizedBy + OrderManagement.RealizedBy
+	// MultiCapService realizes PaymentProcessing and OrderManagement
 	multiSvc, err := entity.NewService("svc-6", "MultiCapService", "Supports multiple caps", "OrderTeam")
 	require.NoError(t, err)
+
+	// Wire service.Realizes (canonical source of truth for realization)
+	paySvc.AddRealizes(entity.NewRelationship(payProcID, "", valueobject.Primary))
+	multiSvc.AddRealizes(entity.NewRelationship(payProcID, "", valueobject.Supporting))
+	fraudSvc.AddRealizes(entity.NewRelationship(fraudID, "", valueobject.Primary))
+	orderSvc.AddRealizes(entity.NewRelationship(orderMgmtID, "", valueobject.Primary))
+	multiSvc.AddRealizes(entity.NewRelationship(orderMgmtID, "", valueobject.Supporting))
+	discoveryID, _ := valueobject.NewEntityID("Discovery")
+	searchSvc.AddRealizes(entity.NewRelationship(discoveryID, "", valueobject.Primary))
+	// BigCaps all realized by PaymentService (for simplicity)
+	for i, bc := range bigCaps {
+		bigCapID, _ := valueobject.NewEntityID(fmt.Sprintf("BigCap%d", i))
+		paySvc.AddRealizes(entity.NewRelationship(bigCapID, "", valueobject.Primary))
+		_ = bc
+	}
 
 	require.NoError(t, m.AddService(paySvc))
 	require.NoError(t, m.AddService(fraudSvc))
@@ -799,18 +795,26 @@ func TestGetServicesForCapability_NonExistentCap(t *testing.T) {
 }
 
 func TestGetServicesForCapability_DanglingReference(t *testing.T) {
-	// Capability whose RealizedBy references a service not in the Services map
+	// Service whose Realizes references a capability not in the Capabilities map.
 	m := entity.NewUNMModel("Test", "")
-	cap, err := entity.NewCapability("cap-1", "UnboundCap", "")
+	svc, err := entity.NewService("svc-1", "ghost-svc", "", "team-a")
 	require.NoError(t, err)
-	danglingID, err := valueobject.NewEntityID("ghost-service")
+	danglingCapID, err := valueobject.NewEntityID("ghost-cap")
 	require.NoError(t, err)
-	cap.AddRealizedBy(entity.NewRelationship(danglingID, "", valueobject.RelationshipRole("")))
-	require.NoError(t, m.AddCapability(cap))
+	svc.AddRealizes(entity.NewRelationship(danglingCapID, "", valueobject.RelationshipRole("")))
+	require.NoError(t, m.AddService(svc))
 
-	// ghost-service is NOT in m.Services — the inner `if found` branch is false
-	svcs := m.GetServicesForCapability("UnboundCap")
+	// Add a real cap but the service references "ghost-cap" which is NOT in m.Capabilities.
+	realCap, _ := entity.NewCapability("real-cap", "RealCap", "")
+	require.NoError(t, m.AddCapability(realCap))
+
+	// GetServicesForCapability("RealCap") → no services since none realize it
+	svcs := m.GetServicesForCapability("RealCap")
 	assert.Empty(t, svcs)
+
+	// GetCapabilitiesForService("ghost-svc") → ghost-cap not in caps map, so empty
+	caps := m.GetCapabilitiesForService("ghost-svc")
+	assert.Empty(t, caps)
 }
 
 // ── GetDataAssetsForService ───────────────────────────────────────────────────

@@ -1,0 +1,236 @@
+{
+  "bottlenecks": [
+    {
+      "fan_in": 20,
+      "fan_out": 0,
+      "is_critical": true,
+      "is_warning": false,
+      "service": "nexus-core"
+    },
+    {
+      "fan_in": 5,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-publisher"
+    },
+    {
+      "fan_in": 2,
+      "fan_out": 0,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-blob"
+    },
+    {
+      "fan_in": 2,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-cache-worker"
+    },
+    {
+      "fan_in": 2,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-feed-api"
+    },
+    {
+      "fan_in": 1,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-admin"
+    },
+    {
+      "fan_in": 1,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-anomaly-detector"
+    },
+    {
+      "fan_in": 1,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-indexer"
+    },
+    {
+      "fan_in": 1,
+      "fan_out": 0,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-issue-store"
+    },
+    {
+      "fan_in": 1,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-realtime-stats"
+    },
+    {
+      "fan_in": 1,
+      "fan_out": 0,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-registry"
+    },
+    {
+      "fan_in": 1,
+      "fan_out": 0,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-serving"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-async"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-async-writer"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 2,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-backup"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-conversion-worker"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 3,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-enricher"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-entity-builder"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 0,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-feed-adhoc-worker"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 5,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-feed-worker"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 2,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-indexer-worker"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 2,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-mcp"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 2,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-media"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 3,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-publisher-worker"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 0,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-query"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-scrubber"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-serving-gateway"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-serving-ingestor"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-social-ingester"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 0,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-status"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 2,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-tool"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-transformer"
+    },
+    {
+      "fan_in": 0,
+      "fan_out": 1,
+      "is_critical": false,
+      "is_warning": false,
+      "service": "nexus-warehouse-ingester"
+    }
+  ],
+  "type": "bottleneck"
+}

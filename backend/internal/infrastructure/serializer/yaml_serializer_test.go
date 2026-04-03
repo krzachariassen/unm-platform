@@ -41,15 +41,16 @@ func buildExportTestModel(t *testing.T) *entity.UNMModel {
 
 	cap1, _ := entity.NewCapability("cap-one", "Cap One", "First capability")
 	cap1.Visibility = "user-facing"
-	cap1.RealizedBy = append(cap1.RealizedBy, entity.NewRelationship(svcAID, "Main impl", valueobject.Primary))
 	_ = m.AddCapability(cap1)
 
 	cap2, _ := entity.NewCapability("cap-two", "Cap Two", "Second capability")
-	cap2.RealizedBy = append(cap2.RealizedBy, entity.NewRelationship(svcBID, "", ""))
 	_ = m.AddCapability(cap2)
 
-	capOneID, _ := valueobject.NewEntityID("cap-one")
-	capTwoID, _ := valueobject.NewEntityID("cap-two")
+	capOneID, _ := valueobject.NewEntityID("Cap One")
+	capTwoID, _ := valueobject.NewEntityID("Cap Two")
+	svcA.AddRealizes(entity.NewRelationship(capOneID, "Main impl", valueobject.Primary))
+	svcB.AddRealizes(entity.NewRelationship(capTwoID, "", ""))
+	_ = svcAID // suppress unused warning
 	teamA.AddOwns(entity.NewRelationship(capOneID, "", ""))
 	teamB.AddOwns(entity.NewRelationship(capTwoID, "", ""))
 

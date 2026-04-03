@@ -14,6 +14,7 @@ type Service struct {
 	Description   string
 	OwnerTeamName string
 	DependsOn     []Relationship
+	Realizes      []Relationship // capabilities this service realizes (service-side authoring)
 }
 
 // NewService constructs a Service. Returns an error if name is empty.
@@ -31,10 +32,16 @@ func NewService(id, name, description, ownerTeamName string) (*Service, error) {
 		Description:   description,
 		OwnerTeamName: ownerTeamName,
 		DependsOn:     []Relationship{},
+		Realizes:      []Relationship{},
 	}, nil
 }
 
 // AddDependsOn appends a Relationship to DependsOn.
 func (s *Service) AddDependsOn(r Relationship) {
 	s.DependsOn = append(s.DependsOn, r)
+}
+
+// AddRealizes appends a Relationship to Realizes (the capability this service realizes).
+func (s *Service) AddRealizes(r Relationship) {
+	s.Realizes = append(s.Realizes, r)
 }

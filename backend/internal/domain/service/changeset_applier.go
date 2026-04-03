@@ -152,20 +152,22 @@ func applySplitTeam(m *entity.UNMModel, action entity.ChangeAction) error {
 	// If all realizing services go to B, cap goes to B. Otherwise cap goes to A (default).
 	for _, rel := range original.Owns {
 		capName := rel.TargetID.String()
-		cap, capExists := m.Capabilities[capName]
+		_, capExists := m.Capabilities[capName]
 
 		goesToB := false
-		if capExists && len(cap.RealizedBy) > 0 {
-			allB := true
-			for _, rb := range cap.RealizedBy {
-				svcName := rb.TargetID.String()
-				svc, svcExists := m.Services[svcName]
-				if !svcExists || svc.OwnerTeamName != action.NewTeamBName {
-					allB = false
-					break
+		if capExists {
+			// Check if all services realizing this capability go to team B.
+			realizingServices := m.GetServicesForCapability(capName)
+			if len(realizingServices) > 0 {
+				allB := true
+				for _, svc := range realizingServices {
+					if svc.OwnerTeamName != action.NewTeamBName {
+						allB = false
+						break
+					}
 				}
+				goesToB = allB
 			}
-			goesToB = allB
 		}
 
 		if goesToB {
@@ -231,7 +233,6 @@ func applyAddCapability(m *entity.UNMModel, action entity.ChangeAction) error {
 		Name:       action.CapabilityName,
 		Visibility: vis,
 		Children:   []*entity.Capability{},
-		RealizedBy: []entity.Relationship{},
 		DependsOn:  []entity.Relationship{},
 	}
 	cap.DecomposesTo = cap.Children
@@ -372,15 +373,6 @@ func applyRemoveService(m *entity.UNMModel, action entity.ChangeAction) error {
 		return fmt.Errorf("service %q not found", action.ServiceName)
 	}
 	delete(m.Services, action.ServiceName)
-	for _, cap := range m.Capabilities {
-		filtered := make([]entity.Relationship, 0, len(cap.RealizedBy))
-		for _, rel := range cap.RealizedBy {
-			if rel.TargetID.String() != action.ServiceName {
-				filtered = append(filtered, rel)
-			}
-		}
-		cap.RealizedBy = filtered
-	}
 	for _, svc := range m.Services {
 		filtered := make([]entity.Relationship, 0, len(svc.DependsOn))
 		for _, rel := range svc.DependsOn {
@@ -406,13 +398,7 @@ func applyRenameService(m *entity.UNMModel, action entity.ChangeAction) error {
 	svc.Name = action.NewServiceName
 	delete(m.Services, action.ServiceName)
 	m.Services[action.NewServiceName] = svc
-	for _, cap := range m.Capabilities {
-		for i, rel := range cap.RealizedBy {
-			if rel.TargetID.String() == action.ServiceName {
-				cap.RealizedBy[i].TargetID = newID
-			}
-		}
-	}
+	// Note: svc.Realizes uses capability names as targets, not service names, so no update needed.
 	for _, other := range m.Services {
 		for i, rel := range other.DependsOn {
 			if rel.TargetID.String() == action.ServiceName {
@@ -598,34 +584,34 @@ func applyUnlinkNeedCapability(m *entity.UNMModel, action entity.ChangeAction) e
 }
 
 func applyLinkCapabilityService(m *entity.UNMModel, action entity.ChangeAction) error {
-	cap, ok := m.Capabilities[action.CapabilityName]
-	if !ok {
+	if _, ok := m.Capabilities[action.CapabilityName]; !ok {
 		return fmt.Errorf("capability %q not found", action.CapabilityName)
 	}
-	if _, ok := m.Services[action.ServiceName]; !ok {
+	svc, ok := m.Services[action.ServiceName]
+	if !ok {
 		return fmt.Errorf("service %q not found", action.ServiceName)
 	}
-	svcID, _ := valueobject.NewEntityID(action.ServiceName)
+	capID, _ := valueobject.NewEntityID(action.CapabilityName)
 	role, err := valueobject.NewRelationshipRole(action.Role)
 	if err != nil {
 		return err
 	}
-	cap.RealizedBy = append(cap.RealizedBy, entity.NewRelationship(svcID, "", role))
+	svc.AddRealizes(entity.NewRelationship(capID, "", role))
 	return nil
 }
 
 func applyUnlinkCapabilityService(m *entity.UNMModel, action entity.ChangeAction) error {
-	cap, ok := m.Capabilities[action.CapabilityName]
+	svc, ok := m.Services[action.ServiceName]
 	if !ok {
-		return fmt.Errorf("capability %q not found", action.CapabilityName)
+		return fmt.Errorf("service %q not found", action.ServiceName)
 	}
-	filtered := make([]entity.Relationship, 0, len(cap.RealizedBy))
-	for _, rel := range cap.RealizedBy {
-		if rel.TargetID.String() != action.ServiceName {
+	filtered := make([]entity.Relationship, 0, len(svc.Realizes))
+	for _, rel := range svc.Realizes {
+		if rel.TargetID.String() != action.CapabilityName {
 			filtered = append(filtered, rel)
 		}
 	}
-	cap.RealizedBy = filtered
+	svc.Realizes = filtered
 	return nil
 }
 

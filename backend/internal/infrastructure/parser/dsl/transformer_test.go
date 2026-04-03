@@ -600,13 +600,13 @@ signal "Bottleneck" {
 		t.Errorf("expected 1 signal, got %d", len(model.Signals))
 	}
 
-	// Verify relationship role via service.realizes
-	cap := model.Capabilities["Payment Processing"]
-	if len(cap.RealizedBy) != 1 {
-		t.Fatalf("expected 1 realizedBy on Payment Processing, got %d", len(cap.RealizedBy))
+	// Verify relationship role via service.Realizes (canonical source)
+	svc := model.Services["payment-service"]
+	if len(svc.Realizes) != 1 {
+		t.Fatalf("expected 1 realizes on payment-service, got %d", len(svc.Realizes))
 	}
-	if cap.RealizedBy[0].Role.String() != "primary" {
-		t.Errorf("expected role %q, got %q", "primary", cap.RealizedBy[0].Role.String())
+	if svc.Realizes[0].Role.String() != "primary" {
+		t.Errorf("expected role %q, got %q", "primary", svc.Realizes[0].Role.String())
 	}
 }
 
@@ -1003,15 +1003,18 @@ func TestTransform_ServiceRealizes_WiresCapability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	cap, ok := model.Capabilities["Cap A"]
-	if !ok {
+	if _, ok := model.Capabilities["Cap A"]; !ok {
 		t.Fatal("expected 'Cap A' in capabilities")
 	}
-	if len(cap.RealizedBy) != 1 {
-		t.Fatalf("expected 1 realizedBy on Cap A, got %d", len(cap.RealizedBy))
+	svcA, ok := model.Services["my-service"]
+	if !ok {
+		t.Fatal("expected 'my-service' in services")
 	}
-	if cap.RealizedBy[0].TargetID.String() != "my-service" {
-		t.Errorf("expected realizedBy target %q, got %q", "my-service", cap.RealizedBy[0].TargetID.String())
+	if len(svcA.Realizes) != 1 {
+		t.Fatalf("expected 1 realizes on my-service, got %d", len(svcA.Realizes))
+	}
+	if svcA.Realizes[0].TargetID.String() != "Cap A" {
+		t.Errorf("expected realizes target %q, got %q", "Cap A", svcA.Realizes[0].TargetID.String())
 	}
 }
 
@@ -1035,9 +1038,9 @@ func TestTransform_ServiceRealizes_WithRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	cap := model.Capabilities["Cap B"]
-	if cap.RealizedBy[0].Role.String() != "supporting" {
-		t.Errorf("expected role %q, got %q", "supporting", cap.RealizedBy[0].Role.String())
+	svcB := model.Services["svc-b"]
+	if svcB.Realizes[0].Role.String() != "supporting" {
+		t.Errorf("expected role %q, got %q", "supporting", svcB.Realizes[0].Role.String())
 	}
 }
 
@@ -1174,12 +1177,16 @@ team "team-a" {
 		t.Errorf("expected Child Cap to inherit 'domain' visibility, got %q", child.Visibility)
 	}
 
-	// Check realizes wiring
-	if len(root.RealizedBy) != 1 {
-		t.Fatalf("expected 1 realizedBy on Root Cap, got %d", len(root.RealizedBy))
+	// Check realizes wiring (canonical source is service.Realizes)
+	mySvc, ok := model.Services["my-service"]
+	if !ok {
+		t.Fatal("expected 'my-service' in services")
 	}
-	if root.RealizedBy[0].TargetID.String() != "my-service" {
-		t.Errorf("expected realizedBy target %q, got %q", "my-service", root.RealizedBy[0].TargetID.String())
+	if len(mySvc.Realizes) != 1 {
+		t.Fatalf("expected 1 realizes on my-service, got %d", len(mySvc.Realizes))
+	}
+	if mySvc.Realizes[0].TargetID.String() != "Root Cap" {
+		t.Errorf("expected realizes target %q, got %q", "Root Cap", mySvc.Realizes[0].TargetID.String())
 	}
 
 	// Check externalDeps wiring

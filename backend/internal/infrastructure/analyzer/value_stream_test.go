@@ -58,9 +58,9 @@ func TestValueStreamAnalyzer_HighCoherence(t *testing.T) {
 
 	// All caps realized by same service owned by team-alpha
 	svcA := mustService(t, "svc-a", "team-alpha")
-	capA.AddRealizedBy(vsRel(t, "svc-a"))
-	capB.AddRealizedBy(vsRel(t, "svc-a"))
-	capC.AddRealizedBy(vsRel(t, "svc-a"))
+	svcA.AddRealizes(vsRel(t, "cap-a"))
+	svcA.AddRealizes(vsRel(t, "cap-b"))
+	svcA.AddRealizes(vsRel(t, "cap-c"))
 
 	// need-1 → cap-a, cap-b; need-2 → cap-a, cap-c; need-3 → cap-b, cap-c
 	// All pairs share at least one cap → SharedCapEdges = 3, MaxPossible = 3, score = 1.0
@@ -131,9 +131,9 @@ func TestValueStreamAnalyzer_LowCoherence(t *testing.T) {
 	capC := mustCap(t, "cap-c")
 
 	svc := mustService(t, "svc-x", "team-beta")
-	capA.AddRealizedBy(vsRel(t, "svc-x"))
-	capB.AddRealizedBy(vsRel(t, "svc-x"))
-	capC.AddRealizedBy(vsRel(t, "svc-x"))
+	svc.AddRealizes(vsRel(t, "cap-a"))
+	svc.AddRealizes(vsRel(t, "cap-b"))
+	svc.AddRealizes(vsRel(t, "cap-c"))
 
 	need1 := mustNeed(t, "need-1", "actor-1", "")
 	need1.AddSupportedBy(vsRel(t, "cap-a"))
@@ -193,7 +193,7 @@ func TestValueStreamAnalyzer_SingleNeed(t *testing.T) {
 
 	cap := mustCap(t, "cap-a")
 	svc := mustService(t, "svc-1", "team-one")
-	cap.AddRealizedBy(vsRel(t, "svc-1"))
+	svc.AddRealizes(vsRel(t, "cap-a"))
 
 	need := mustNeed(t, "need-1", "actor-1", "")
 	need.AddSupportedBy(vsRel(t, "cap-a"))

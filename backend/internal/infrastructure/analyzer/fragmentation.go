@@ -16,7 +16,7 @@ type FragmentationReport struct {
 // FragmentationAnalyzer finds capabilities whose implementation is fragmented across teams.
 // Two fragmentation patterns are detected:
 //  1. Explicit ownership: capability is listed in team.Owns for more than 2 teams.
-//  2. Realization fragmentation: capability.realizedBy services are owned by more than 1 team.
+//  2. Realization fragmentation: services that realize a capability (via service.Realizes) are owned by more than 1 team.
 type FragmentationAnalyzer struct{}
 
 // NewFragmentationAnalyzer constructs a FragmentationAnalyzer.
@@ -52,12 +52,15 @@ func (a *FragmentationAnalyzer) Analyze(m *entity.UNMModel) FragmentationReport 
 			continue
 		}
 
-		// Pattern 2: realization fragmentation — realizedBy services span > 1 team.
+		// Pattern 2: realization fragmentation — services realizing this cap span > 1 team.
 		teamSet := make(map[string]*entity.Team)
-		for _, rel := range cap.RealizedBy {
-			svcName := rel.TargetID.String()
-			if t, ok := svcTeam[svcName]; ok {
-				teamSet[t.Name] = t
+		for _, svc := range m.Services {
+			for _, rel := range svc.Realizes {
+				if rel.TargetID.String() == name {
+					if t, ok := svcTeam[svc.Name]; ok {
+						teamSet[t.Name] = t
+					}
+				}
 			}
 		}
 		if len(teamSet) > 1 && !seen[name] {

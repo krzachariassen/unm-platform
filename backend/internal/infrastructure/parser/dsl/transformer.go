@@ -254,20 +254,23 @@ func transformServices(model *entity.UNMModel, nodes []*ServiceNode) error {
 	return nil
 }
 
-// wireServiceRealizes wires service.Realizes → capability.RealizedBy (9.3.5).
+// wireServiceRealizes wires service.Realizes → service.Realizes on the domain entity (9.3.5).
 // Must be called after both services and capabilities are in the model.
 // Unresolved references produce a warning in model.Warnings (12.5.1).
 func wireServiceRealizes(model *entity.UNMModel, nodes []*ServiceNode) error {
 	for _, n := range nodes {
+		svc, ok := model.Services[n.Name]
+		if !ok {
+			continue
+		}
 		for _, r := range n.Realizes {
-			cap, ok := model.Capabilities[r.Target]
-			if !ok {
+			if _, capOK := model.Capabilities[r.Target]; !capOK {
 				// Capability not found — emit a warning for diagnostic parity with YAML parser.
 				model.Warnings = append(model.Warnings,
 					fmt.Sprintf("service %q realizes unknown capability %q — reference is unresolved", n.Name, r.Target))
 				continue
 			}
-			targetID, err := valueobject.NewEntityID(n.Name)
+			targetID, err := valueobject.NewEntityID(r.Target)
 			if err != nil {
 				return fmt.Errorf("transform: service %q realizes target ID: %w", n.Name, err)
 			}
@@ -275,7 +278,7 @@ func wireServiceRealizes(model *entity.UNMModel, nodes []*ServiceNode) error {
 			if err != nil {
 				return fmt.Errorf("transform: service %q realizes role: %w", n.Name, err)
 			}
-			cap.AddRealizedBy(entity.NewRelationship(targetID, "", role))
+			svc.AddRealizes(entity.NewRelationship(targetID, "", role))
 		}
 	}
 	return nil

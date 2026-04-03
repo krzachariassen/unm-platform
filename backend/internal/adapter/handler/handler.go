@@ -23,32 +23,72 @@ type insightEntry struct {
 // of positional parameters means tests only construct what they need (zero
 // values are safe defaults) and adding a new dependency is a one-line change.
 type HandlerDeps struct {
-	Config            entity.Config
-	ParseAndValidate  *usecase.ParseAndValidate
+	Config              entity.Config
+	ParseAndValidate    *usecase.ParseAndValidate
 	ParseAndValidateDSL *usecase.ParseAndValidate // nil → built from parser.NewDSLParser() in New()
-	Fragmentation     *analyzer.FragmentationAnalyzer
-	CognitiveLoad     *analyzer.CognitiveLoadAnalyzer
-	Dependency        *analyzer.DependencyAnalyzer
-	Gap               *analyzer.GapAnalyzer
-	Bottleneck        *analyzer.BottleneckAnalyzer
-	Coupling          *analyzer.CouplingAnalyzer
-	Complexity        *analyzer.ComplexityAnalyzer
-	Interactions      *analyzer.InteractionDiversityAnalyzer
-	Unlinked          *analyzer.UnlinkedCapabilityAnalyzer
-	SignalSuggestions *analyzer.SignalSuggestionGenerator
-	ValueChain        *analyzer.ValueChainAnalyzer
-	ValueStream       *analyzer.ValueStreamAnalyzer
-	ChangesetStore    *repository.ChangesetStore
-	ImpactAnalyzer    *analyzer.ImpactAnalyzer
-	AIClient          *ai.OpenAIClient // nil when API key not configured
-	Store             *repository.ModelStore
+	Fragmentation       *analyzer.FragmentationAnalyzer
+	CognitiveLoad       *analyzer.CognitiveLoadAnalyzer
+	Dependency          *analyzer.DependencyAnalyzer
+	Gap                 *analyzer.GapAnalyzer
+	Bottleneck          *analyzer.BottleneckAnalyzer
+	Coupling            *analyzer.CouplingAnalyzer
+	Complexity          *analyzer.ComplexityAnalyzer
+	Interactions        *analyzer.InteractionDiversityAnalyzer
+	Unlinked            *analyzer.UnlinkedCapabilityAnalyzer
+	SignalSuggestions   *analyzer.SignalSuggestionGenerator
+	ValueChain          *analyzer.ValueChainAnalyzer
+	ValueStream         *analyzer.ValueStreamAnalyzer
+	ChangesetStore      *repository.ChangesetStore
+	ImpactAnalyzer      *analyzer.ImpactAnalyzer
+	AIClient            *ai.OpenAIClient // nil when API key not configured
+	Store               *repository.ModelStore
 }
 
-// Handler holds all dependencies for HTTP request handling.
-type Handler struct {
-	cfg               entity.Config
-	parseAndValidate  *usecase.ParseAndValidate
+// modelHandler groups the dependencies needed for model CRUD operations.
+type modelHandler struct {
+	store               *repository.ModelStore
+	parseAndValidate    *usecase.ParseAndValidate
 	parseAndValidateDSL *usecase.ParseAndValidate
+}
+
+// changesetHandler groups the dependencies needed for changeset operations.
+type changesetHandler struct {
+	store          *repository.ModelStore
+	changesetStore *repository.ChangesetStore
+	impactAnalyzer *analyzer.ImpactAnalyzer
+	insightCache   *sync.Map
+	cfg            entity.Config
+}
+
+// viewHandler groups the dependencies needed for view projection.
+type viewHandler struct {
+	store *repository.ModelStore
+	cfg   entity.Config
+}
+
+// aiHandler groups the dependencies needed for AI advisor and insights.
+type aiHandler struct {
+	store          *repository.ModelStore
+	aiClient       *ai.OpenAIClient
+	changesetStore *repository.ChangesetStore
+	promptRenderer *ai.PromptRenderer
+	insightCache   *sync.Map
+	cfg            entity.Config
+}
+
+// Handler is a thin router that holds focused sub-handlers and delegates to them.
+// All HTTP handler methods live in their domain-specific files (model.go, changeset.go, etc.)
+// and access dependencies through the appropriate sub-handler field.
+type Handler struct {
+	cfg entity.Config
+
+	// Sub-handlers — each holds only the deps it needs.
+	model *modelHandler
+	cs    *changesetHandler
+	view  *viewHandler
+	aiH   *aiHandler
+
+	// Analyzers used by signals, analysis, and AI context building.
 	fragmentation     *analyzer.FragmentationAnalyzer
 	cognitiveLoad     *analyzer.CognitiveLoadAnalyzer
 	dependency        *analyzer.DependencyAnalyzer
@@ -61,15 +101,22 @@ type Handler struct {
 	signalSuggestions *analyzer.SignalSuggestionGenerator
 	valueChain        *analyzer.ValueChainAnalyzer
 	valueStream       *analyzer.ValueStreamAnalyzer
-	changesetStore    *repository.ChangesetStore
-	impactAnalyzer    *analyzer.ImpactAnalyzer
-	aiClient          *ai.OpenAIClient // nil when API key not configured
-	store             *repository.ModelStore
-	insightCache      sync.Map // key: "modelId:domain" → insightEntry
+
+	// Convenience accessors delegated to sub-handlers (kept for backward-compat
+	// across handler methods that reference h.store, h.aiClient, etc. directly).
+	store          *repository.ModelStore
+	changesetStore *repository.ChangesetStore
+	impactAnalyzer *analyzer.ImpactAnalyzer
+	aiClient       *ai.OpenAIClient
+	insightCache   sync.Map
 
 	// Singletons built once at startup.
 	promptRenderer *ai.PromptRenderer
 	runner         *usecase.AnalysisRunner
+
+	// parser/validate (kept for direct access in model.go methods).
+	parseAndValidate    *usecase.ParseAndValidate
+	parseAndValidateDSL *usecase.ParseAndValidate
 }
 
 // New constructs a Handler from a HandlerDeps struct.
@@ -78,11 +125,12 @@ func New(deps HandlerDeps) *Handler {
 	if err != nil {
 		log.Fatalf("handler: failed to load prompt library: %v", err)
 	}
+	promptRenderer := ai.NewPromptRenderer(lib)
 
 	h := &Handler{
-		cfg:                 deps.Config,
-		parseAndValidate:    deps.ParseAndValidate,
-		parseAndValidateDSL: deps.ParseAndValidateDSL,
+		cfg: deps.Config,
+
+		// Analyzers (used by signals, analysis, AI context).
 		fragmentation:     deps.Fragmentation,
 		cognitiveLoad:     deps.CognitiveLoad,
 		dependency:        deps.Dependency,
@@ -95,15 +143,50 @@ func New(deps HandlerDeps) *Handler {
 		signalSuggestions: deps.SignalSuggestions,
 		valueChain:        deps.ValueChain,
 		valueStream:       deps.ValueStream,
-		changesetStore:    deps.ChangesetStore,
-		impactAnalyzer:    deps.ImpactAnalyzer,
-		aiClient:          deps.AIClient,
-		store:             deps.Store,
-		promptRenderer:    ai.NewPromptRenderer(lib),
+
+		// Convenience flat accessors (shared across many handlers).
+		store:          deps.Store,
+		changesetStore: deps.ChangesetStore,
+		impactAnalyzer: deps.ImpactAnalyzer,
+		aiClient:       deps.AIClient,
+		promptRenderer: promptRenderer,
+
+		parseAndValidate:    deps.ParseAndValidate,
+		parseAndValidateDSL: deps.ParseAndValidateDSL,
+	}
+
+	// Build sub-handlers by composing from HandlerDeps.
+	h.model = &modelHandler{
+		store:               deps.Store,
+		parseAndValidate:    deps.ParseAndValidate,
+		parseAndValidateDSL: deps.ParseAndValidateDSL,
+	}
+
+	h.cs = &changesetHandler{
+		store:          deps.Store,
+		changesetStore: deps.ChangesetStore,
+		impactAnalyzer: deps.ImpactAnalyzer,
+		insightCache:   &h.insightCache,
+		cfg:            deps.Config,
+	}
+
+	h.view = &viewHandler{
+		store: deps.Store,
+		cfg:   deps.Config,
+	}
+
+	h.aiH = &aiHandler{
+		store:          deps.Store,
+		aiClient:       deps.AIClient,
+		changesetStore: deps.ChangesetStore,
+		promptRenderer: promptRenderer,
+		insightCache:   &h.insightCache,
+		cfg:            deps.Config,
 	}
 
 	if h.parseAndValidateDSL == nil {
 		h.parseAndValidateDSL = usecase.NewParseAndValidate(parser.NewDSLParser(), service.NewValidationEngine())
+		h.model.parseAndValidateDSL = h.parseAndValidateDSL
 	}
 
 	if deps.Fragmentation != nil {
@@ -123,4 +206,3 @@ func New(deps HandlerDeps) *Handler {
 
 	return h
 }
-

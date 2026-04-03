@@ -153,9 +153,9 @@ func TestAIAdvisor_30Questions(t *testing.T) {
 	sort.Slice(teams, func(i, j int) bool { return teams[i].Name < teams[j].Name })
 
 	svcToCaps := make(map[string][]string)
-	for _, cap := range m.Capabilities {
-		for _, rel := range cap.RealizedBy {
-			svcToCaps[rel.TargetID.String()] = append(svcToCaps[rel.TargetID.String()], cap.Name)
+	for _, svc := range m.Services {
+		for _, rel := range svc.Realizes {
+			svcToCaps[svc.Name] = append(svcToCaps[svc.Name], rel.TargetID.String())
 		}
 	}
 	services := make([]serviceSummary, 0, len(m.Services))
@@ -185,9 +185,14 @@ func TestAIAdvisor_30Questions(t *testing.T) {
 				}
 			}
 		}
-		realizingServices := make([]string, 0, len(cap.RealizedBy))
-		for _, rel := range cap.RealizedBy {
-			realizingServices = append(realizingServices, rel.TargetID.String())
+		realizingServices := make([]string, 0)
+		for _, svc := range m.Services {
+			for _, rel := range svc.Realizes {
+				if rel.TargetID.String() == cap.Name {
+					realizingServices = append(realizingServices, svc.Name)
+					break
+				}
+			}
 		}
 		caps = append(caps, capSummary{
 			Name:              cap.Name,

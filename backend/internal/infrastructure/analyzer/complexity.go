@@ -10,7 +10,7 @@ import (
 type ServiceComplexity struct {
 	Service         *entity.Service
 	DependencyScore int // fan-out + fan-in (excluding self-loops)
-	CapabilityScore int // count of capabilities this service appears in via RealizedBy
+	CapabilityScore int // count of capabilities this service realizes (via service.Realizes)
 	DataAssetScore  int // count of data assets this service is involved in
 	TotalComplexity int // DependencyScore*2 + CapabilityScore*3 + DataAssetScore*2
 }
@@ -57,7 +57,7 @@ func (a *ComplexityAnalyzer) Analyze(m *entity.UNMModel) ComplexityReport {
 		}
 		depScore := fanOut + fanIn[svc.Name]
 
-		// CapabilityScore: capabilities that list this service in RealizedBy.
+		// CapabilityScore: capabilities realized by this service (via GetCapabilitiesForService / service.Realizes).
 		capScore := len(m.GetCapabilitiesForService(svc.Name))
 
 		// DataAssetScore: data assets involving this service.
