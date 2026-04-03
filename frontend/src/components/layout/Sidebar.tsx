@@ -1,20 +1,22 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
-  Upload, LayoutDashboard, Map, Users, Layers, AlertCircle, Network,
+  LayoutDashboard, Map, Users, Layers, AlertCircle, Network,
   FlaskConical, Bot, FileText, ChevronLeft, ChevronRight, Database, History,
+  Settings, ArrowLeftRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useModel } from '@/lib/model-context'
 import { useAIEnabled } from '@/hooks/useAIEnabled'
+import { useWorkspace } from '@/lib/workspace-context'
 
 const NAV_SECTIONS = [
   {
-    label: 'Model',
+    label: 'Workspace',
     items: [
-      { to: '/', label: 'Upload', icon: Upload, always: true, ai: false },
+      { to: '/workspace', label: 'Dashboard', icon: LayoutDashboard, always: true, ai: false },
       { to: '/models', label: 'All Models', icon: Database, always: true, ai: false },
-      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, always: false, ai: false },
+      { to: '/dashboard', label: 'Model View', icon: LayoutDashboard, always: false, ai: false },
     ],
   },
   {
@@ -41,12 +43,22 @@ const NAV_SECTIONS = [
       { to: '/advisor', label: 'Advisor', icon: Bot, always: false, ai: true },
     ],
   },
+  {
+    label: 'Settings',
+    items: [
+      { to: '/settings/workspace', label: 'Workspace', icon: Settings, always: true, ai: false },
+      { to: '/settings/org', label: 'Organisation', icon: Settings, always: true, ai: false },
+    ],
+  },
 ]
 
 export function Sidebar() {
   const { modelId } = useModel()
   const aiEnabled = useAIEnabled()
   const [collapsed, setCollapsed] = useState(false)
+  const { workspace, org, workspaces } = useWorkspace()
+
+  const hasMultipleWorkspaces = workspaces.length > 1
 
   return (
     <aside
@@ -60,7 +72,11 @@ export function Sidebar() {
         {!collapsed && (
           <div className="flex flex-col min-w-0">
             <span className="text-sm font-semibold text-foreground truncate">UNM Platform</span>
-            <span className="text-xs text-muted-foreground mt-0.5">Architecture Explorer</span>
+            {workspace ? (
+              <span className="text-xs text-muted-foreground mt-0.5 truncate">{workspace.name}</span>
+            ) : (
+              <span className="text-xs text-muted-foreground mt-0.5">Architecture Explorer</span>
+            )}
           </div>
         )}
         <button
@@ -75,6 +91,27 @@ export function Sidebar() {
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
+
+      {/* Workspace label + switch link */}
+      {!collapsed && workspace && org && (
+        <div className="px-4 py-2.5 border-b border-border/60 bg-muted/20">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+            {org.name}
+          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-foreground truncate">{workspace.name}</p>
+            {hasMultipleWorkspaces && (
+              <NavLink
+                to="/settings/workspace"
+                title="Switch workspace"
+                className="ml-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ArrowLeftRight className="w-3 h-3" />
+              </NavLink>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-4">
@@ -112,7 +149,7 @@ export function Sidebar() {
                     <NavLink
                       key={to}
                       to={to}
-                      end={to === '/'}
+                      end={to === '/workspace' || to === '/'}
                       title={collapsed ? label : undefined}
                       className={({ isActive }) =>
                         cn(

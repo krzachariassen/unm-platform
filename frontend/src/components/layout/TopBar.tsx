@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, X, Download, Loader2 } from 'lucide-react'
+import { Search, X, Download, Loader2, ChevronRight } from 'lucide-react'
 import { useModel } from '@/lib/model-context'
 import { useSearch } from '@/lib/search-context'
 import { useChangeset } from '@/lib/changeset-context'
 import { usePageTabs } from '@/lib/page-tabs-context'
+import { useWorkspace } from '@/lib/workspace-context'
 import { ReviewDialog } from '@/components/changeset/ReviewDialog'
 import { modelsApi } from '@/services/api'
 import { cn } from '@/lib/utils'
@@ -14,6 +15,7 @@ export function TopBar() {
   const { query, setQuery } = useSearch()
   const { actions } = useChangeset()
   const { tabs } = usePageTabs()
+  const { org, workspace } = useWorkspace()
 
   const [searchParams, setSearchParams] = useSearchParams()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -60,13 +62,23 @@ export function TopBar() {
 
   return (
     <header className="shrink-0 bg-background border-b border-border">
-      {/* Row 1 — model identity + actions */}
+      {/* Row 1 — breadcrumb + model identity + actions */}
       <div className="flex items-center h-14 px-5 gap-3">
+        {/* Breadcrumb: OrgName › WorkspaceName */}
+        {org && workspace && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0 mr-1">
+            <span className="truncate max-w-[120px]">{org.name}</span>
+            <ChevronRight className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate max-w-[120px] font-medium text-foreground">{workspace.name}</span>
+            {parseResult && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+          </div>
+        )}
+
         {parseResult ? (
-          <div className="flex items-center gap-2.5">
-            <span className="text-base font-bold text-foreground">{parseResult.system_name}</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-base font-bold text-foreground truncate">{parseResult.system_name}</span>
             <span className={cn(
-              'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold',
+              'inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0',
               parseResult.validation.is_valid
                 ? 'bg-green-100 text-green-700'
                 : 'bg-red-100 text-red-700'
@@ -74,13 +86,16 @@ export function TopBar() {
               {parseResult.validation.is_valid ? 'Valid' : 'Invalid'}
             </span>
             {parseResult.validation.warnings.length > 0 && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700">
-                {parseResult.validation.warnings.length} {parseResult.validation.warnings.length === 1 ? 'warning' : 'warnings'}
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 shrink-0">
+                {parseResult.validation.warnings.length}{' '}
+                {parseResult.validation.warnings.length === 1 ? 'warning' : 'warnings'}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">No model loaded</span>
+          !org && !workspace && (
+            <span className="text-sm text-muted-foreground">No model loaded</span>
+          )
         )}
 
         <div className="flex items-center gap-3 ml-auto">
